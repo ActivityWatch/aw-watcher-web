@@ -9,8 +9,17 @@
     "default_icon": "icon.png",
     "default_popup": "popup.html"
   },
+
+  "background": {
+    "scripts": ["eventPage.js"],
+    "persistent": false
+  },
+
   "permissions": [
+    "tabs",
+    "alarms",
     "activeTab",
-    "https://ajax.googleapis.com/"
+    "http://127.0.0.1:5600/",
+    "http://127.0.0.1:5666/"
   ]
 }

@@ -1,14 +1,9 @@
-// Copyright (c) 2014 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 "use strict";
+
+var testing = true;
 
 /**
  * Get the current URL.
- *
- * @param {function(string)} callback - called when the URL of the current tab
- *   is found.
  */
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
@@ -19,83 +14,79 @@ function getCurrentTabs(callback) {
   };
 
   chrome.tabs.query(queryInfo, function(tabs) {
+    // TODO: Won't necessarily work when code is run as a background plugin instead of as a popup
     // chrome.tabs.query invokes the callback with a list of tabs that match the
     // query. When the popup is opened, there is certainly a window and at least
     // one tab, so we can safely assume that |tabs| is a non-empty array.
     // A window can only have one active tab at a time, so the array consists of
     // exactly one tab.
     callback(tabs);
-
-    /*
-    var tab = tabs[0];
-
-    // A tab is a plain object that provides information about the tab.
-    // See https://developer.chrome.com/extensions/tabs#type-Tab
-    var url = tab.url;
-
-    // tab.url is only available if the "activeTab" permission is declared.
-    // If you want to see the URL of other tabs (e.g. after removing active:true
-    // from |queryInfo|), then the "tabs" permission is required to see their
-    // "url" properties.
-    console.assert(typeof url === 'string', 'tab.url should be a string');
-
-    callback(url);
-    */
   });
-
-  // Most methods of the Chrome extension APIs are asynchronous. This means that
-  // you CANNOT do something like this:
-  //
-  // var url;
-  // chrome.tabs.query(queryInfo, function(tabs) {
-  //   url = tabs[0].url;
-  // });
-  // alert(url); // Shows "undefined", because chrome.tabs.query is async.
-}
-
-/**
- * @param {string} searchTerm - Search term for Google Image search.
- * @param {function(string,number,number)} callback - Called when an image has
- *   been found. The callback gets the URL, width and height of the image.
- * @param {function(string)} errorCallback - Called when the image is not found.
- *   The callback gets a string that describes the failure reason.
- */
-function getImageUrl(searchTerm, callback, errorCallback) {
-  // Google image search - 100 searches per day.
-  // https://developers.google.com/image-search/
-  var searchUrl = 'https://ajax.googleapis.com/ajax/services/search/images' +
-    '?v=1.0&q=' + encodeURIComponent(searchTerm);
-  var x = new XMLHttpRequest();
-  x.open('GET', searchUrl);
-  // The Google image search API responds with JSON, so let Chrome parse it.
-  x.responseType = 'json';
-  x.onload = function() {
-    // Parse and process the response from Google Image Search.
-    var response = x.response;
-    if (!response || !response.responseData || !response.responseData.results ||
-        response.responseData.results.length === 0) {
-      errorCallback('No response from Google Image search!');
-      return;
-    }
-    var firstResult = response.responseData.results[0];
-    // Take the thumbnail instead of the full image to get an approximately
-    // consistent image size.
-    var imageUrl = firstResult.tbUrl;
-    var width = parseInt(firstResult.tbWidth);
-    var height = parseInt(firstResult.tbHeight);
-    console.assert(
-        typeof imageUrl === 'string' && !isNaN(width) && !isNaN(height),
-        'Unexpected respose from the Google Image Search API!');
-    callback(imageUrl, width, height);
-  };
-  x.onerror = function() {
-    errorCallback('Network error.');
-  };
-  x.send();
 }
 
 function renderStatus(statusText) {
   document.getElementById('status').textContent = statusText;
+}
+
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    //activeInfo.tabId;
+    //activeInfo.windowId;
+
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+        console.log(JSON.stringify(tab));
+    });
+});
+
+function getHost() {
+    if(testing) {
+        return "http://127.0.0.1:5666/";
+    } else {
+        return "http://127.0.0.1:5600/";
+    }
+}
+
+function createBucket() {
+    // TODO: We might want to get the hostname somehow, maybe like this:
+    // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
+    var payload = {
+      "client": "string",
+      "hostname": "string",
+      "type": "string"
+    };
+    var bucket_id = "aw-watcher-web-test";
+
+    var host = getHost();
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", host + "api/0/buckets/" + bucket_id, true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        // JSON.parse does not evaluate the attacker's scripts.
+        var resp = JSON.parse(xhr.responseText);
+        console.log(resp);
+        console.log("bucket should have been created");
+      } else {
+          console.log("xhr.readyState was not === 4");
+      }
+    };
+    xhr.send(JSON.stringify(payload));
+}
+
+function sendHeartbeat(timestamp, labels) {
+    var host = getHost();
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", host + "api/bucket/aw-watcher-web-test/heartbeat", true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        // JSON.parse does not evaluate the attacker's scripts.
+        var resp = JSON.parse(xhr.responseText);
+        console.log(resp);
+      } else {
+          console.log("xhr.readyState was not === 4");
+      }
+    };
+    xhr.send(JSON.stringify({"label": labels, "timestamp": [timestamp]}));
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -108,24 +99,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     renderStatus(text);
-    /*
-    getImageUrl(url, function(imageUrl, width, height) {
-
-      renderStatus('')
-          'Google image search result: ' + imageUrl);
-      var imageResult = document.getElementById('image-result');
-      // Explicitly set the width/height to minimize the number of reflows. For
-      // a single image, this does not matter, but if you're going to embed
-      // multiple external images in your page, then the absence of width/height
-      // attributes causes the popup to resize multiple times.
-      imageResult.width = width;
-      imageResult.height = height;
-      imageResult.src = imageUrl;
-      imageResult.hidden = false;
-
-    }, function(errorMessage) {
-      renderStatus('Cannot display image. ' + errorMessage);
-    });
-    */
   });
+
+  //createBucket();
+  sendHeartbeat(["test"], new Date().toISOString());
 });

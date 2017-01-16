@@ -11,7 +11,10 @@
   },
 
   "background": {
-    "scripts": ["eventPage.js"],
+    "scripts": [
+        "client.js",
+        "eventPage.js"
+    ],
     "persistent": false
   },
 

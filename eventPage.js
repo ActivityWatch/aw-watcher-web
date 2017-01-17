@@ -1,3 +1,9 @@
+/*
+ * This code uses event pages, a special webextension thingy documented here:
+ * https://developer.chrome.com/extensions/event_pages
+ */
+
+
 "use strict";
 
 client.createBucket();

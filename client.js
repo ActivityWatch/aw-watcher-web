@@ -1,11 +1,5 @@
 "use strict";
 
-console.log("Loading client.js");
-
-function set_error(msg, info){
-    console.error(msg+": "+info)
-}
-
 var client = {
   testing: true,
   _getHost: function(){
@@ -20,7 +14,7 @@ var client = {
     // TODO: We might want to get the hostname somehow, maybe like this:
     // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
     var payload = {
-      "client": "aw-watcher-webui",
+      "client": "aw-watcher-web",
       "hostname": "unknown",
       "type": "current_webpage"
     };
@@ -41,7 +35,7 @@ var client = {
           console.log("Bucket already created");
         }
         else {
-          set_error("Couldn't connect to server", xhr.status);
+          console.error("Couldn't connect to server: "+ xhr.status);
         }
       }
     };

@@ -43,9 +43,6 @@ var client = {
   },
 
   sendHeartbeat: function(timestamp, labels, pulsetime) {
-    if(pulsetime === undefined) {
-      pulsetime = 60;
-    }
     var host = this._getHost();
     var xhr = new XMLHttpRequest();
     xhr.open("POST", host + "api/0/buckets/aw-watcher-web-test/heartbeat?pulsetime=" + pulsetime, true);

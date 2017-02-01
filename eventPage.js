@@ -8,6 +8,8 @@
 
 client.createBucket();
 
+// NOTE: Pulsetimes less than 60 wont work when not in developer mode.
+var PULSETIME = 5; // in seconds
 
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
@@ -29,14 +31,19 @@ function getCurrentTabs(callback) {
 }
 
 function heartbeat(tab) {
+    // FIXME: For whatever reason doesn't work if I don't hover with the mouse
+    // Steps to reproduce:
+    //  - focus another window
+    //  - switch to Chrome using the keyboard
+    //  - use keyboard shortcuts in Chrome to switch tabs etc.
     getCurrentTabs(function(tabs) {
         if(tabs.length >= 1) {
             var tab = tabs[0];
             var now = new Date().toISOString();
             console.log(JSON.stringify(tab));
-            client.sendHeartbeat(now, ["url:" + tab.url, "title:" + tab.title]);
+            client.sendHeartbeat(now, ["url:" + tab.url, "title:" + tab.title], PULSETIME+0.5);
         } else {
-            console.error("tabs had length < 0");
+            console.log("No active tab");
         }
     });
     create_heartbeat_alarm();
@@ -53,8 +60,8 @@ function create_heartbeat_alarm() {
     // fire for at least 1 minute.
     // TODO: `when` must be at least one minute in the future when not in developer mode, the
     // alternative is to abandon event pages, which isn't recommended by Chrome devs.
-    var when = new Date().valueOf() + 5*1000;
-    console.log(when);
+    var when = new Date().valueOf() + PULSETIME*1000;
+    // console.log(when);
     chrome.alarms.create("heartbeat", {"when": when});
 }
 

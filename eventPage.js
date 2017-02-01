@@ -29,9 +29,33 @@ function getCurrentTabs(callback) {
 }
 
 function heartbeat(tab) {
-    var now = new Date().toISOString();
-    console.log(JSON.stringify(tab));
-    client.sendHeartbeat(now, ["url:" + tab.url, "title:" + tab.title]);
+    getCurrentTabs(function(tabs) {
+        if(tabs.length >= 1) {
+            var tab = tabs[0];
+            var now = new Date().toISOString();
+            console.log(JSON.stringify(tab));
+            client.sendHeartbeat(now, ["url:" + tab.url, "title:" + tab.title]);
+        } else {
+            console.error("tabs had length < 0");
+        }
+    });
+    create_heartbeat_alarm();
+}
+
+function create_heartbeat_alarm() {
+    // Creates a alarm for the next heartbeat.
+    // An already existing alarm will be replaced.
+
+    // NOTE: In order to reduce the load on the user's machine, Chrome limits alarms to at most once
+    // every 1 minute but may delay them an arbitrary amount more. That is, setting delayInMinutes
+    // or periodInMinutes to less than 1 will not be honored and will cause a warning. when can be
+    // set to less than 1 minute after "now" without warning but won't actually cause the alarm to
+    // fire for at least 1 minute.
+    // TODO: `when` must be at least one minute in the future when not in developer mode, the
+    // alternative is to abandon event pages, which isn't recommended by Chrome devs.
+    var when = new Date().valueOf() + 5*1000;
+    console.log(when);
+    chrome.alarms.create("heartbeat", {"when": when});
 }
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
@@ -42,22 +66,8 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	if(alarm.name === "heartbeat") {
-      getCurrentTabs(function(tabs) {
-        if(tabs.length >= 1) {
-          heartbeat(tabs[0]);
-        } else {
-          console.error("tabs had length < 0");
-        }
-      });
-
-      // In order to reduce the load on the user's machine, Chrome limits alarms to at most once
-      // every 1 minute but may delay them an arbitrary amount more. That is, setting delayInMinutes
-      // or periodInMinutes to less than 1 will not be honored and will cause a warning. when can be
-      // set to less than 1 minute after "now" without warning but won't actually cause the alarm to
-      // fire for at least 1 minute.
-      // TODO: `when` must be at least one minute in the future when not in developer mode
-      var when = new Date().valueOf() + 5*1000;
-      console.log(when);
-      chrome.alarms.create("heartbeat", {"when": when});
+        heartbeat()
 	}
 });
+
+heartbeat();

@@ -33,8 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     renderStatus("ActivityWatch ready to watch");
     // Debug info
     var text = "";
+    text += "Number of active tabs: " + tabs.length + "\n";
+    text += "Tabs:\n";
     for (var i = 0; i < tabs.length; i++) {
-        text += JSON.stringify(tabs[i], null, 4);
+        text += JSON.stringify(tabs[i], null, 4) + "\n";
     }
     renderDebug(text);
   });

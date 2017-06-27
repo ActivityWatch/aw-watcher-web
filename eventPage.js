@@ -29,23 +29,23 @@ function getCurrentTabs(callback) {
 var last_heartbeat_data = null;
 
 function heartbeat(tab) {
-    var now = new Date();
+  var now = new Date();
 
-    if(last_heartbeat_data) {
-        client.sendHeartbeat(now, last_heartbeat_data)
-    }
+  if(last_heartbeat_data) {
+    client.sendHeartbeat(now, last_heartbeat_data)
+  }
 
-    console.log(JSON.stringify(tab));
-    var data = {"url": tab.url, "title": tab.title}
-    client.sendHeartbeat(now, data);
-    last_heartbeat_data = data
+  console.log(JSON.stringify(tab));
+  var data = {"url": tab.url, "title": tab.title}
+  client.sendHeartbeat(now, data);
+  last_heartbeat_data = data
 }
 
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    chrome.tabs.get(activeInfo.tabId, function(tab) {
-      heartbeat(tab);
-    });
+  chrome.tabs.get(activeInfo.tabId, function(tab) {
+    heartbeat(tab);
+  });
 });
 
 function createAlarm() {
@@ -66,15 +66,15 @@ function createAlarm() {
 }
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
-	if(alarm.name === "heartbeat") {
-      getCurrentTabs(function(tabs) {
-        if(tabs.length >= 1) {
-          heartbeat(tabs[0]);
-        } else {
-          console.error("tabs had length < 0");
-        }
-      });
-	}
+  if(alarm.name === "heartbeat") {
+    getCurrentTabs(function(tabs) {
+      if(tabs.length >= 1) {
+        heartbeat(tabs[0]);
+      } else {
+        console.error("tabs had length < 0");
+      }
+    });
+  }
   // This does not have to be called every time, instead one could call chrome.alarms.create with
   // different arguments for more timer-like behavior.
   createAlarm();

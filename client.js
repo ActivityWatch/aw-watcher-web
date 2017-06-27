@@ -16,7 +16,7 @@ var client = {
     var payload = {
       "client": "aw-watcher-web",
       "hostname": "unknown",
-      "type": "current_webpage"
+      "type": "web.tab.current"
     };
     var bucket_id = "aw-watcher-web-test";
 
@@ -42,7 +42,7 @@ var client = {
     xhr.send(JSON.stringify(payload));
   },
 
-  sendHeartbeat: function(timestamp, labels, pulsetime) {
+  sendHeartbeat: function(timestamp, data, pulsetime) {
     if(pulsetime === undefined) {
       pulsetime = 60;
     }
@@ -51,14 +51,13 @@ var client = {
     xhr.open("POST", host + "api/0/buckets/aw-watcher-web-test/heartbeat?pulsetime=" + pulsetime, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
     xhr.onreadystatechange = function() {
+      // xhr.readyState === 4 means DONE with request
       if (xhr.readyState === 4) {
-        if (xhr.status > 0){
-          var resp = JSON.parse(xhr.responseText);
-          console.log(resp);
-        }
+        console.log("Status code: " + xhr.status + ", response: " + xhr.responseText);
       }
     };
-    xhr.send(JSON.stringify({"label": labels, "timestamp": [timestamp]}));
-    console.log("Sent heartbeat");
+    var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()})
+    console.log("Sending heartbeat: " + payload);
+    xhr.send(payload);
   }
 }

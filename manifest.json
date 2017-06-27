@@ -10,13 +10,13 @@
 
   "browser_action": {
     "default_icon": "media/logo/logo.png",
-    "default_popup": "popup.html"
+    "default_popup": "app/popup.html"
   },
 
   "background": {
     "scripts": [
-        "client.js",
-        "eventPage.js"
+        "app/client.js",
+        "app/eventPage.js"
     ],
     "persistent": false
   },

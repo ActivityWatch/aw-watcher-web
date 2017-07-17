@@ -21,8 +21,9 @@ var client = {
     var bucket_id = "aw-watcher-web-test";
 
     var host = this._getHost();
+    var url = host + "api/0/buckets/" + bucket_id;
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", host + "api/0/buckets/" + bucket_id, true);
+    xhr.open("POST", url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -43,21 +44,20 @@ var client = {
   },
 
   sendHeartbeat: function(timestamp, data, pulsetime) {
-    if(pulsetime === undefined) {
-      pulsetime = 60;
-    }
     var host = this._getHost();
+    var url = host + "api/0/buckets/aw-watcher-web-test/heartbeat?pulsetime=" + pulsetime;
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", host + "api/0/buckets/aw-watcher-web-test/heartbeat?pulsetime=" + pulsetime, true);
+    xhr.open("POST", url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
     xhr.onreadystatechange = function() {
       // xhr.readyState === 4 means DONE with request
       if (xhr.readyState === 4) {
-        console.log("Status code: " + xhr.status + ", response: " + xhr.responseText);
+        if (xhr.status != 200){
+          console.error("Status code: " + xhr.status + ", response: " + xhr.responseText);
+        }
       }
     };
     var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()})
-    console.log("Sending heartbeat: " + payload);
     xhr.send(payload);
   }
 }

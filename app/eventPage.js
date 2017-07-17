@@ -7,6 +7,9 @@
 "use strict";
 
 
+var heartbeat_interval = 60;
+
+
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
@@ -32,12 +35,12 @@ function heartbeat(tab) {
   var now = new Date();
 
   if(last_heartbeat_data) {
-    client.sendHeartbeat(now, last_heartbeat_data)
+    client.sendHeartbeat(now, last_heartbeat_data, heartbeat_interval)
   }
 
-  console.log(JSON.stringify(tab));
+  //console.log(JSON.stringify(tab));
   var data = {"url": tab.url, "title": tab.title}
-  client.sendHeartbeat(now, data);
+  client.sendHeartbeat(now, data, heartbeat_interval);
   last_heartbeat_data = data
 }
 
@@ -58,7 +61,7 @@ function createAlarm() {
   // Should be true if running unpacked
   var DEVELOPER_MODE = true;
 
-  var interval = DEVELOPER_MODE ? 1 : 60;
+  var interval = DEVELOPER_MODE ? 1 : heartbeat_interval;
 
   // `when` must be at least one minute in the future when not in developer mode
   var when = Date.now() + interval*1000;

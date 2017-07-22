@@ -6,8 +6,10 @@
 
 "use strict";
 
-
-var heartbeat_interval = 60;
+// Mininum guaranteed in chrome is 1min
+var check_interval_s = 5;
+var heartbeat_interval_s = 20;
+var heartbeat_pulsetime_s = heartbeat_interval_s + check_interval_s;
 
 
 function getCurrentTabs(callback) {
@@ -30,41 +32,37 @@ function getCurrentTabs(callback) {
 }
 
 var last_heartbeat_data = null;
+var last_heartbeat_time = null;
 
 function heartbeat(tab) {
-  var now = new Date();
-
-  if(last_heartbeat_data) {
-    client.sendHeartbeat(now, last_heartbeat_data, heartbeat_interval)
-  }
-
   //console.log(JSON.stringify(tab));
+  var now = new Date();
   var data = {"url": tab.url, "title": tab.title}
-  client.sendHeartbeat(now, data, heartbeat_interval);
-  last_heartbeat_data = data
+  // First heartbeat on startup
+  if (last_heartbeat_time === null){
+    console.log("aw-watcher-web: First");
+    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
+    last_heartbeat_data = data
+    last_heartbeat_time = now
+  }
+  // Any tab data has changed, finish previous event and insert new event
+  else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
+    console.log("aw-watcher-web: Change");
+    client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime_s)
+    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
+    last_heartbeat_data = data
+    last_heartbeat_time = now
+  }
+  // If heartbeat interval has benn exceeded
+  else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval_s*1000)) < now){
+    console.log("aw-watcher-web: Update");
+    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
+    last_heartbeat_time = now
+  }
 }
 
-
-chrome.tabs.onActivated.addListener(function(activeInfo) {
-  chrome.tabs.get(activeInfo.tabId, function(tab) {
-    heartbeat(tab);
-  });
-});
-
 function createAlarm() {
-  // In order to reduce the load on the user's machine, Chrome limits alarms to at most once
-  // every 1 minute but may delay them an arbitrary amount more. That is, setting delayInMinutes
-  // or periodInMinutes to less than 1 will not be honored and will cause a warning. when can be
-  // set to less than 1 minute after "now" without warning but won't actually cause the alarm to
-  // fire for at least 1 minute.
-
-  // Should be true if running unpacked
-  var DEVELOPER_MODE = true;
-
-  var interval = DEVELOPER_MODE ? 1 : heartbeat_interval;
-
-  // `when` must be at least one minute in the future when not in developer mode
-  var when = Date.now() + interval*1000;
+  var when = Date.now() + (check_interval_s*1000);
   chrome.alarms.create("heartbeat", {"when": when});
 }
 
@@ -76,15 +74,19 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
       } else {
         console.error("tabs had length < 0");
       }
+      createAlarm();
     });
   }
-  // This does not have to be called every time, instead one could call chrome.alarms.create with
-  // different arguments for more timer-like behavior.
-  createAlarm();
 });
 
 
 (function() {
   client.createBucket();
   createAlarm();
+  // Fires when the active tab in a window changes
+  chrome.tabs.onActivated.addListener(function(activeInfo) {
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+      heartbeat(tab);
+    });
+  });
 })();

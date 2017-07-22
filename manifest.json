@@ -13,6 +13,13 @@
     "default_popup": "app/popup.html"
   },
 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "48.0",
+      "strict_max_version": "*"
+    }
+  },
+
   "background": {
     "scripts": [
         "app/client.js",

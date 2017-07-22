@@ -7,9 +7,10 @@
 "use strict";
 
 // Mininum guaranteed in chrome is 1min
-var check_interval_s = 5;
-var heartbeat_interval_s = 20;
-var heartbeat_pulsetime_s = heartbeat_interval_s + check_interval_s;
+var check_interval = 5;
+var max_check_interval = 60;
+var heartbeat_interval = 20;
+var heartbeat_pulsetime = heartbeat_interval + max_check_interval;
 
 
 function getCurrentTabs(callback) {
@@ -37,32 +38,32 @@ var last_heartbeat_time = null;
 function heartbeat(tab) {
   //console.log(JSON.stringify(tab));
   var now = new Date();
-  var data = {"url": tab.url, "title": tab.title}
+  var data = {"url": tab.url, "title": tab.title};
   // First heartbeat on startup
   if (last_heartbeat_time === null){
     console.log("aw-watcher-web: First");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
-    last_heartbeat_data = data
-    last_heartbeat_time = now
+    client.sendHeartbeat(now, data, heartbeat_pulsetime);
+    last_heartbeat_data = data;
+    last_heartbeat_time = now;
   }
   // Any tab data has changed, finish previous event and insert new event
   else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
     console.log("aw-watcher-web: Change");
-    client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime_s)
-    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
-    last_heartbeat_data = data
-    last_heartbeat_time = now
+    client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime);
+    client.sendHeartbeat(now, data, heartbeat_pulsetime);
+    last_heartbeat_data = data;
+    last_heartbeat_time = now;
   }
   // If heartbeat interval has benn exceeded
-  else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval_s*1000)) < now){
+  else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval*1000)) < now){
     console.log("aw-watcher-web: Update");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime_s)
-    last_heartbeat_time = now
+    client.sendHeartbeat(now, data, heartbeat_pulsetime);
+    last_heartbeat_time = now;
   }
 }
 
 function createAlarm() {
-  var when = Date.now() + (check_interval_s*1000);
+  var when = Date.now() + (check_interval*1000);
   chrome.alarms.create("heartbeat", {"when": when});
 }
 

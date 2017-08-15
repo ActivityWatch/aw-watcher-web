@@ -38,7 +38,7 @@ var last_heartbeat_time = null;
 function heartbeat(tab) {
   //console.log(JSON.stringify(tab));
   var now = new Date();
-  var data = {"url": tab.url, "title": tab.title};
+  var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito};
   // First heartbeat on startup
   if (last_heartbeat_time === null){
     console.log("aw-watcher-web: First");

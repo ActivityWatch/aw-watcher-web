@@ -1,7 +1,7 @@
 "use strict";
 
 var client = {
-  testing: true,
+  testing: false,
   _getHost: function(){
     if(this.testing) {
       return "http://127.0.0.1:5666/";

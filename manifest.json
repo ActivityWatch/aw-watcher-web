@@ -3,7 +3,7 @@
 
   "name": "ActivityWatch Web Watcher",
   "description": "This extension logs the current tab and your browser activity to ActivityWatch.",
-  "version": "0.1",
+  "version": "0.1.1",
   "icons": {
     "128": "media/logo/logo.png"
   },
@@ -15,8 +15,7 @@
 
   "applications": {
     "gecko": {
-      "strict_min_version": "48.0",
-      "strict_max_version": "*"
+      "strict_min_version": "48.0"
     }
   },
 

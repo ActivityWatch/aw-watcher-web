@@ -10,6 +10,12 @@ var client = {
     }
   },
 
+  getBucketId: function() {
+    // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
+    var browserName = /(Chrome|Firefox)\/([0-9.]+)/.exec(navigator.userAgent)[1];
+    return "aw-watcher-web-" + browserName.toLowerCase();
+  },
+
   createBucket: function(){
     // TODO: We might want to get the hostname somehow, maybe like this:
     // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
@@ -18,7 +24,8 @@ var client = {
       "hostname": "unknown",
       "type": "web.tab.current"
     };
-    var bucket_id = "aw-watcher-web-test";
+
+    var bucket_id = client.getBucketId();
 
     var host = this._getHost();
     var url = host + "api/0/buckets/" + bucket_id;
@@ -45,7 +52,7 @@ var client = {
 
   sendHeartbeat: function(timestamp, data, pulsetime) {
     var host = this._getHost();
-    var url = host + "api/0/buckets/aw-watcher-web-test/heartbeat?pulsetime=" + pulsetime;
+    var url = host + "api/0/buckets/" + client.getBucketId() + "/heartbeat?pulsetime=" + pulsetime;
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');

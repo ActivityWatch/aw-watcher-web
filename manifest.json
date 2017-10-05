@@ -3,7 +3,7 @@
 
   "name": "ActivityWatch Web Watcher",
   "description": "This extension logs the current tab and your browser activity to ActivityWatch.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "icons": {
     "128": "media/logo/logo.png"
   },
@@ -31,7 +31,7 @@
     "tabs",
     "alarms",
     "activeTab",
-    "http://127.0.0.1:5600/",
-    "http://127.0.0.1:5666/"
+    "http://127.0.0.1:5600/api/*",
+    "http://127.0.0.1:5666/api/*"
   ]
 }

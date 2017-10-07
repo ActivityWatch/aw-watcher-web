@@ -73,7 +73,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
       if(tabs.length >= 1) {
         heartbeat(tabs[0]);
       } else {
-        console.error("tabs had length < 0");
+        console.log("tabs had length < 0");
       }
       createAlarm();
     });

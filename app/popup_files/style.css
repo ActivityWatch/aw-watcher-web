@@ -4,6 +4,24 @@ body {
   width: 25em;
 }
 
+hr {
+  border: 1px solid #DDD;
+}
+
+a {
+  text-decoration: none;
+}
+
+.button {
+  display: inline-block;
+  color: #333333;
+  padding: 0.5em;
+  margin: 0.5em 0 0.5em 0.5em;
+  border-radius: 0.2em;
+  background-color: #EEE;
+  border: 1px solid #DDD;
+}
+
 #status {
   /* avoid an excessively wide status text */
   white-space: pre;

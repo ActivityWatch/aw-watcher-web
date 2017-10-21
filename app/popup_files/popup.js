@@ -35,6 +35,7 @@ function renderStatus() {
     "</tr>";
     msg += "</table>";
     document.getElementById('status').innerHTML = msg;
+    document.getElementById('webui-link').href = client._getHost();
   });
 }
 

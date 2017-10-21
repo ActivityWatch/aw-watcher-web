@@ -21,7 +21,6 @@ function getCurrentTabs(callback) {
 
 function renderStatus() {
   chrome.storage.local.get(["lastSync"], function(obj) {
-    console.log(JSON.stringify(obj));
     var msg = "<table>";
     msg += "<tr>" +
       "<th>Running:</th>" + "<td style='color: #00AA00; font-size: 1.5em;'>✔</td>" +
@@ -40,8 +39,8 @@ function renderStatus() {
 }
 
 function renderDebug(msg) {
-  document.getElementById('debug').textContent = msg;
-  document.getElementById('debug').innerHTML = "<br>" + JSON.stringify(client);
+  document.getElementById('debug').innerHTML = msg;
+  document.getElementById('debug').innerHTML += "<br>" + JSON.stringify(client);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

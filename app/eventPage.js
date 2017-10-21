@@ -41,22 +41,22 @@ function heartbeat(tab) {
   var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito};
   // First heartbeat on startup
   if (last_heartbeat_time === null){
-    console.log("aw-watcher-web: First");
+    //console.log("aw-watcher-web: First");
     client.sendHeartbeat(now, data, heartbeat_pulsetime);
     last_heartbeat_data = data;
     last_heartbeat_time = now;
   }
   // Any tab data has changed, finish previous event and insert new event
   else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
-    console.log("aw-watcher-web: Change");
+    //console.log("aw-watcher-web: Change");
     client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime);
     client.sendHeartbeat(now, data, heartbeat_pulsetime);
     last_heartbeat_data = data;
     last_heartbeat_time = now;
   }
-  // If heartbeat interval has benn exceeded
+  // If heartbeat interval has been exceeded
   else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval*1000)) < now){
-    console.log("aw-watcher-web: Update");
+    //console.log("aw-watcher-web: Update");
     client.sendHeartbeat(now, data, heartbeat_pulsetime);
     last_heartbeat_time = now;
   }
@@ -73,7 +73,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
       if(tabs.length >= 1) {
         heartbeat(tabs[0]);
       } else {
-        console.log("tabs had length < 0");
+        //console.log("tabs had length < 0");
       }
       createAlarm();
     });

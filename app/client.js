@@ -46,10 +46,10 @@ var client = {
         }
         else if (xhr.status === 400){
           let resp = JSON.parse(xhr.responseText);
-          console.log("Bucket already created");
+          //console.log("Bucket already created");
         }
         else {
-          console.error("Couldn't connect to server: "+ xhr.status);
+          console.error("Unable to create bucket (statuscode: " + xhr.status + ")");
         }
       }
     };

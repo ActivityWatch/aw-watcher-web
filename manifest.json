@@ -31,7 +31,9 @@
   "permissions": [
     "tabs",
     "alarms",
+    "notifications",
     "activeTab",
+    "storage",
     "http://127.0.0.1:5600/api/*",
     "http://127.0.0.1:5666/api/*"
   ]

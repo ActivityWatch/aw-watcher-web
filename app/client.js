@@ -1,7 +1,13 @@
 "use strict";
 
+function isDevMode() {
+  // Found here: https://stackoverflow.com/a/20227975/965332
+  return !('update_url' in chrome.runtime.getManifest())
+}
+
 var client = {
-  testing: false,
+  testing: isDevMode(),
+  lastSyncSuccess: true,
   _getHost: function(){
     if(this.testing) {
       return "http://127.0.0.1:5666/";
@@ -35,15 +41,15 @@ var client = {
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XMLHttpRequest.DONE) {
         if (xhr.status === 200){
-          var resp = JSON.parse(xhr.responseText);
+          let resp = JSON.parse(xhr.responseText);
           console.log("Bucket was successfully created");
         }
         else if (xhr.status === 400){
-          var resp = JSON.parse(xhr.responseText);
-          console.log("Bucket already created");
+          let resp = JSON.parse(xhr.responseText);
+          //console.log("Bucket already created");
         }
         else {
-          console.error("Couldn't connect to server: "+ xhr.status);
+          console.error("Unable to create bucket (statuscode: " + xhr.status + ")");
         }
       }
     };
@@ -56,15 +62,30 @@ var client = {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+
     xhr.onreadystatechange = function() {
       // xhr.readyState === 4 means DONE with request
       if (xhr.readyState === 4) {
-        if (xhr.status != 200){
+        if (xhr.status !== 200){
+          // ERROR
           console.error("Status code: " + xhr.status + ", response: " + xhr.responseText);
+          if(client.lastSyncSuccess) {
+            chrome.notifications.create({
+              "type": "basic",
+              "iconUrl": chrome.extension.getURL("media/logo/logo.png"),
+              "title": "Unable to send event to server",
+              "message": "Please ensure that you are running an ActivityWatch server at: " + client._getHost(),
+            });
+            client.lastSyncSuccess = false;
+          }
+        } else {
+          // SUCCESS
+          client.lastSyncSuccess = true;
+          chrome.storage.local.set({"lastSync": new Date().toISOString()});
         }
       }
     };
-    var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()})
+    var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()});
     xhr.send(payload);
   }
-}
+};

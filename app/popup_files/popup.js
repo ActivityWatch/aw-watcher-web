@@ -19,18 +19,37 @@ function getCurrentTabs(callback) {
   });
 }
 
-function renderStatus(msg) {
-  document.getElementById('status').textContent = msg;
+function renderStatus() {
+  chrome.storage.local.get(["lastSync"], function(obj) {
+    let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
+    var msg = "<table>";
+    msg += "<tr>" +
+      "<th>Running:</th>" + "<td style='color: #00AA00; font-size: 1.5em;'>✔</td>" +
+    "</tr>";
+    if(client.testing == true) {
+      msg += "<tr>" +
+        "<th>Testing:</th>" + "<td style='color: #FF8800; font-size: 1.5em;'>✔</td>" +
+      "</tr>";
+    }
+    msg += "<tr>" +
+      "<th>Last sync:</th>" + "<td>" + lastSyncString + "</td>" +
+    "</tr>";
+    msg += "</table>";
+    document.getElementById('status').innerHTML = msg;
+    document.getElementById('webui-link').href = client._getHost();
+  });
 }
 
 function renderDebug(msg) {
-  document.getElementById('debug').textContent = msg;
+  document.getElementById('debug').innerHTML = msg;
+  document.getElementById('debug').innerHTML += "<br>" + JSON.stringify(client);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   getCurrentTabs(function(tabs) {
     // Status title
-    renderStatus("ActivityWatch ready to watch");
+    renderStatus();
+
     // Debug info
     var text = "";
     text += "Number of active tabs: " + tabs.length + "\n";

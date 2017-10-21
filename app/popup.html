@@ -11,17 +11,50 @@
 </head>
 
 <body>
-  <h4>Status: <span id="status"></span></h4>
+  <img src="/media/banners/banner.png" style="width: 100%">
 
-  <p>
-    Please note that this web browser watcher is in an early stage of development.<br>
-    File all bugs you find <a href="https://github.com/ActivityWatch/aw-watcher-web/issues">here</a>.
-  </p>
+  <hr>
 
-  <h5>Debug info:</h5>
-  <code>
-    <pre id="debug"></pre>
-  </code>
+  <div>
+    <a id="webui-link" href="http://localhost:5600/" target="_blank">
+      <span class="button">
+        <b>Open web UI</b>
+      </span>
+    </a>
+    <a href="https://forum.activitywatch.net/" target="_blank">
+      <span class="button">
+        <b>Visit forum</b>
+      </span>
+    </a>
+  </div>
+
+  <div id="status">
+    <!-- Filled by JS -->
+  </div>
+
+  <hr>
+
+  <small>
+    <p>
+      Please note that this web browser watcher is in an early stage of development.<br>
+    </p>
+
+    <p>
+      File all bugs you find <a href="https://github.com/ActivityWatch/aw-watcher-web/issues">here</a>.
+    </p>
+  </small>
+
+  <hr>
+
+  <details style="background-color: #DDD; padding: 0.4em; border-radius: 0.4em;">
+    <summary>
+      Debug info
+    </summary>
+
+    <code>
+      <pre id="debug"><!-- Filled by JS --></pre>
+    </code>
+  </details>
 </body>
 
 </html>

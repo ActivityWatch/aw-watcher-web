@@ -19,18 +19,36 @@ function getCurrentTabs(callback) {
   });
 }
 
-function renderStatus(msg) {
-  document.getElementById('status').textContent = msg;
+function renderStatus() {
+  chrome.storage.local.get(["lastSync"], function(obj) {
+    console.log(JSON.stringify(obj));
+    var msg = "<table>";
+    msg += "<tr>" +
+      "<th>Running:</th>" + "<td style='color: #00AA00; font-size: 1.5em;'>✔</td>" +
+    "</tr>";
+    if(client.testing == true) {
+      msg += "<tr>" +
+        "<th>Testing:</th>" + "<td style='color: #FF8800; font-size: 1.5em;'>✔</td>" +
+      "</tr>";
+    }
+    msg += "<tr>" +
+      "<th>Last sync:</th>" + "<td>" + (new Date(obj.lastSync).toLocaleString() || never) + "</td>" +
+    "</tr>";
+    msg += "</table>";
+    document.getElementById('status').innerHTML = msg;
+  });
 }
 
 function renderDebug(msg) {
   document.getElementById('debug').textContent = msg;
+  document.getElementById('debug').innerHTML = "<br>" + JSON.stringify(client);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   getCurrentTabs(function(tabs) {
     // Status title
-    renderStatus("ActivityWatch ready to watch");
+    renderStatus();
+
     // Debug info
     var text = "";
     text += "Number of active tabs: " + tabs.length + "\n";

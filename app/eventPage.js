@@ -82,7 +82,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 
 
 (function() {
-  client.createBucket();
+  client.setup();
   createAlarm();
   // Fires when the active tab in a window changes
   chrome.tabs.onActivated.addListener(function(activeInfo) {

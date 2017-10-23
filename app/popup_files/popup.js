@@ -20,13 +20,13 @@ function getCurrentTabs(callback) {
 }
 
 function renderStatus() {
-  chrome.storage.local.get(["lastSync"], function(obj) {
+  chrome.storage.local.get(["lastSync", "testing"], function(obj) {
     let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
     var msg = "<table>";
     msg += "<tr>" +
       "<th>Running:</th>" + "<td style='color: #00AA00; font-size: 1.5em;'>✔</td>" +
     "</tr>";
-    if(client.testing == true) {
+    if(obj.testing == true) {
       msg += "<tr>" +
         "<th>Testing:</th>" + "<td style='color: #FF8800; font-size: 1.5em;'>✔</td>" +
       "</tr>";

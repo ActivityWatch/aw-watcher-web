@@ -14,9 +14,13 @@ var client = {
   setup: function() {
     console.log("Setting up client");
     // Check if in dev mode
-    browser.management.getSelf().then(function(info){
-      console.log(info);
+    chrome.management.getSelf(function(info) {
+      console.log(JSON.stringify(info));
       client.testing = info.installType === "development";
+
+      // Needed in order to show testing information in popup
+      chrome.storage.local.set({"testing": client.testing});
+
       client.createBucket();
     });
   },

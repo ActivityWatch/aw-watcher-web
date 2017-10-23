@@ -1,12 +1,7 @@
 "use strict";
 
-function isDevMode() {
-  // Found here: https://stackoverflow.com/a/20227975/965332
-  return !('update_url' in chrome.runtime.getManifest())
-}
-
 var client = {
-  testing: isDevMode(),
+  testing: null,
   lastSyncSuccess: true,
   _getHost: function(){
     if(this.testing) {
@@ -16,6 +11,20 @@ var client = {
     }
   },
 
+  setup: function() {
+    console.log("Setting up client");
+    // Check if in dev mode
+    chrome.management.getSelf(function(info) {
+      console.log(JSON.stringify(info));
+      client.testing = info.installType === "development";
+
+      // Needed in order to show testing information in popup
+      chrome.storage.local.set({"testing": client.testing});
+
+      client.createBucket();
+    });
+  },
+
   getBucketId: function() {
     // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
     var browserName = /(Chrome|Firefox)\/([0-9.]+)/.exec(navigator.userAgent)[1];
@@ -23,6 +32,8 @@ var client = {
   },
 
   createBucket: function(){
+    if (this.testing === null)
+      return;
     // TODO: We might want to get the hostname somehow, maybe like this:
     // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
     var payload = {
@@ -57,6 +68,8 @@ var client = {
   },
 
   sendHeartbeat: function(timestamp, data, pulsetime) {
+    if (this.testing === null)
+      return;
     var host = this._getHost();
     var url = host + "api/0/buckets/" + client.getBucketId() + "/heartbeat?pulsetime=" + pulsetime;
     var xhr = new XMLHttpRequest();

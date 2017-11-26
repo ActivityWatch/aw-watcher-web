@@ -96,6 +96,7 @@ var client = {
           client.lastSyncSuccess = true;
           chrome.storage.local.set({"lastSync": new Date().toISOString()});
         }
+        chrome.storage.local.set({"lastSyncSuccess": client.lastSyncSuccess});
       }
     };
     var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()});

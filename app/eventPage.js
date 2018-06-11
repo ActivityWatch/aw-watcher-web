@@ -36,6 +36,10 @@ var last_heartbeat_data = null;
 var last_heartbeat_time = null;
 
 function heartbeat(tab) {
+  if (tab.incognito === true) {
+    return;
+  }
+  
   //console.log(JSON.stringify(tab));
   var now = new Date();
   var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito};

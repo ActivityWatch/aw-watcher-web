@@ -36,6 +36,7 @@ var last_heartbeat_data = null;
 var last_heartbeat_time = null;
 
 function heartbeat(tab) {
+  // Prevent from sending in incognito mode (needed for firefox) - See https://github.com/ActivityWatch/aw-watcher-web/pull/18
   if (tab.incognito === true) {
     return;
   }

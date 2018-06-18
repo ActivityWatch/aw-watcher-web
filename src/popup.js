@@ -1,5 +1,7 @@
 "use strict";
 
+const client = require("./client.js");
+
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
@@ -37,7 +39,7 @@ function renderStatus() {
     "</tr>";
     msg += "</table>";
     document.getElementById('status').innerHTML = msg;
-    document.getElementById('webui-link').href = client._getHost();
+    document.getElementById('webui-link').href = client.awc.baseURL;
   });
 }
 

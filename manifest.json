@@ -11,7 +11,7 @@
 
   "browser_action": {
     "default_icon": "media/logo/logo.png",
-    "default_popup": "app/popup.html"
+    "default_popup": "static/popup.html"
   },
 
   "applications": {
@@ -22,8 +22,7 @@
 
   "background": {
     "scripts": [
-        "app/client.js",
-        "app/eventPage.js"
+        "out/app.js"
     ],
     "persistent": false
   },

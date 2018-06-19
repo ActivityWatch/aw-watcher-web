@@ -3,6 +3,6 @@
         "browserify": "^16.2.2"
     },
     "scripts": {
-        "build": "browserify src/*.js > out/app.js"
+        "build": "mkdir -p out; browserify src/*.js > out/app.js"
     }
 }

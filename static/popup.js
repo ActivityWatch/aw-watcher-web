@@ -1,7 +1,5 @@
 "use strict";
 
-const client = require("./client.js");
-
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
@@ -22,7 +20,7 @@ function getCurrentTabs(callback) {
 }
 
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing"], function(obj) {
+  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL"], function(obj) {
     let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
     let runningStatusColor = obj.lastSyncSuccess ? "#00AA00" : "#ff0000";
     var msg = "<table>";
@@ -39,13 +37,12 @@ function renderStatus() {
     "</tr>";
     msg += "</table>";
     document.getElementById('status').innerHTML = msg;
-    document.getElementById('webui-link').href = client.awc.baseURL;
+    document.getElementById('webui-link').href = obj.baseURL;
   });
 }
 
 function renderDebug(msg) {
   document.getElementById('debug').innerHTML = msg;
-  document.getElementById('debug').innerHTML += "<br>" + JSON.stringify(client);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -2,6 +2,14 @@
 
 var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
 
+function emitNotification(title, message) {
+  chrome.notifications.create({
+    "type": "basic",
+    "iconUrl": chrome.extension.getURL("media/logo/logo.png"),
+    "title": title,
+    "message": message,
+  });
+}
 
 var client = {
   testing: null,
@@ -20,7 +28,7 @@ var client = {
       client.createBucket();
 
       // Needed in order to show testing information in popup
-      chrome.storage.local.set({"testing": client.testing});
+      chrome.storage.local.set({"testing": client.testing, "baseURL": client.awc.baseURL});
     });
   },
 
@@ -28,6 +36,13 @@ var client = {
     // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
     var browserName = /(Chrome|Firefox)\/([0-9.]+)/.exec(navigator.userAgent)[1];
     return "aw-watcher-web-" + browserName.toLowerCase();
+  },
+
+  updateSyncStatus: function(){
+    chrome.storage.local.set({
+      "lastSyncSuccess": client.lastSyncSuccess,
+      "lastSync": new Date().toISOString()
+    });
   },
 
   createBucket: function(){
@@ -53,17 +68,22 @@ var client = {
     var payload = {"data": data, "timestamp": timestamp.toISOString()};
     this.awc.heartbeat(this.getBucketId(), pulsetime, payload).then(
       (res) => {
+        if (!client.lastSyncSuccess) {
+          emitNotification(
+            "Now connected again",
+            "Connection to ActivityWatch server established again"
+          );
+        }
         client.lastSyncSuccess = true;
-        chrome.storage.local.set({"lastSync": new Date().toISOString()});
+        client.updateSyncStatus();
       }, (err) => {
         if(client.lastSyncSuccess) {
-          chrome.notifications.create({
-            "type": "basic",
-            "iconUrl": chrome.extension.getURL("media/logo/logo.png"),
-            "title": "Unable to send event to server",
-            "message": "Please ensure that ActivityWatch is running",
-          });
+          emitNotification(
+            "Unable to send event to server",
+            "Please ensure that ActivityWatch is running"
+          );
           client.lastSyncSuccess = false;
+          client.updateSyncStatus();
         }
         console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
       }

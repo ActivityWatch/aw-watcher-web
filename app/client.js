@@ -93,9 +93,18 @@ var client = {
           }
         } else {
           // SUCCESS
+          if(!client.lastSyncSuccess){
+            chrome.notifications.create({
+              "type": "basic",
+              "iconUrl": chrome.extension.getURL("media/logo/logo.png"),
+              "title": "Now connected again",
+              "message": "Now ActivityWatch server works at: " + client._getHost(),
+            });
+          }
           client.lastSyncSuccess = true;
           chrome.storage.local.set({"lastSync": new Date().toISOString()});
         }
+        chrome.storage.local.set({"lastSyncSuccess": client.lastSyncSuccess});
       }
     };
     var payload = JSON.stringify({"data": data, "timestamp": timestamp.toISOString()});

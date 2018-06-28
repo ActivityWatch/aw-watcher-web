@@ -20,7 +20,6 @@ var client = {
     console.log("Setting up client");
     // Check if in dev mode
     chrome.management.getSelf(function(info) {
-      console.log(info);
       client.testing = info.installType === "development";
       console.log("testing: " + client.testing);
 

@@ -4,14 +4,14 @@
   "name": "ActivityWatch Web Watcher",
   "short_name": "ActivityWatch",
   "description": "Log the current tab and your browser activity with ActivityWatch.",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "icons": {
     "128": "media/logo/logo.png"
   },
 
   "browser_action": {
     "default_icon": "media/logo/logo.png",
-    "default_popup": "app/popup.html"
+    "default_popup": "static/popup.html"
   },
 
   "applications": {
@@ -22,8 +22,7 @@
 
   "background": {
     "scripts": [
-        "app/client.js",
-        "app/eventPage.js"
+        "out/app.js"
     ],
     "persistent": false
   },

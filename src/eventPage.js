@@ -3,6 +3,7 @@
  * https://developer.chrome.com/extensions/event_pages
  */
 
+var client = require("./client.js")
 
 "use strict";
 

@@ -36,15 +36,15 @@ function getCurrentTabs(callback) {
 var last_heartbeat_data = null;
 var last_heartbeat_time = null;
 
-function heartbeat(tab) {
+function heartbeat(tab, tabCount) {
   // Prevent from sending in incognito mode (needed for firefox) - See https://github.com/ActivityWatch/aw-watcher-web/pull/18
   if (tab.incognito === true) {
     return;
   }
-  
+
   //console.log(JSON.stringify(tab));
   var now = new Date();
-  var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito};
+  var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito, "tabCount": tabCount};
   // First heartbeat on startup
   if (last_heartbeat_time === null){
     //console.log("aw-watcher-web: First");
@@ -77,7 +77,9 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   if(alarm.name === "heartbeat") {
     getCurrentTabs(function(tabs) {
       if(tabs.length >= 1) {
-        heartbeat(tabs[0]);
+        chrome.tabs.query({}, function(foundTabs) {
+            heartbeat(tabs[0], foundTabs.length);
+        });
       } else {
         //console.log("tabs had length < 0");
       }
@@ -93,7 +95,9 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   // Fires when the active tab in a window changes
   chrome.tabs.onActivated.addListener(function(activeInfo) {
     chrome.tabs.get(activeInfo.tabId, function(tab) {
-      heartbeat(tab);
+      chrome.tabs.query({}, function(foundTabs) {
+        heartbeat(tab, foundTabs.length);
+      });
     });
   });
 })();

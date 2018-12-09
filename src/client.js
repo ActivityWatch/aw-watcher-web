@@ -53,7 +53,7 @@ var client = {
     var eventtype = "web.tab.current";
     var hostname = "unknown";
 
-    client.awc.createBucket(bucket_id, eventtype, hostname)
+    client.awc.ensureBucket(bucket_id, eventtype, hostname)
       .catch( (err) => {
         console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
       }
@@ -64,7 +64,11 @@ var client = {
     if (this.testing === null)
       return;
 
-    var payload = {"data": data, "timestamp": timestamp.toISOString()};
+    var payload = {
+        "data": data,
+        "duration": 0.0,
+        "timestamp": timestamp.toISOString(),
+    };
     this.awc.heartbeat(this.getBucketId(), pulsetime, payload).then(
       (res) => {
         if (!client.lastSyncSuccess) {

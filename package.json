@@ -1,6 +1,6 @@
 {
     "dependencies": {
-        "browserify": "^16.2.2"
+        "browserify": "^16.2.3"
     },
     "scripts": {
         "build": "mkdir -p out; browserify src/*.js > out/app.js"

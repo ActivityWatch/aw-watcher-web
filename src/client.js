@@ -23,7 +23,7 @@ var client = {
       client.testing = info.installType === "development";
       console.log("testing: " + client.testing);
 
-      client.awc = new AWClient("aw-client-web", client.testing);
+      client.awc = new AWClient("aw-client-web", {testing: client.testing});
       client.createBucket();
 
       // Needed in order to show testing information in popup

@@ -1,4 +1,4 @@
-.PHONY: build install
+.PHONY: build install clean
 
 install:
 	npm install
@@ -6,6 +6,10 @@ install:
 
 update:
 	npm run build
+
+clean:
+	rm -rf node_modules
+	(cd aw-client-js; rm -rf node_modules)
 
 # This is what Google and Mozilla wants us to upload when we release a new version to the Addon "store"
 build: install

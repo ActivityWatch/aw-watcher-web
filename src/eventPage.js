@@ -37,34 +37,39 @@ var last_heartbeat_data = null;
 var last_heartbeat_time = null;
 
 function heartbeat(tab, tabCount) {
-  // Prevent from sending in incognito mode (needed for firefox) - See https://github.com/ActivityWatch/aw-watcher-web/pull/18
-  if (tab.incognito === true) {
-    return;
-  }
+  try {
+    // Prevent from sending in incognito mode (needed for firefox) - See https://github.com/ActivityWatch/aw-watcher-web/pull/18
+    if (tab.incognito === true) {
+      return;
+    }
 
-  //console.log(JSON.stringify(tab));
-  var now = new Date();
-  var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito, "tabCount": tabCount};
-  // First heartbeat on startup
-  if (last_heartbeat_time === null){
-    //console.log("aw-watcher-web: First");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_data = data;
-    last_heartbeat_time = now;
+    //console.log(JSON.stringify(tab));
+    var now = new Date();
+    var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito, "tabCount": tabCount};
+    // First heartbeat on startup
+    if (last_heartbeat_time === null){
+      //console.log("aw-watcher-web: First");
+      client.sendHeartbeat(now, data, heartbeat_pulsetime);
+      last_heartbeat_data = data;
+      last_heartbeat_time = now;
+    }
+    // Any tab data has changed, finish previous event and insert new event
+    else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
+      //console.log("aw-watcher-web: Change");
+      client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime);
+      client.sendHeartbeat(now, data, heartbeat_pulsetime);
+      last_heartbeat_data = data;
+      last_heartbeat_time = now;
+    }
+    // If heartbeat interval has been exceeded
+    else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval*1000)) < now){
+      //console.log("aw-watcher-web: Update");
+      client.sendHeartbeat(now, data, heartbeat_pulsetime);
+      last_heartbeat_time = now;
+    }
   }
-  // Any tab data has changed, finish previous event and insert new event
-  else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
-    //console.log("aw-watcher-web: Change");
-    client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime);
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_data = data;
-    last_heartbeat_time = now;
-  }
-  // If heartbeat interval has been exceeded
-  else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval*1000)) < now){
-    //console.log("aw-watcher-web: Update");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_time = now;
+  catch (e) {
+    console.log("an error occured: " + e);
   }
 }
 
@@ -94,10 +99,20 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   createAlarm();
   // Fires when the active tab in a window changes
   chrome.tabs.onActivated.addListener(function(activeInfo) {
-    chrome.tabs.get(activeInfo.tabId, function(tab) {
-      chrome.tabs.query({}, function(foundTabs) {
-        heartbeat(tab, foundTabs.length);
+    try {
+      chrome.tabs.get(activeInfo.tabId, function(tab) {
+        try {
+          chrome.tabs.query({}, function(foundTabs) {
+            heartbeat(tab, foundTabs.length);
+          });
+        }
+        catch (e) {
+          console.log("an error occured: " + e);
+        }
       });
-    });
+    }
+    catch (e) {
+      console.log("an error occured: " + e);
+    }
   });
 })();

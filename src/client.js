@@ -5,7 +5,7 @@ var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
 function emitNotification(title, message) {
   chrome.notifications.create({
     "type": "basic",
-    "iconUrl": chrome.extension.getURL("media/logo/logo.png"),
+    "iconUrl": chrome.extension.getURL("media/logo/logo-128.png"),
     "title": title,
     "message": message,
   });

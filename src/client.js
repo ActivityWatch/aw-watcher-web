@@ -55,7 +55,11 @@ var client = {
 
     client.awc.ensureBucket(bucket_id, eventtype, hostname)
       .catch( (err) => {
-        console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
+        if (err.response) {
+          console.error("Failed to create bucket with status code: " + err.response.status + ", response: " + err.response.data.message);
+        } else {
+          console.error(err);
+        }
       }
     );
   },
@@ -88,7 +92,11 @@ var client = {
           client.lastSyncSuccess = false;
           client.updateSyncStatus();
         }
-        console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+        if (err.response) {
+          console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+        } else {
+          console.error(err);
+        }
       }
     );
   }

@@ -1,6 +1,7 @@
 {
     "dependencies": {
-        "browserify": "^16.2.3"
+        "browserify": "^16.2.3",
+        "ua-parser-js": "^0.7.20"
     },
     "scripts": {
         "build": "mkdir -p out; browserify src/*.js > out/app.js"

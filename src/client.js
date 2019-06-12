@@ -1,6 +1,7 @@
 "use strict";
 
 var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
+var ua_parser = require('ua-parser-js');
 
 function emitNotification(title, message) {
   chrome.notifications.create({
@@ -31,9 +32,15 @@ var client = {
     });
   },
 
+  getBrowserName: function() {
+    var agent_parsed = ua_parser(navigator.userAgent);
+    var browsername = agent_parsed.browser.name;
+    return browsername.toLowerCase();
+  },
+
   getBucketId: function() {
     // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
-    var browserName = /(Chrome|Firefox)\/([0-9.]+)/.exec(navigator.userAgent)[1];
+    var browserName = client.getBrowserName();
     return "aw-watcher-web-" + browserName.toLowerCase();
   },
 

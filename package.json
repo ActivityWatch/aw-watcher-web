@@ -1,4 +1,13 @@
 {
+    "name": "aw-watcher-web",
+    "license": "MPL-2.0",
+    "bugs": {
+        "url": "https://github.com/ActivityWatch/aw-watcher-web/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
+    },
     "dependencies": {
         "browserify": "^16.2.3",
         "ua-parser-js": "^0.7.20"

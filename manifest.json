@@ -4,7 +4,7 @@
   "name": "ActivityWatch Web Watcher",
   "short_name": "ActivityWatch",
   "description": "Log the current tab and your browser activity with ActivityWatch.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "icons": {
     "128": "media/logo/logo.png"
   },
@@ -17,7 +17,7 @@
   "browser_specific_settings": {
     "gecko": {
       "strict_min_version": "48.0",
-      "id": "{6b1794a0-5ae6-4443-aef9-7755717bb180}"
+      "id": "{ef87d84c-2127-493f-b952-5b4e744245bc}"
     }
   },
 

@@ -97,7 +97,7 @@ var client = {
       return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
     }
 
-    retry(attempt, { retries: 5 }).then(
+    retry(attempt, { retries: 3 }).then(
       (res) => {
         if (!client.lastSyncSuccess) {
           emitNotification(

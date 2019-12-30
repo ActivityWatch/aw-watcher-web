@@ -13,6 +13,15 @@ function emitNotification(title, message) {
   });
 }
 
+function logHttpError(error) {
+  // No response property for network errors
+  if (error.response) {
+    console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+  } else {
+    console.error("Unexpected error: " + error);
+  }
+}
+
 var client = {
   testing: null,
   awc: null,
@@ -64,7 +73,8 @@ var client = {
     function attempt() {
       return client.awc.ensureBucket(bucket_id, eventtype, hostname)
         .catch( (err) => {
-          console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
+          console.error("Failed to create bucket, retrying...");
+          logHttpError(err);
           return Promise.reject(err);
         }
       );
@@ -103,10 +113,10 @@ var client = {
             "Unable to send event to server",
             "Please ensure that ActivityWatch is running"
           );
-          client.lastSyncSuccess = false;
-          client.updateSyncStatus();
         }
-        console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+        client.lastSyncSuccess = false;
+        client.updateSyncStatus();
+        logHttpError(err);
       }
     );
   }

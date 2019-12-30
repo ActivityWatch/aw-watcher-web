@@ -1,7 +1,8 @@
 "use strict";
 
 var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
-var ua_parser = require('ua-parser-js');
+var ua_parser = require("ua-parser-js");
+var retry = require("p-retry") // See aw-watcher-web issue #41
 
 function emitNotification(title, message) {
   chrome.notifications.create({
@@ -60,11 +61,16 @@ var client = {
     var eventtype = "web.tab.current";
     var hostname = "unknown";
 
-    client.awc.ensureBucket(bucket_id, eventtype, hostname)
-      .catch( (err) => {
-        console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
-      }
-    );
+    function attempt() {
+      return client.awc.ensureBucket(bucket_id, eventtype, hostname)
+        .catch( (err) => {
+          console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
+          return Promise.reject(err);
+        }
+      );
+    }
+
+    retry(attempt, { forever: true });
   },
 
   sendHeartbeat: function(timestamp, data, pulsetime) {
@@ -76,7 +82,12 @@ var client = {
         "duration": 0.0,
         "timestamp": timestamp.toISOString(),
     };
-    this.awc.heartbeat(this.getBucketId(), pulsetime, payload).then(
+
+    var attempt = () => {
+      return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
+    }
+
+    retry(attempt, { retries: 5 }).then(
       (res) => {
         if (!client.lastSyncSuccess) {
           emitNotification(

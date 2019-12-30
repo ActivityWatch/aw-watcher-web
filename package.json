@@ -10,7 +10,8 @@
     },
     "dependencies": {
         "browserify": "^16.2.3",
-        "ua-parser-js": "^0.7.20"
+        "ua-parser-js": "^0.7.20",
+        "p-retry": "^4.2.0"
     },
     "scripts": {
         "build": "mkdir -p out; browserify src/*.js > out/app.js"

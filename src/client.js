@@ -1,7 +1,8 @@
 "use strict";
 
 var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
-var ua_parser = require('ua-parser-js');
+var ua_parser = require("ua-parser-js");
+var retry = require("p-retry") // See aw-watcher-web issue #41
 
 function emitNotification(title, message) {
   chrome.notifications.create({
@@ -10,6 +11,15 @@ function emitNotification(title, message) {
     "title": title,
     "message": message,
   });
+}
+
+function logHttpError(error) {
+  // No response property for network errors
+  if (error.response) {
+    console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+  } else {
+    console.error("Unexpected error: " + error);
+  }
 }
 
 var client = {
@@ -60,11 +70,17 @@ var client = {
     var eventtype = "web.tab.current";
     var hostname = "unknown";
 
-    client.awc.ensureBucket(bucket_id, eventtype, hostname)
-      .catch( (err) => {
-        console.error("Failed to create bucket ("+err.response.status+"): "+err.response.data.message);
-      }
-    );
+    function attempt() {
+      return client.awc.ensureBucket(bucket_id, eventtype, hostname)
+        .catch( (err) => {
+          console.error("Failed to create bucket, retrying...");
+          logHttpError(err);
+          return Promise.reject(err);
+        }
+      );
+    }
+
+    retry(attempt, { forever: true });
   },
 
   sendHeartbeat: function(timestamp, data, pulsetime) {
@@ -76,7 +92,12 @@ var client = {
         "duration": 0.0,
         "timestamp": timestamp.toISOString(),
     };
-    this.awc.heartbeat(this.getBucketId(), pulsetime, payload).then(
+
+    var attempt = () => {
+      return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
+    }
+
+    retry(attempt, { retries: 3 }).then(
       (res) => {
         if (!client.lastSyncSuccess) {
           emitNotification(
@@ -92,10 +113,10 @@ var client = {
             "Unable to send event to server",
             "Please ensure that ActivityWatch is running"
           );
-          client.lastSyncSuccess = false;
-          client.updateSyncStatus();
         }
-        console.error("Status code: " + err.response.status + ", response: " + err.response.data.message);
+        client.lastSyncSuccess = false;
+        client.updateSyncStatus();
+        logHttpError(err);
       }
     );
   }

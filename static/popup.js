@@ -1,31 +1,12 @@
 "use strict";
 
-function getCurrentTabs(callback) {
-  // Query filter to be passed to chrome.tabs.query - see
-  // https://developer.chrome.com/extensions/tabs#method-query
-  var queryInfo = {
-    active: true,
-    currentWindow: true
-  };
-
-  chrome.tabs.query(queryInfo, function(tabs) {
-    // TODO: Won't necessarily work when code is run as a background plugin instead of as a popup
-    // chrome.tabs.query invokes the callback with a list of tabs that match the
-    // query. When the popup is opened, there is certainly a window and at least
-    // one tab, so we can safely assume that |tabs| is a non-empty array.
-    // A window can only have one active tab at a time, so the array consists of
-    // exactly one tab.
-    callback(tabs);
-  });
-}
-
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL"], function(obj) {
+  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], function(obj) {
     let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
     let runningStatusColor = obj.lastSyncSuccess ? "#00AA00" : "#ff0000";
     var msg = "<table>";
     msg += "<tr>" +
-      "<th>Running:</th>" + "<td style='color: " + runningStatusColor + "; font-size: 1.5em;'>✔</td>" +
+      "<th>Connected:</th>" + "<td style='color: " + runningStatusColor + "; font-size: 1.5em;'>✔</td>" +
     "</tr>";
     if(obj.testing == true) {
       msg += "<tr>" +
@@ -38,25 +19,20 @@ function renderStatus() {
     msg += "</table>";
     document.getElementById('status').innerHTML = msg;
     document.getElementById('webui-link').href = obj.baseURL;
+    document.getElementById('watcher-enabled-checkbox').checked = obj.enabled;
   });
 }
 
-function renderDebug(msg) {
-  document.getElementById('debug').innerHTML = msg;
+function domListeners() {
+  let enabled_checkbox = document.getElementById('watcher-enabled-checkbox');
+  enabled_checkbox.addEventListener("change", (obj) => {
+    let enabled = obj.srcElement.checked;
+    chrome.runtime.sendMessage({enabled: enabled}, function(response) {});
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  getCurrentTabs(function(tabs) {
-    // Status title
-    renderStatus();
+  renderStatus();
+  domListeners();
+})
 
-    // Debug info
-    var text = "";
-    text += "Number of active tabs: " + tabs.length + "\n";
-    text += "Tabs:\n";
-    for (var i = 0; i < tabs.length; i++) {
-        text += JSON.stringify(tabs[i], null, 4) + "\n";
-    }
-    renderDebug(text);
-  });
-});

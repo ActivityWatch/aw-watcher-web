@@ -14,6 +14,10 @@
 
   <hr>
 
+  <div id="testing-notice">
+    <!-- Filled by JS -->
+  </div>
+
   <div>
     <a id="webui-link" href="http://localhost:5600/" target="_blank">
       <span class="button">
@@ -27,11 +31,30 @@
     </a>
   </div>
 
-  <input type="checkbox" id="watcher-enabled-checkbox">Enable/disable watcher</input>
+  <table>
+    <tr>
+      <th align="right">Enabled:</th>
+      <td>
+        <input type="checkbox" id="status-enabled-checkbox">
+          <!-- Filled by JS -->
+        </input>
+      </td>
+    </tr>
 
-  <div id="status">
-    <!-- Filled by JS -->
-  </div>
+    <tr>
+      <th align="right">Connected:</th>
+      <td id="status-connected-icon">
+        <!-- Filled by JS -->
+      </td>
+    </tr>
+
+    <tr align="right">
+      <th>Last sync:</th>
+      <td id="status-last-sync">
+        <!-- Filled by JS -->
+      </td>
+    </tr>
+  </table>
 
   <hr>
 

@@ -68,12 +68,16 @@ function heartbeat(tab, tabCount) {
   }
 }
 
-function createAlarm() {
+/*
+ * Heartbeat alarm
+ */
+
+function createNextAlarm() {
   var when = Date.now() + (check_interval*1000);
   chrome.alarms.create("heartbeat", {"when": when});
 }
 
-chrome.alarms.onAlarm.addListener(function(alarm) {
+function alarmListener(alarm) {
   if(alarm.name === "heartbeat") {
     getCurrentTabs(function(tabs) {
       if(tabs.length >= 1) {
@@ -83,21 +87,86 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
       } else {
         //console.log("tabs had length < 0");
       }
-      createAlarm();
+      createNextAlarm();
     });
   }
-});
+}
 
+function startAlarmListener() {
+  chrome.alarms.onAlarm.addListener(alarmListener);
+  createNextAlarm();
+}
 
-(function() {
-  client.setup();
-  createAlarm();
-  // Fires when the active tab in a window changes
-  chrome.tabs.onActivated.addListener(function(activeInfo) {
-    chrome.tabs.get(activeInfo.tabId, function(tab) {
-      chrome.tabs.query({}, function(foundTabs) {
-        heartbeat(tab, foundTabs.length);
-      });
+function stopAlarmListener() {
+  chrome.alarms.onAlarm.removeListener(alarmListener);
+}
+
+/*
+ * Heartbeat tab change
+ */
+
+function tabChangedListener(activeInfo) {
+  chrome.tabs.get(activeInfo.tabId, function(tab) {
+    chrome.tabs.query({}, function(foundTabs) {
+      heartbeat(tab, foundTabs.length);
     });
   });
+}
+
+function startTabChangeListener() {
+  chrome.tabs.onActivated.addListener(tabChangedListener);
+}
+
+function stopTabChangeListener() {
+  chrome.tabs.onActivated.removeListener(tabChangedListener);
+}
+
+/*
+ * Start/stop logic
+ */
+
+function startWatcher() {
+  console.log("Starting watcher");
+  client.setup();
+  startAlarmListener();
+  startTabChangeListener();
+}
+
+function stopWatcher() {
+  console.log("Stopping watcher");
+  stopAlarmListener();
+  stopTabChangeListener();
+}
+
+/*
+ * Listen for events from popup.js
+ */
+
+function popupRequestReceived(msg) {
+  if (msg.enabled != undefined) {
+    chrome.storage.local.set({"enabled": msg.enabled});
+    if (msg.enabled) {
+      startWatcher();
+    } else {
+      stopWatcher();
+    }
+  }
+}
+
+function startPopupListener() {
+  chrome.storage.local.get(["enabled"], function(obj) {
+    if (obj.enabled == undefined) {
+      chrome.storage.local.set({"enabled": true});
+    }
+  });
+  chrome.runtime.onMessage.addListener(popupRequestReceived);
+}
+
+/*
+ * Init
+ */
+
+(function() {
+  startPopupListener();
+  startWatcher();
 })();

@@ -1,8 +1,8 @@
 .PHONY: build install clean
 
 install:
-	npm install
-	(cd aw-client-js; npm install; npm run compile)
+	npm ci
+	(cd aw-client-js; npm ci; npm run compile)
 
 update:
 	npm run build

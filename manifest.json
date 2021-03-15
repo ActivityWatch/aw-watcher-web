@@ -6,11 +6,11 @@
   "description": "Log the current tab and your browser activity with ActivityWatch.",
   "version": "0.4.1",
   "icons": {
-    "128": "media/logo/logo.png"
+    "128": "media/logo/logo-128.png"
   },
 
   "browser_action": {
-    "default_icon": "media/logo/logo.png",
+    "default_icon": "media/logo/logo-128.png",
     "default_popup": "static/popup.html"
   },
 

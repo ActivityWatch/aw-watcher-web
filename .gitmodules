@@ -3,4 +3,4 @@
 	url = https://github.com/ActivityWatch/media.git
 [submodule "aw-client-js"]
 	path = aw-client-js
-	url = git@github.com:ActivityWatch/aw-client-js.git
+	url = https://github.com/ActivityWatch/aw-client-js.git

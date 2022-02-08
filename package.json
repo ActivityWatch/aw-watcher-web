@@ -9,11 +9,19 @@
         "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
     },
     "dependencies": {
-        "browserify": "^16.5.2",
-        "p-retry": "^4.4.0",
-        "ua-parser-js": "^0.7.24"
+        "p-retry": "^5.0.0",
+        "ua-parser-js": "^0.7.31"
+    },
+    "devDependencies": {
+        "eslint": "^8.8.0",
+        "eslint-config-airbnb": "^19.0.4",
+        "webpack": "^5.68.0",
+        "webpack-cli": "^4.9.2"
     },
     "scripts": {
-        "build": "mkdir -p out; browserify src/*.js > out/app.js"
+        "build": "webpack --mode=production --entry=./src/eventPage.js --output-path=./out"
+    },
+    "engines": {
+        "node": ">=16"
     }
 }

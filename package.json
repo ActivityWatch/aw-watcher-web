@@ -22,6 +22,6 @@
         "build": "webpack --mode=production --entry=./src/eventPage.js --output-path=./out"
     },
     "engines": {
-        "node": ">=16"
+        "node": ">=12"
     }
 }

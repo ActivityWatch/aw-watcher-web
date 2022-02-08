@@ -3,26 +3,23 @@
  * https://developer.chrome.com/extensions/event_pages
  */
 
-var client = require("./client.js")
-
-"use strict";
+import client from "./client";
 
 // Mininum guaranteed in chrome is 1min
-var check_interval = 5;
-var max_check_interval = 60;
-var heartbeat_interval = 20;
-var heartbeat_pulsetime = heartbeat_interval + max_check_interval;
-
+const checkInterval = 5,
+  maxCheckInterval = 60,
+  heartbeatInterval = 20,
+  heartbeatPulsetime = heartbeatInterval + maxCheckInterval;
 
 function getCurrentTabs(callback) {
   // Query filter to be passed to chrome.tabs.query - see
   // https://developer.chrome.com/extensions/tabs#method-query
-  var queryInfo = {
+  const queryInfo = {
     active: true,
-    currentWindow: true
+    currentWindow: true,
   };
 
-  chrome.tabs.query(queryInfo, function(tabs) {
+  chrome.tabs.query(queryInfo, (tabs) => {
     // TODO: Won't necessarily work when code is run as a background plugin instead of as a popup
     // chrome.tabs.query invokes the callback with a list of tabs that match the
     // query. When the popup is opened, there is certainly a window and at least
@@ -33,33 +30,30 @@ function getCurrentTabs(callback) {
   });
 }
 
-var last_heartbeat_data = null;
-var last_heartbeat_time = null;
+let lastHeartbeatData = null,
+  lastHeartbeatTime = null;
 
 function heartbeat(tab, tabCount) {
-  //console.log(JSON.stringify(tab));
-  var now = new Date();
-  var data = {"url": tab.url, "title": tab.title, "audible": tab.audible, "incognito": tab.incognito, "tabCount": tabCount};
+  // console.log(JSON.stringify(tab));
+  const now = new Date(),
+    data = {
+      url: tab.url, title: tab.title, audible: tab.audible, incognito: tab.incognito, tabCount,
+    };
   // First heartbeat on startup
-  if (last_heartbeat_time === null){
-    //console.log("aw-watcher-web: First");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_data = data;
-    last_heartbeat_time = now;
-  }
+  if (lastHeartbeatTime === null) {
+    client.sendHeartbeat(now, data, heartbeatPulsetime);
+    lastHeartbeatData = data;
+    lastHeartbeatTime = now;
+  } else if (JSON.stringify(lastHeartbeatData) !== JSON.stringify(data)) {
   // Any tab data has changed, finish previous event and insert new event
-  else if (JSON.stringify(last_heartbeat_data) != JSON.stringify(data)){
-    //console.log("aw-watcher-web: Change");
-    client.sendHeartbeat(new Date(now-1), last_heartbeat_data, heartbeat_pulsetime);
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_data = data;
-    last_heartbeat_time = now;
-  }
+    client.sendHeartbeat(new Date(now - 1), lastHeartbeatData, heartbeatPulsetime);
+    client.sendHeartbeat(now, data, heartbeatPulsetime);
+    lastHeartbeatData = data;
+    lastHeartbeatTime = now;
+  } else if (new Date(lastHeartbeatTime.getTime() + (heartbeatInterval * 1000)) < now) {
   // If heartbeat interval has been exceeded
-  else if (new Date(last_heartbeat_time.getTime()+(heartbeat_interval*1000)) < now){
-    //console.log("aw-watcher-web: Update");
-    client.sendHeartbeat(now, data, heartbeat_pulsetime);
-    last_heartbeat_time = now;
+    client.sendHeartbeat(now, data, heartbeatPulsetime);
+    lastHeartbeatTime = now;
   }
 }
 
@@ -68,19 +62,19 @@ function heartbeat(tab, tabCount) {
  */
 
 function createNextAlarm() {
-  var when = Date.now() + (check_interval*1000);
-  chrome.alarms.create("heartbeat", {"when": when});
+  const when = Date.now() + (checkInterval * 1000);
+  chrome.alarms.create("heartbeat", { when });
 }
 
 function alarmListener(alarm) {
-  if(alarm.name === "heartbeat") {
-    getCurrentTabs(function(tabs) {
-      if(tabs.length >= 1) {
-        chrome.tabs.query({}, function(foundTabs) {
-            heartbeat(tabs[0], foundTabs.length);
+  if (alarm.name === "heartbeat") {
+    getCurrentTabs((tabs) => {
+      if (tabs.length >= 1) {
+        chrome.tabs.query({}, (foundTabs) => {
+          heartbeat(tabs[0], foundTabs.length);
         });
       } else {
-        //console.log("tabs had length < 0");
+        // console.log("tabs had length < 0");
       }
       createNextAlarm();
     });
@@ -101,8 +95,8 @@ function stopAlarmListener() {
  */
 
 function tabChangedListener(activeInfo) {
-  chrome.tabs.get(activeInfo.tabId, function(tab) {
-    chrome.tabs.query({}, function(foundTabs) {
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    chrome.tabs.query({}, (foundTabs) => {
       heartbeat(tab, foundTabs.length);
     });
   });
@@ -138,8 +132,8 @@ function stopWatcher() {
  */
 
 function popupRequestReceived(msg) {
-  if (msg.enabled != undefined) {
-    chrome.storage.local.set({"enabled": msg.enabled});
+  if (msg.enabled !== undefined) {
+    chrome.storage.local.set({ enabled: msg.enabled });
     if (msg.enabled) {
       startWatcher();
     } else {
@@ -149,9 +143,9 @@ function popupRequestReceived(msg) {
 }
 
 function startPopupListener() {
-  chrome.storage.local.get(["enabled"], function(obj) {
-    if (obj.enabled == undefined) {
-      chrome.storage.local.set({"enabled": true});
+  chrome.storage.local.get(["enabled"], (obj) => {
+    if (obj.enabled === undefined) {
+      chrome.storage.local.set({ enabled: true });
     }
   });
   chrome.runtime.onMessage.addListener(popupRequestReceived);
@@ -161,7 +155,7 @@ function startPopupListener() {
  * Init
  */
 
-(function() {
+(function () {
   startPopupListener();
   startWatcher();
-})();
+}());

@@ -22,7 +22,7 @@
 
   "background": {
     "scripts": [
-        "out/app.js"
+        "out/main.js"
     ],
     "persistent": false
   },

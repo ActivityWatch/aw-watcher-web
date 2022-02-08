@@ -1,43 +1,42 @@
-"use strict";
-
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], function(obj) {
+  const storedProperties = ["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"];
+
+  chrome.storage.local.get(storedProperties, (obj) => {
     // Enabled checkbox
-    document.getElementById('status-enabled-checkbox').checked = obj.enabled;
+    document.getElementById("status-enabled-checkbox").checked = obj.enabled;
 
     // Connected
-    let connectedColor = obj.lastSyncSuccess ? "#00AA00" : "#FF0000";
-    let connectedCharacter = obj.lastSyncSuccess ? "✔" : "✖";
-    let element = document.getElementById('status-connected-icon');
-    element.innerHTML = connectedCharacter;
-    element.style = "color: " + connectedColor + ";";
+    const connectedColor = obj.lastSyncSuccess ? "#00AA00" : "#FF0000",
+      connectedCharacter = obj.lastSyncSuccess ? "✔" : "✖",
+      statusConnectedIconElm = document.getElementById("status-connected-icon");
+    statusConnectedIconElm.innerHTML = connectedCharacter;
+    statusConnectedIconElm.style = `color: ${connectedColor};`;
 
     // Testing
-    if (obj.testing == true) {
-      let element = document.getElementById('testing-notice');
-      element.innerHTML = "Extension is running in testing mode";
-      element.style = "color: #F60; font-size: 1.2em;";
+    if (obj.testing === true) {
+      const testingNoticeElm = document.getElementById("testing-notice");
+      testingNoticeElm.innerHTML = "Extension is running in testing mode";
+      testingNoticeElm.style = "color: #F60; font-size: 1.2em;";
     }
 
     // Last sync
-    let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
-    document.getElementById('status-last-sync').innerHTML = lastSyncString;
+    const lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
+    document.getElementById("status-last-sync").innerHTML = lastSyncString;
 
     // Set webUI button link
-    document.getElementById('webui-link').href = obj.baseURL;
+    document.getElementById("webui-link").href = obj.baseURL;
   });
 }
 
 function domListeners() {
-  let enabled_checkbox = document.getElementById('status-enabled-checkbox');
-  enabled_checkbox.addEventListener("change", (obj) => {
-    let enabled = obj.srcElement.checked;
-    chrome.runtime.sendMessage({enabled: enabled}, function(response) {});
+  const enabledCheckbox = document.getElementById("status-enabled-checkbox");
+  enabledCheckbox.addEventListener("change", (obj) => {
+    const enabled = obj.srcElement.checked;
+    chrome.runtime.sendMessage({ enabled }, () => {});
   });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", () => {
   renderStatus();
   domListeners();
-})
-
+});

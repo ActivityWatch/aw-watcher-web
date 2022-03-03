@@ -26,6 +26,9 @@ var client = {
   testing: null,
   awc: null,
   lastSyncSuccess: true,
+  config: {
+    browserNameOverride: ""
+  },
 
   setup: function() {
     console.log("Setting up client");
@@ -43,6 +46,7 @@ var client = {
   },
 
   getBrowserName: function() {
+    if (this.config.browserNameOverride) { return this.config.browserNameOverride; }
     var agent_parsed = ua_parser(navigator.userAgent);
     var browsername = agent_parsed.browser.name;
     return browsername.toLowerCase();

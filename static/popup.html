@@ -36,7 +36,7 @@
       <th align="right">Enabled:</th>
       <td>
         <input type="checkbox" id="status-enabled-checkbox">
-          <!-- Filled by JS -->
+        <!-- Filled by JS -->
         </input>
       </td>
     </tr>
@@ -52,6 +52,25 @@
       <th>Last sync:</th>
       <td id="status-last-sync">
         <!-- Filled by JS -->
+      </td>
+    </tr>
+  </table>
+
+  <button type="button" id="advanced-config-visible-toggle">Show/Hide Advanced Config</button>
+
+  <table id="advanced-config-table" style="visibility: hidden;">
+    <tr>
+      <th align="right">Browser:</th>
+      <td>
+        <select id="config-browser-name">
+          <option value="">Default</option>
+          <option value="chrome">Chrome</option>
+          <option value="firefox">Firefox</option>
+          <option value="opera">Opera</option>
+          <option value="brave">Brave</option>
+          <option value="edge">Edge</option>
+          <option value="vivaldi">Vivaldi</option>
+        </select>
       </td>
     </tr>
   </table>

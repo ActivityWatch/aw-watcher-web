@@ -50,7 +50,10 @@ function domListeners() {
   let advanced_config_visible_toggle = document.getElementById('advanced-config-visible-toggle');
   advanced_config_visible_toggle.addEventListener("click", (obj) => {
     let visible = advanced_config_table.style.visibility == "visible";
-    advanced_config_table.style.visibility = visible ? "hidden" : "visible";
+    if (!visible) {
+      advanced_config_table.style.visibility = "visible";
+      obj.target.disabled = true;
+    }
   });
 
   let config_browser_name_select = document.getElementById('config-browser-name');

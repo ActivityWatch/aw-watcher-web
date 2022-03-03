@@ -20,6 +20,14 @@ a {
   border-radius: 0.2em;
   background-color: #EEE;
   border: 1px solid #DDD;
+  cursor: pointer;
+}
+
+.button:disabled {
+  display: inline-block;
+  color: #333333;
+  background-color: #DDD;
+  cursor: default;
 }
 
 #status {

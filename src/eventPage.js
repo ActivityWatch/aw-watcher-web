@@ -146,13 +146,30 @@ function popupRequestReceived(msg) {
       stopWatcher();
     }
   }
+  else if (msg.config != undefined) {
+    let createBucket = false;
+    if (msg.config.browserNameOverride && msg.config.browserNameOverride != client.getBrowserName()) {
+      createBucket = true;
+    }
+    chrome.storage.local.set({ "config": msg.config });
+    client.config = msg.config;
+    if (createBucket) {
+      client.createBucket();
+    }
+  }
 }
 
 function startPopupListener() {
-  chrome.storage.local.get(["enabled"], function(obj) {
+  chrome.storage.local.get(["enabled", "config"], function (obj) {
     if (obj.enabled == undefined) {
       chrome.storage.local.set({"enabled": true});
     }
+    if (obj.config) {
+      client.config = obj.config;
+    }
+
+    // Don't start watcher until cache is loaded
+    startWatcher();
   });
   chrome.runtime.onMessage.addListener(popupRequestReceived);
 }
@@ -163,5 +180,4 @@ function startPopupListener() {
 
 (function() {
   startPopupListener();
-  startWatcher();
 })();

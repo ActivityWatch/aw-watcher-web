@@ -1,7 +1,6 @@
 "use strict";
 
 var AWClient = require("../aw-client-js/out/aw-client.js").AWClient;
-var ua_parser = require("ua-parser-js");
 var retry = require("p-retry") // See aw-watcher-web issue #41
 
 function emitNotification(title, message) {
@@ -42,10 +41,21 @@ var client = {
     });
   },
 
-  getBrowserName: function() {
-    var agent_parsed = ua_parser(navigator.userAgent);
-    var browsername = agent_parsed.browser.name;
-    return browsername.toLowerCase();
+  getBrowserName: function () {
+    if (
+      navigator.userAgent.indexOf("Opera") != -1 ||
+      navigator.userAgent.indexOf("OPR") != -1
+    ) {
+      return "opera";
+    } else if (navigator.userAgent.indexOf("Firefox") != -1) {
+      return "firefox";
+    } else if (navigator.userAgent.indexOf("Chrome") != -1) {
+      return "chrome";
+    } else if (navigator.userAgent.indexOf("Safari") != -1) {
+      return "safari";
+    } else {
+      return "unknown";
+    }
   },
 
   getBucketId: function() {

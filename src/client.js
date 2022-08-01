@@ -43,15 +43,17 @@ var client = {
 
   getBrowserName: function () {
     if (
-      navigator.userAgent.indexOf("Opera") != -1 ||
-      navigator.userAgent.indexOf("OPR") != -1
+      navigator.userAgent.includes("Opera")||
+      navigator.userAgent.includes("OPR")
     ) {
       return "opera";
-    } else if (navigator.userAgent.indexOf("Firefox") != -1) {
+    } else if (navigator.userAgent.includes("Firefox")) {
       return "firefox";
-    } else if (navigator.userAgent.indexOf("Chrome") != -1) {
+    } else if (navigator.userAgent.includes("Brave")) {
+      return "brave";
+    } else if (navigator.userAgent.includes("Chrome")) {
       return "chrome";
-    } else if (navigator.userAgent.indexOf("Safari") != -1) {
+    } else if (navigator.userAgent.includes("Safari")) {
       return "safari";
     } else {
       return "unknown";

@@ -1,6 +1,7 @@
 {
     "name": "aw-watcher-web",
     "license": "MPL-2.0",
+    "version": "0.4.3",
     "bugs": {
         "url": "https://github.com/ActivityWatch/aw-watcher-web/issues"
     },
@@ -9,9 +10,10 @@
         "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
     },
     "dependencies": {
-        "browserify": "^16.5.2",
-        "p-retry": "^4.4.0",
-        "ua-parser-js": "^0.7.24"
+        "aw-client": "^0.3.3",
+        "browserify": "^17.0",
+        "p-retry": "^5.1",
+        "ua-parser-js": "^0.7.32"
     },
     "scripts": {
         "build": "mkdir -p out; browserify src/*.js > out/app.js"

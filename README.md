@@ -14,3 +14,8 @@ Install for your browser:
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
 [chrome]: https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi/
+
+
+## Development
+
+For build instructions, refer to the `Makefile`.

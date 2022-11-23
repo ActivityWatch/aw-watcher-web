@@ -14,3 +14,24 @@ Install for your browser:
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
 [chrome]: https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi/
+
+
+## Building
+
+First, clone the repo with:
+
+```sh
+git pull --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
+# or, normal `git pull` and then:
+git submodule update --init
+```
+
+Then build with:
+
+```
+make build
+```
+
+The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly).
+
+For further build instructions, refer to the `Makefile`.

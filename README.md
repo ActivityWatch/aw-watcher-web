@@ -8,10 +8,14 @@ A cross-browser WebExtension that serves as a web browser watcher for [ActivityW
 
 ## Usage
 
+> **Note**
+> Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store.
+> See: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528
+
 Install for your browser:
 
  - [Chrome][chrome]
- - [Firefox][firefox]
+ - ~~[Firefox][firefox]~~
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/

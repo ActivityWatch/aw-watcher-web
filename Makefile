@@ -1,5 +1,10 @@
 .PHONY: build install clean
 
+# This is what Google and Mozilla wants us to upload when we release a new version to the Addon "store"
+build: install
+	npm run build
+	make aw-watcher-web.zip
+
 install:
 	npm ci
 	(cd aw-client-js; npm ci; npm run compile)
@@ -10,11 +15,6 @@ update:
 clean:
 	rm -rf node_modules build
 	(cd aw-client-js; rm -rf node_modules)
-
-# This is what Google and Mozilla wants us to upload when we release a new version to the Addon "store"
-build: install
-	npm run build
-	make aw-watcher-web.zip
 
 aw-watcher-web.zip: out/app.js
 	rm -f $@

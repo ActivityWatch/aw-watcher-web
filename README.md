@@ -8,18 +8,20 @@ A cross-browser WebExtension that serves as a web browser watcher for [ActivityW
 
 ## Usage
 
-> **Note**
-> Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store.
-> See: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528
-
 Install for your browser:
 
  - [Chrome][chrome]
- - ~~[Firefox][firefox]~~
+ - ~~Firefox~~
+   - Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store (see [discussion #818][818]).
+   - You can install the latest Mozilla-signed version [here][last-xpi].
+   - You can also build from source, see [this comment][build-source-cmt] and instructions below.
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
 [chrome]: https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi/
+[build-source-cmt]: https://github.com/ActivityWatch/aw-watcher-web/issues/94#issuecomment-1315773537
+[last-xpi]: https://github.com/ActivityWatch/aw-watcher-web/releases/download/v0.4.3/aw-watcher-web-v0.4.3.xpi
+[818]: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528
 
 
 ## Building
@@ -38,6 +40,6 @@ Then build with:
 make build
 ```
 
-The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly).
+The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly and ).
 
 For further build instructions, refer to the `Makefile`.

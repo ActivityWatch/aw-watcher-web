@@ -13,7 +13,7 @@ Install for your browser:
  - [Chrome][chrome]
  - ~~Firefox~~
    - Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store (see [discussion #818][818]).
-   - You can install the latest Mozilla-signed version [here][last-xpi].
+   - ~~You can install the latest Mozilla-signed version [here][last-xpi].~~ (we are apparently not allowed to self-distribute this, see discussion linked above)
    - You can also build from source, see [this comment][build-source-cmt] and instructions below.
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
@@ -40,6 +40,6 @@ Then build with:
 make build
 ```
 
-The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly and ).
+The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly and Developer Edition).
 
 For further build instructions, refer to the `Makefile`.

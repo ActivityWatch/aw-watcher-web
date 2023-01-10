@@ -150,7 +150,11 @@ function popupRequestReceived(msg) {
 
 async function askConsentNeeded() {
   // Source for compatibility check: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Build_a_cross_browser_extension#handling_api_differences
-  if (typeof browser.runtime.getBrowserInfo != "function") {
+  try {
+    if (typeof browser.runtime.getBrowserInfo != "function") {
+      return false
+    }
+  } catch (e) {
     return false
   }
   let browserInfo;
@@ -161,27 +165,19 @@ async function askConsentNeeded() {
   return true
 }
 
-function requestConsent() {
-  // Modified from Source: https://extensionworkshop.com/documentation/develop/onboard-upboard-offboard-users/#onboarding
-  browser.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
-    // if (temporary) return; // skip during development
-    switch (reason) {
-      case "install":
-        {
-          const url = browser.runtime.getURL("../static/consent.html");
-          browser.windows.create({ url, type: "popup", height: 420, width: 416, });
-        }
-        break;
-    }
-  });
-}
-
 function startPopupListener() {
-  chrome.storage.local.get(["enabled"], function(obj) {
+  chrome.storage.local.get(["enabled"], async function(obj) {
     if (obj.enabled == undefined) {
-      if(askConsentNeeded()) {
+      if(await askConsentNeeded()) {
         chrome.storage.local.set({"enabled": false}); // TODO: replace with storage.managed
-        requestConsent();
+        chrome.storage.local.set({"noConsentGiven": true});
+        chrome.storage.local.get("askConsent", (obj) => {
+          if(obj.askConsent) {
+            const url = chrome.runtime.getURL("../static/consent.html");
+            chrome.windows.create({ url, type: "popup", height: 420, width: 416, });
+            freshInstall = false;
+          }
+        })
       } else {
         chrome.storage.local.set({"enabled": true});
         startWatcher();

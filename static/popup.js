@@ -1,7 +1,7 @@
 "use strict";
 
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], async function(obj) {
+  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], function(obj) {
     // Enabled checkbox
     let enabledCheckbox = document.getElementById('status-enabled-checkbox');
     enabledCheckbox.checked = obj.enabled;

@@ -35,6 +35,10 @@ button {
   border: 1px solid #DDD;
 }
 
+#status-consent-btn {
+  display: none;
+}
+
 .accept {
   color: #FFF;
   background-color: #007ef8;

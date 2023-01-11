@@ -4,6 +4,7 @@ function consentListeners() {
   let consent_refused = document.getElementById('consent-refused');
   let consent_given = document.getElementById('consent-given');
   consent_refused.addEventListener("click", (obj) => {
+    browser.management.uninstallSelf()
     window.close()
   });
   consent_given.addEventListener("click", (obj) => {

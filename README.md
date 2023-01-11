@@ -23,6 +23,22 @@ Install for your browser:
 [last-xpi]: https://github.com/ActivityWatch/aw-watcher-web/releases/download/v0.4.3/aw-watcher-web-v0.4.3.xpi
 [818]: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528
 
+### Firefox Enterprise Policy
+
+Due to the issue mentioned above, a privacy notice as to be displayed to follow the mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
+```json
+{
+  "policies": {
+    "3rdparty": {
+      "Extensions": {
+        "{ef87d84c-2127-493f-b952-5b4e744245bc}": {
+          "consentOfflineDataCollection": true
+        }
+      }
+    }
+  }
+}
+```
 
 ## Building
 

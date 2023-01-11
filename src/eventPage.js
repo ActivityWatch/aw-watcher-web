@@ -162,6 +162,14 @@ async function askConsentNeeded() {
   if (browserInfo.name != "Firefox") {
     return false
   }
+  try {
+    if (await browser.storage.managed.get("consentOfflineDataCollection")) {
+      return false
+    }
+  } catch (e) {
+    console.error('managed storage error: ', e)
+    return true
+  }
   return true
 }
 

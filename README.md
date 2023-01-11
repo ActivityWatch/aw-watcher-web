@@ -25,7 +25,7 @@ Install for your browser:
 
 ### Firefox Enterprise Policy
 
-Due to the issue mentioned above, a privacy notice as to be displayed to follow the mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
+Due to the issue mentioned above, a privacy notice has to be displayed to follow the Mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
 ```json
 {
   "policies": {

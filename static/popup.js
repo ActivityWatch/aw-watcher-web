@@ -17,7 +17,7 @@ function renderStatus() {
         enabledCheckbox.removeAttribute('disabled');
         showConsentBtn.style.display = 'none';
       }
-    })
+    });
 
     // Connected
     let connectedColor = obj.lastSyncSuccess ? "#00AA00" : "#FF0000";

@@ -148,10 +148,48 @@ function popupRequestReceived(msg) {
   }
 }
 
+async function askConsentNeeded() {
+  // Source for compatibility check: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Build_a_cross_browser_extension#handling_api_differences
+  try {
+    if (typeof browser.runtime.getBrowserInfo != "function") {
+      return false
+    }
+  } catch (e) {
+    return false
+  }
+  let browserInfo;
+  await browser.runtime.getBrowserInfo().then((info) => {browserInfo = info})
+  if (browserInfo.name != "Firefox") {
+    return false
+  }
+  try {
+    if (await browser.storage.managed.get("consentOfflineDataCollection")) {
+      return false
+    }
+  } catch (e) {
+    console.error('managed storage error: ', e)
+    return true
+  }
+  return true
+}
+
 function startPopupListener() {
-  chrome.storage.local.get(["enabled"], function(obj) {
+  chrome.storage.local.get(["enabled"], async function(obj) {
     if (obj.enabled == undefined) {
-      chrome.storage.local.set({"enabled": true});
+      if(await askConsentNeeded()) {
+        chrome.storage.local.set({"enabled": false}); // TODO: replace with storage.managed
+        chrome.storage.local.set({"noConsentGiven": true});
+        chrome.storage.local.get("askConsent", (obj) => {
+          if(obj.askConsent) {
+            const url = chrome.runtime.getURL("../static/consent.html");
+            chrome.windows.create({ url, type: "popup", height: 420, width: 416, });
+            freshInstall = false;
+          }
+        })
+      } else {
+        chrome.storage.local.set({"enabled": true});
+        startWatcher();
+      }
     }
   });
   chrome.runtime.onMessage.addListener(popupRequestReceived);
@@ -163,5 +201,5 @@ function startPopupListener() {
 
 (function() {
   startPopupListener();
-  startWatcher();
+  // startWatcher() moved to startPopupListener
 })();

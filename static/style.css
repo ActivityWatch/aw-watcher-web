@@ -9,7 +9,7 @@ body {
 }
 
 hr {
-  border: 1px solid #DDD;
+  border: 1px solid #ddd;
 }
 
 a {
@@ -31,8 +31,8 @@ button {
   padding: 0.5em;
   margin: 0.5em 0 0.5em 0.5em;
   border-radius: 0.2em;
-  background-color: #EEE;
-  border: 1px solid #DDD;
+  background-color: #eee;
+  border: 1px solid #ddd;
 }
 
 #status-consent-btn {
@@ -40,7 +40,7 @@ button {
 }
 
 .accept {
-  color: #FFF;
+  color: #fff;
   background-color: #007ef8;
   border: 1px solid #0073e6;
 }

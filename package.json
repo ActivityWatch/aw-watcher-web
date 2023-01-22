@@ -1,19 +1,27 @@
 {
-    "name": "aw-watcher-web",
-    "license": "MPL-2.0",
-    "bugs": {
-        "url": "https://github.com/ActivityWatch/aw-watcher-web/issues"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
-    },
-    "dependencies": {
-        "browserify": "^16.5.2",
-        "p-retry": "^4.4.0",
-        "ua-parser-js": "^0.7.24"
-    },
-    "scripts": {
-        "build": "mkdir -p out; browserify src/*.js > out/app.js"
-    }
+  "name": "aw-watcher-web",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/ActivityWatch/aw-watcher-web/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
+  },
+  "dependencies": {
+    "browserify": "^16.5.2",
+    "p-retry": "^4.4.0",
+    "prettier": "^2.8.3",
+    "ua-parser-js": "^0.7.24"
+  },
+  "scripts": {
+    "build": "mkdir -p out; browserify src/*.js > out/app.js",
+    "format": "prettier --write **/*.{css,html,js,json,md}"
+  },
+  "prettier": {
+    "singleQuote": false,
+    "trailingComma": "all",
+    "printWidth": 120,
+    "bracketSpacing": false
+  }
 }

@@ -12,6 +12,9 @@ install:
 update:
 	npm run build
 
+format:
+	npm run format
+
 clean:
 	rm -rf node_modules build
 	(cd aw-client-js; rm -rf node_modules)

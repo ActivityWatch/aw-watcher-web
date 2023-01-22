@@ -5,16 +5,15 @@
 
 A cross-browser WebExtension that serves as a web browser watcher for [ActivityWatch][activitywatch].
 
-
 ## Usage
 
 Install for your browser:
 
- - [Chrome][chrome]
- - ~~Firefox~~
-   - Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store (see [discussion #818][818]).
-   - ~~You can install the latest Mozilla-signed version [here][last-xpi].~~ (we are apparently not allowed to self-distribute this, see discussion linked above)
-   - You can also build from source, see [this comment][build-source-cmt] and instructions below.
+- [Chrome][chrome]
+- ~~Firefox~~
+  - Due to Mozilla incompetency, the addon is no longer listed in the Mozilla Addons store (see [discussion #818][818]).
+  - ~~You can install the latest Mozilla-signed version [here][last-xpi].~~ (we are apparently not allowed to self-distribute this, see discussion linked above)
+  - You can also build from source, see [this comment][build-source-cmt] and instructions below.
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
@@ -26,6 +25,7 @@ Install for your browser:
 ### Firefox Enterprise Policy
 
 Due to the issue mentioned above, a privacy notice has to be displayed to follow the Mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
+
 ```json
 {
   "policies": {

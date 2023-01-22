@@ -6,14 +6,9 @@ end_of_line = lf
 trim_trailing_whitespace = true
 charset = utf-8
 
-# 2 spaces for JS, HTML and CSS/SASS
-[*.{js,html,css,scss,sass,less}]
+# 2 spaces for JS/JSON, HTML, CSS/SASS and Markdown
+[*.{js,json,html,css,scss,sass,less,md}]
 indent_size = 2
-
-# 4 spaces for markdown
-[*.md]
-indent_size = 4
-trim_trailing_whitespace = false
 
 # Hard TAB for Makefile
 [Makefile]

@@ -10,19 +10,35 @@
 </head>
 
 <body class="consent">
-  <img src="/media/banners/banner.png" style="width: 100%">
+  <img src="/media/banners/banner.png" style="width: 100%" />
 
-  <hr>
+  <h1 style="text-align: center; margin-bottom: 0">Privacy Notice</h1>
+  <h3 style="text-align: center; margin-top: 0">and your consent</h3>
 
-  <h1>Privacy Notice</h1>
-  <p>
-    This extension by nature collects personal identifiable information in the form of URLs. All collected information never leaves your device because all data is only forwarded to localhost. Since this is the core functionality of this extension, the only option to not consent, is to uninstall.
-  </p>
-  <div class="action-container">
-    <div class="action"><button class="button" id="consent-refused">Remove ActivityWatch</button></div>
-    <div class="action"><button class="button accept" id="consent-given">Consent to offline data collection</button></div>
+  <!-- This box border helps highlight that there is more text if the box is cut off by a small window -->
+  <div style="text-overflow: scroll; border: 2px solid #DDD; border-radius: 2px; margin: 0.5em; padding: 0 0.5em 0 0.5em;">
+    <p>
+      This extension collects information about the active tab, such as its title, URL, wether it is audible, or incognito/private.
+    </p>
+
+    <p>
+      It stores that information in your locally installed ActivityWatch instance, which is required for the functioning of this extension.
+      It is never sent elsewhere than to the local device.
+    </p>
+
+    <p>
+      Due to Mozilla policy, we need to ask for your consent before we can start collecting this information, even if only kept locally.
+    </p>
+
+    <p>
+      Since this is the core functionality of this extension, if you do not consent, your only course of action is to uninstall.
+    </p>
   </div>
 
+  <div class="action-container">
+    <div class="action"><button class="button" id="consent-refused">Remove ActivityWatch extension</button></div>
+    <div class="action"><button class="button accept" id="consent-given">Consent to offline data collection</button></div>
+  </div>
 </body>
 
 </html>

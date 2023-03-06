@@ -182,7 +182,7 @@ function startPopupListener() {
         chrome.storage.local.get("askConsent", (obj) => {
           if(obj.askConsent) {
             const url = chrome.runtime.getURL("../static/consent.html");
-            chrome.windows.create({ url, type: "popup", height: 420, width: 416, });
+            chrome.windows.create({ url, type: "popup", height: 550, width: 416, });
             freshInstall = false;
           }
         })

@@ -34,7 +34,7 @@ srczip:
 	(cd build && unzip -q aw-client-js.zip)
 	(cd build && unzip -q media.zip)
 	# zip the whole thing
-	(cd build && zip -r aw-watcher-web.zip aw-watcher-web)
+	(cd build/aw-watcher-web && zip -r ../aw-watcher-web.zip *)
 	# clean up
 	(cd build && rm media.zip)
 

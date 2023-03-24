@@ -162,15 +162,21 @@ async function askConsentNeeded() {
   if (browserInfo.name != "Firefox") {
     return false
   }
-  try {
-    if (await browser.storage.managed.get("consentOfflineDataCollection")) {
-      return false
+
+  // Mozilla Addons doesn't allow bypassing the consent dialog through managed storage,
+  // so it is hard-coded to be disabled (you need to fork and self-distribute if you want to use this).
+  const supportEnterprisePolicy = false;
+  if (supportEnterprisePolicy) {
+    try {
+      if (await browser.storage.managed.get("consentOfflineDataCollection")) {
+        return false;
+      }
+    } catch (e) {
+      console.error("managed storage error: ", e);
+      return true;
     }
-  } catch (e) {
-    console.error('managed storage error: ', e)
-    return true
   }
-  return true
+  return true;
 }
 
 function startPopupListener() {

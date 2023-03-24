@@ -25,6 +25,8 @@ Install for your browser:
 
 ### Firefox Enterprise Policy
 
+**NOTE:** Due to Mozilla Addon policy, this is not possibly with the Mozilla-hosted versions of the extension. You need to fork the extension and modify a hardcoded value to get this to work.
+
 Due to the issue mentioned above, a privacy notice has to be displayed to follow the Mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
 ```json
 {

@@ -13,7 +13,6 @@ Install for your browser:
  - [Chrome][chrome]
  - [Firefox][firefox]
 
-
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
 [chrome]: https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi/

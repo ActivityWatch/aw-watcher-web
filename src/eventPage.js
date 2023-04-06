@@ -196,6 +196,8 @@ function startPopupListener() {
         chrome.storage.local.set({"enabled": true});
         startWatcher();
       }
+    } else if (obj.enabled) {
+      startWatcher();
     }
   });
   chrome.runtime.onMessage.addListener(popupRequestReceived);

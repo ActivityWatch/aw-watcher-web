@@ -25,7 +25,7 @@
         "static/installed.js",
         "out/app.js"
     ],
-    "persistent": false
+    "persistent": true
   },
 
   "permissions": [

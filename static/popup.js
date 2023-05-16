@@ -8,14 +8,14 @@ function renderStatus() {
 
     // Consent Button
     let showConsentBtn = document.getElementById('status-consent-btn');
-    chrome.storage.local.get("noConsentGiven", (obj) => {
-      console.log('noConsentGiven: ', obj.noConsentGiven)
-      if (obj.noConsentGiven) {
-        enabledCheckbox.setAttribute('disabled', '');
-        showConsentBtn.style.display = 'inline-block';
-      } else {
+    chrome.storage.local.get("consentGiven", (obj) => {
+      console.log('consentGiven: ', obj.consentGiven)
+      if (obj.consentGiven) {
         enabledCheckbox.removeAttribute('disabled');
         showConsentBtn.style.display = 'none';
+      } else {
+        enabledCheckbox.setAttribute('disabled', '');
+        showConsentBtn.style.display = 'inline-block';
       }
     });
 

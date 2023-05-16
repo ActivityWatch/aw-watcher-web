@@ -22,7 +22,6 @@
 
   "background": {
     "scripts": [
-        "static/installed.js",
         "out/app.js"
     ],
     "persistent": false

@@ -4,7 +4,7 @@
   "name": "ActivityWatch Web Watcher",
   "short_name": "ActivityWatch",
   "description": "Log the current tab and your browser activity with ActivityWatch.",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "icons": {
     "128": "media/logo/logo-128.png"
   },

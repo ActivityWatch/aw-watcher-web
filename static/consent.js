@@ -8,8 +8,8 @@ function consentListeners() {
     window.close()
   });
   consent_given.addEventListener("click", (obj) => {
+    chrome.storage.local.set({"consentGiven": true});
     chrome.runtime.sendMessage({enabled: true}, function(response) {});
-    chrome.storage.local.set({"noConsentGiven": false});
     window.close()
   })
 }

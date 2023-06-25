@@ -42,21 +42,22 @@ var client = {
   },
 
   getBrowserName: function () {
-    if (
-      navigator.userAgent.includes("Opera")||
-      navigator.userAgent.includes("OPR")
-    ) {
-      return "opera";
-    } else if (navigator.userAgent.includes("Firefox")) {
-      return "firefox";
-    } else if (navigator.userAgent.includes("Brave")) {
-      return "brave";
-    } else if (navigator.userAgent.includes("Chrome")) {
-      return "chrome";
-    } else if (navigator.userAgent.includes("Safari")) {
-      return "safari";
-    } else {
-      return "unknown";
+    switch (true) {
+      case navigator.userAgent.includes("Firefox"):
+        return "firefox"
+      case navigator.userAgent.includes("Brave"):
+        return "brave"
+      case navigator.userAgent.includes("Edg"):
+        return "edge"
+      case navigator.userAgent.includes("Opera"):
+      case navigator.userAgent.includes("OPR"):
+        return "opera"
+      case navigator.userAgent.includes("Chrome"):
+        return "chrome"
+      case navigator.userAgent.includes("Safari"):
+        return "safari"
+      default:
+        return "unknown"
     }
   },
 

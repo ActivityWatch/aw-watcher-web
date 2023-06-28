@@ -42,15 +42,26 @@ var client = {
     });
   },
 
-  getBrowserName: function() {
-    var agent_parsed = ua_parser(navigator.userAgent);
-    var browsername = agent_parsed.browser.name;
-    return browsername.toLowerCase();
+  getBrowserName: async function() {
+    var _ = new Promise(resolve => chrome.storage.local.get("browserName", resolve))
+    return await _.then(obj => {
+      // Check if browser name has been cached
+      if ("browserName" in obj) {
+        // Property exists in the object, it has been set before
+        return obj.browserName
+      }
+
+      // Get browser name from UAParser (expensive opration), and cache the result.
+      var agent_parsed = ua_parser(navigator.userAgent);
+      var browserName = agent_parsed.browser.name.toLowerCase();
+      chrome.storage.local.set({browserName})
+      return browserName;
+    })
   },
 
-  getBucketId: function() {
+  getBucketId: async function() {
     // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
-    var browserName = client.getBrowserName();
+    var browserName = await client.getBrowserName();
     return "aw-watcher-web-" + browserName.toLowerCase();
   },
 
@@ -61,12 +72,12 @@ var client = {
     });
   },
 
-  createBucket: function(){
+  createBucket: async function(){
     if (this.testing === null)
       return;
     // TODO: We might want to get the hostname somehow, maybe like this:
     // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
-    var bucket_id = this.getBucketId();
+    var bucket_id = await this.getBucketId();
     var eventtype = "web.tab.current";
     var hostname = "unknown";
 
@@ -93,8 +104,8 @@ var client = {
         "timestamp": timestamp.toISOString(),
     };
 
-    var attempt = () => {
-      return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
+    var attempt = async () => {
+      return this.awc.heartbeat(await this.getBucketId(), pulsetime, payload);
     }
 
     retry(attempt, { retries: 3 }).then(

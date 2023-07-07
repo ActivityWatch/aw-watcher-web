@@ -22,13 +22,22 @@ function logHttpError(error) {
   }
 }
 
+function getBrowserName() {
+  // Get browser name from UAParser (somewhat expensive operation)
+  var agent_parsed = ua_parser(navigator.userAgent);
+  var browserName = agent_parsed.browser.name.toLowerCase();
+  return browserName;
+}
+
 var client = {
   testing: null,
   awc: null,
   lastSyncSuccess: true,
+  browserName: null,
 
   setup: function() {
     console.log("Setting up client");
+    client.browserName = getBrowserName();
     // Check if in dev mode
     chrome.management.getSelf(function(info) {
       client.testing = info.installType === "development";
@@ -42,27 +51,8 @@ var client = {
     });
   },
 
-  getBrowserName: async function() {
-    var _ = new Promise(resolve => chrome.storage.local.get("browserName", resolve))
-    return await _.then(obj => {
-      // Check if browser name has been cached
-      if ("browserName" in obj) {
-        // Property exists in the object, it has been set before
-        return obj.browserName
-      }
-
-      // Get browser name from UAParser (expensive opration), and cache the result.
-      var agent_parsed = ua_parser(navigator.userAgent);
-      var browserName = agent_parsed.browser.name.toLowerCase();
-      chrome.storage.local.set({browserName})
-      return browserName;
-    })
-  },
-
-  getBucketId: async function() {
-    // TODO: This works for Chrome and Firefox, but is a bit hacky and wont work in the general case
-    var browserName = await client.getBrowserName();
-    return "aw-watcher-web-" + browserName.toLowerCase();
+  getBucketId: function () {
+    return "aw-watcher-web-" + client.browserName.toLowerCase();
   },
 
   updateSyncStatus: function(){
@@ -104,9 +94,9 @@ var client = {
         "timestamp": timestamp.toISOString(),
     };
 
-    var attempt = async () => {
-      return this.awc.heartbeat(await this.getBucketId(), pulsetime, payload);
-    }
+    var attempt = () => {
+      return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
+    };
 
     retry(attempt, { retries: 3 }).then(
       (res) => {

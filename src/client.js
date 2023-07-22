@@ -62,12 +62,12 @@ var client = {
     });
   },
 
-  createBucket: async function(){
+  createBucket: function(){
     if (this.testing === null)
       return;
     // TODO: We might want to get the hostname somehow, maybe like this:
     // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
-    var bucket_id = await this.getBucketId();
+    var bucket_id = this.getBucketId();
     var eventtype = "web.tab.current";
     var hostname = "unknown";
 

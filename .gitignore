@@ -1,5 +1,5 @@
-aw-watcher-web.zip
-out
-build
 node_modules
+build
+
+# Editor directories and files
 .DS_Store

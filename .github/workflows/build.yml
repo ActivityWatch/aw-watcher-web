@@ -1,38 +1,37 @@
-# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
 name: Build
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [12.x]
+        steps:
+            - uses: actions/checkout@v3
+            - name: Use Node.js 18.x
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18.x
+                  cache: 'npm'
 
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: Install
-      run: make install
-    - name: Build
-      run: make build
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: aw-watcher-web
-        path: aw-watcher-web.zip
+            - run: npm ci
 
+            - name: Build Firefox
+              run: npm run build:firefox
+            - name: Upload artifact
+              uses: actions/upload-artifact@v2-preview
+              with:
+                  name: firefox
+                  path: dist.zip
 
+            - name: Build Chrome
+              run: npm run build:chrome
+            - name: Upload artifact
+              uses: actions/upload-artifact@v2-preview
+              with:
+                  name: chrome
+                  path: dist.zip

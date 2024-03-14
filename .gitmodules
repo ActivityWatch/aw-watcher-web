@@ -1,6 +1,3 @@
 [submodule "media"]
 	path = media
 	url = https://github.com/ActivityWatch/media.git
-[submodule "aw-client-js"]
-	path = aw-client-js
-	url = https://github.com/ActivityWatch/aw-client-js.git

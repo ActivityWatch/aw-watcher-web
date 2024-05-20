@@ -23,6 +23,9 @@ function logHttpError(error) {
 }
 
 function getBrowserName() {
+  if (navigator.brave?.isBrave())
+    return "brave";
+
   // Get browser name from UAParser (somewhat expensive operation)
   var agent_parsed = ua_parser(navigator.userAgent);
   var browserName = agent_parsed.browser.name.toLowerCase();

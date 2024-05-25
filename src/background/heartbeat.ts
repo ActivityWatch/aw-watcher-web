@@ -2,7 +2,7 @@ import browser from 'webextension-polyfill'
 import { getActiveWindowTab, getTab, getTabs } from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
-import { ensureBucket, getBucketId, sendHeartbeat } from './client'
+import { getBucketId, sendHeartbeat } from './client'
 import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
 import deepEqual from 'deep-equal'
 
@@ -16,9 +16,6 @@ async function heartbeat(
     console.warn('Ignoring heartbeat because client has not been enabled')
     return
   }
-
-  console.debug(`Ensuring bucket "${getBucketId()}" exists`)
-  await ensureBucket(client, getBucketId())
 
   const now = new Date()
   const data: IEvent['data'] = {

@@ -9,6 +9,9 @@ compile:
 clean:
 	rm -rf node_modules build
 
+format:
+	npx prettier --write .
+
 #---------
 ## Building
 

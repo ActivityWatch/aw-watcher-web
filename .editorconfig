@@ -7,7 +7,7 @@ trim_trailing_whitespace = true
 charset = utf-8
 
 # 2 spaces for JS, HTML and CSS/SASS
-[*.{ts,js,html,css,scss,sass,less}]
+[*.{ts,js,html,yml,css,scss,sass,less}]
 indent_size = 2
 
 # 4 spaces for markdown

@@ -18,10 +18,8 @@ jobs:
           node-version: 18.x
           cache: npm
 
-      - run: npm ci
-
       - name: Build Firefox
-        run: npm run build:firefox
+        run: make build-firefox
       - name: Upload artifact
         uses: actions/upload-artifact@v2-preview
         with:
@@ -29,7 +27,7 @@ jobs:
           path: dist.zip
 
       - name: Build Chrome
-        run: npm run build:chrome
+        run: make build-chrome
       - name: Upload artifact
         uses: actions/upload-artifact@v2-preview
         with:

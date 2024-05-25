@@ -23,11 +23,11 @@ export function emitNotification(title: string, message: string) {
   })
 }
 
-// FIXME: Detect Brave? Using navigator.brave.isBrave does not work in a service worker
-// so this would need to be done in an injected script
 // FIXME: Detect Vivaldi? It seems to be intentionally impossible
 export const getBrowserName = () => {
-  if (
+  if ((navigator as any).brave.isBrave()) {
+    return 'brave'
+  } else if (
     navigator.userAgent.includes('Opera') ||
     navigator.userAgent.includes('OPR')
   ) {

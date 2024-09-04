@@ -44,8 +44,8 @@ Due to the issue mentioned above, a privacy notice has to be displayed to follow
 First, clone the repo with:
 
 ```sh
-git pull --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
-# or, normal `git pull` and then:
+git clone --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
+# or, normal `git clone` and then:
 git submodule update --init
 ```
 

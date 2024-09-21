@@ -15,7 +15,7 @@ Install for your browser:
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
-[chrome]: https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi/
+[chrome]: [https://chrome.google.com/webstore/detail/nglaklhklhcoonedhgnpgddginnjdadi](https://chromewebstore.google.com/detail/activitywatch-web-watcher/nglaklhklhcoonedhgnpgddginnjdadi)/
 [build-source-cmt]: https://github.com/ActivityWatch/aw-watcher-web/issues/94#issuecomment-1315773537
 [last-xpi]: https://github.com/ActivityWatch/aw-watcher-web/releases/download/v0.4.3/aw-watcher-web-v0.4.3.xpi
 [818]: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528

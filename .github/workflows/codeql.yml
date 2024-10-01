@@ -1,12 +1,12 @@
-name: "CodeQL"
+name: 'CodeQL'
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [master]
   pull_request:
-    branches: [ "master" ]
+    branches: [master]
   schedule:
-    - cron: "25 4 * * 3"
+    - cron: '25 4 * * 3'
 
 jobs:
   analyze:
@@ -17,11 +17,6 @@ jobs:
       contents: read
       security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ javascript ]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,13 +24,15 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
-          languages: ${{ matrix.language }}
+          languages: javascript, typescript
           queries: +security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: npm
+      - run: make build-chrome
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
-        with:
-          category: "/language:${{ matrix.language }}"

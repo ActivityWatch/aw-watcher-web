@@ -1,0 +1,81 @@
+import { IEvent } from 'aw-client'
+import browser from 'webextension-polyfill'
+
+function watchKey<T>(key: string, cb: (value: T) => void | Promise<void>) {
+  const listener = (
+    changes: browser.Storage.StorageAreaOnChangedChangesType,
+  ) => {
+    if (!(key in changes)) return
+    cb(changes[key].newValue)
+  }
+  browser.storage.local.onChanged.addListener(listener)
+  return () => browser.storage.local.onChanged.removeListener(listener)
+}
+
+async function waitForKey<T>(key: string, desiredValue: T) {
+  const value = await browser.storage.local.get(key).then((_) => _[key])
+  if (value === desiredValue) return
+  return new Promise<void>((resolve) => {
+    const unsubscribe = watchKey<T>(key, (value) => {
+      if (value !== desiredValue) return
+      resolve()
+      unsubscribe()
+    })
+  })
+}
+
+type SyncStatus = { success?: boolean; date?: string }
+export const getSyncStatus = (): Promise<SyncStatus> =>
+  browser.storage.local
+    .get(['lastSyncSuccess', 'lastSync'])
+    .then(({ lastSyncSuccess, lastSync }) => ({
+      success:
+        lastSyncSuccess === undefined
+          ? lastSyncSuccess
+          : Boolean(lastSyncSuccess),
+      date: lastSync === undefined ? lastSync : String(lastSync),
+    }))
+export const setSyncStatus = (lastSyncSuccess: boolean) =>
+  browser.storage.local.set({
+    lastSyncSuccess,
+    lastSync: new Date().toISOString(),
+  })
+export const watchSyncSuccess = (
+  cb: (success: boolean | undefined) => void | Promise<void>,
+) => watchKey('lastSyncSuccess', cb)
+export const watchSyncDate = (
+  cb: (date: string | undefined) => void | Promise<void>,
+) => watchKey('lastSync', cb)
+
+type ConsentStatus = { consent?: boolean; required?: boolean }
+export const getConsentStatus = async (): Promise<ConsentStatus> =>
+  browser.storage.local
+    .get(['consentRequired', 'consent'])
+    .then(({ consent, consentRequired }) => ({
+      consent,
+      required: consentRequired,
+    }))
+export const setConsentStatus = async (status: ConsentStatus): Promise<void> =>
+  browser.storage.local.set({
+    consentRequired: status.required,
+    consent: status.consent,
+  })
+
+type Enabled = boolean
+export const waitForEnabled = () => waitForKey('enabled', true)
+export const getEnabled = (): Promise<Enabled> =>
+  browser.storage.local.get('enabled').then((_) => Boolean(_.enabled))
+export const setEnabled = (enabled: Enabled) =>
+  browser.storage.local.set({ enabled })
+
+type BaseUrl = string
+export const getBaseUrl = (): Promise<BaseUrl | undefined> =>
+  browser.storage.local.get('baseUrl').then((_) => _.baseUrl)
+export const setBaseUrl = (baseUrl: BaseUrl) =>
+  browser.storage.local.set({ baseUrl })
+
+type HeartbeatData = IEvent['data']
+export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
+  browser.storage.local.get('heartbeatData').then((_) => _.heartbeatData)
+export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
+  browser.storage.local.set({ heartbeatData })

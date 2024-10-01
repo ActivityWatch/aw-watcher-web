@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>ActivityWatch Popup</title>
+  </head>
+  <body>
+    <img src="/media/banners/banner.png" style="width: 100%" />
+
+    <hr />
+
+    <div id="testing-notice">
+      <!-- Filled by JS -->
+    </div>
+
+    <div>
+      <a id="webui-link" href="http://localhost:5600/" target="_blank">
+        <span class="button">
+          <b>Open web UI</b>
+        </span>
+      </a>
+      <a href="https://forum.activitywatch.net/" target="_blank">
+        <span class="button">
+          <b>Visit forum</b>
+        </span>
+      </a>
+    </div>
+
+    <table>
+      <tr>
+        <th align="right">Enabled:</th>
+        <td>
+          <input type="checkbox" id="status-enabled-checkbox" />
+        </td>
+        <td>
+          <button id="status-consent-btn" class="button">
+            Consent to Privacy Notice
+          </button>
+        </td>
+      </tr>
+
+      <tr>
+        <th align="right">Connected:</th>
+        <td id="status-connected-icon">
+          <!-- Filled by JS -->
+        </td>
+      </tr>
+
+      <tr align="right">
+        <th>Last sync:</th>
+        <td id="status-last-sync">
+          <!-- Filled by JS -->
+        </td>
+      </tr>
+    </table>
+
+    <hr />
+
+    <small>
+      <p>
+        If you find any bugs with this watcher, please report them
+        <a
+          href="https://github.com/ActivityWatch/aw-watcher-web/issues"
+          target="_blank"
+          >here</a
+        >.
+      </p>
+    </small>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

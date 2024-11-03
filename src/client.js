@@ -91,38 +91,46 @@ var client = {
     if (this.testing === null)
       return;
 
-    var payload = {
-        "data": data,
-        "duration": 0.0,
-        "timestamp": timestamp.toISOString(),
-    };
+    // First get tags if they exist
+    chrome.storage.local.get(['tags'], (result) => {
+      var payload = {
+          "data": data,
+          "duration": 0.0,
+          "timestamp": timestamp.toISOString(),
+      };
 
-    var attempt = () => {
-      return this.awc.heartbeat(this.getBucketId(), pulsetime, payload);
-    };
-
-    retry(attempt, { retries: 3 }).then(
-      (res) => {
-        if (!client.lastSyncSuccess) {
-          emitNotification(
-            "Now connected again",
-            "Connection to ActivityWatch server established again"
-          );
-        }
-        client.lastSyncSuccess = true;
-        client.updateSyncStatus();
-      }, (err) => {
-        if(client.lastSyncSuccess) {
-          emitNotification(
-            "Unable to send event to server",
-            "Please ensure that ActivityWatch is running"
-          );
-        }
-        client.lastSyncSuccess = false;
-        client.updateSyncStatus();
-        logHttpError(err);
+      // Only add tags if they exist
+      if (result.tags) {
+        payload.data.tags = result.tags;
       }
-    );
+
+      var attempt = () => {
+        return client.awc.heartbeat(client.getBucketId(), pulsetime, payload);
+      };
+
+      retry(attempt, { retries: 3 }).then(
+        (res) => {
+          if (!client.lastSyncSuccess) {
+            emitNotification(
+              "Now connected again",
+              "Connection to ActivityWatch server established again"
+            );
+          }
+          client.lastSyncSuccess = true;
+          client.updateSyncStatus();
+        }, (err) => {
+          if(client.lastSyncSuccess) {
+            emitNotification(
+              "Unable to send event to server",
+              "Please ensure that ActivityWatch is running"
+            );
+          }
+          client.lastSyncSuccess = false;
+          client.updateSyncStatus();
+          logHttpError(err);
+        }
+      );
+    });
   }
 };
 

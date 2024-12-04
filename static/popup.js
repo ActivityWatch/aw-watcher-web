@@ -1,7 +1,7 @@
 "use strict";
 
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], function(obj) {
+  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled", "hostname"], function(obj) {
     // Enabled checkbox
     let enabledCheckbox = document.getElementById('status-enabled-checkbox');
     enabledCheckbox.checked = obj.enabled;
@@ -37,6 +37,10 @@ function renderStatus() {
     let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
     document.getElementById('status-last-sync').innerHTML = lastSyncString;
 
+    // Hostname
+    let hostnameTextbox = document.getElementById('hostname-textbox');
+    hostnameTextbox.value = obj.hostname || "";
+
     // Set webUI button link
     document.getElementById('webui-link').href = obj.baseURL;
   });
@@ -52,6 +56,17 @@ function domListeners() {
   consent_button.addEventListener('click', () => {
     const url = chrome.runtime.getURL("../static/consent.html");
     chrome.windows.create({ url, type: "popup", height: 550, width: 416, });
+  });
+  let hostnameTextbox = document.getElementById('hostname-textbox');
+  let hostnameSaveButton = document.getElementById('hostname-save-button');
+  hostnameSaveButton.addEventListener("click", () => {
+    chrome.storage.local.set({ hostname: hostnameTextbox.value });
+    // Need to restart the extension to update the bucket name
+    let enabled = enabled_checkbox.checked;
+    if (enabled) {
+      chrome.runtime.sendMessage({enabled: false});
+      chrome.runtime.sendMessage({enabled: true});
+    }
   });
 }
 

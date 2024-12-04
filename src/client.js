@@ -37,25 +37,33 @@ var client = {
   awc: null,
   lastSyncSuccess: true,
   browserName: null,
+  hostname: "",
 
   setup: function() {
-    console.log("Setting up client");
-    client.browserName = getBrowserName();
-    // Check if in dev mode
-    chrome.management.getSelf(function(info) {
-      client.testing = info.installType === "development";
-      console.log("testing: " + client.testing);
+    chrome.storage.local.get(["hostname"], (obj) => {
+      console.log("Setting up client");
+      client.browserName = getBrowserName();
+      // TODO: We might want to get the hostname automatically somehow, maybe like this:
+      // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
+      client.hostname = obj.hostname || "";
+      // Check if in dev mode
+      chrome.management.getSelf(function(info) {
+        client.testing = info.installType === "development";
+        console.log("testing: " + client.testing);
 
-      client.awc = new AWClient("aw-client-web", {testing: client.testing});
-      client.createBucket();
+        client.awc = new AWClient("aw-client-web", {testing: client.testing});
+        client.createBucket();
 
-      // Needed in order to show testing information in popup
-      chrome.storage.local.set({"testing": client.testing, "baseURL": client.awc.baseURL});
+        // Needed in order to show testing information in popup
+        chrome.storage.local.set({"testing": client.testing, "baseURL": client.awc.baseURL});
+      });
     });
   },
 
   getBucketId: function () {
-    return "aw-watcher-web-" + client.browserName.toLowerCase();
+    if (client.hostname != "")
+      return `aw-watcher-web-${client.browserName.toLowerCase()}_${client.hostname}`;
+    return `aw-watcher-web-${client.browserName.toLowerCase()}`;
   },
 
   updateSyncStatus: function(){
@@ -68,11 +76,11 @@ var client = {
   createBucket: function(){
     if (this.testing === null)
       return;
-    // TODO: We might want to get the hostname somehow, maybe like this:
-    // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
     var bucket_id = this.getBucketId();
     var eventtype = "web.tab.current";
-    var hostname = "unknown";
+    var hostname = client.hostname || "";
+    if (hostname == "")
+      hostname = "unknown";
 
     function attempt() {
       return client.awc.ensureBucket(bucket_id, eventtype, hostname)

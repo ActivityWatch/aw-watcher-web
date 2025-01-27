@@ -5,7 +5,6 @@
   <title>ActivityWatch Popup</title>
 
   <link href="./style.css" rel="stylesheet" type="text/css">
-
   <script src="./popup.js"></script>
 </head>
 
@@ -18,46 +17,79 @@
     <!-- Filled by JS -->
   </div>
 
-  <div>
-    <a id="webui-link" href="http://localhost:5600/" target="_blank">
-      <span class="button">
-        <b>Open web UI</b>
-      </span>
-    </a>
-    <a href="https://forum.activitywatch.net/" target="_blank">
-      <span class="button">
-        <b>Visit forum</b>
-      </span>
-    </a>
+  <!-- Main Extension Content -->
+  <div id="main-content">
+    <div>
+      <a id="webui-link" href="http://localhost:5600/" target="_blank">
+        <span class="button">
+          <b>Open web UI</b>
+        </span>
+      </a>
+      <a href="https://forum.activitywatch.net/" target="_blank">
+        <span class="button">
+          <b>Visit forum</b>
+        </span>
+      </a>
+    </div>
+
+    <table>
+      <tr>
+        <th align="right">Enabled:</th>
+        <td>
+          <input type="checkbox" id="status-enabled-checkbox">
+            <!-- Filled by JS -->
+          </input>
+        </td>
+        <td>
+          <button id="status-consent-btn">Consent to Privacy Notice</button>
+        </td>
+      </tr>
+
+      <tr>
+        <th align="right">Connected:</th>
+        <td id="status-connected-icon">
+          <!-- Filled by JS -->
+        </td>
+      </tr>
+
+      <tr align="right">
+        <th>Last sync:</th>
+        <td id="status-last-sync">
+          <!-- Filled by JS -->
+        </td>
+      </tr>
+    </table>
   </div>
 
-  <table>
-    <tr>
-      <th align="right">Enabled:</th>
-      <td>
-        <input type="checkbox" id="status-enabled-checkbox">
-          <!-- Filled by JS -->
-        </input>
-      </td>
-      <td>
-        <button id="status-consent-btn">Consent to Privacy Notice</button>
-      </td>
-    </tr>
+  <!-- Full Consent Content (Initially Hidden) -->
+  <div id="consent-content" style="display: none;" class="consent">
+    <h1 style="text-align: center; margin-bottom: 0">Privacy Notice</h1>
+    <h3 style="text-align: center; margin-top: 0">and your consent</h3>
 
-    <tr>
-      <th align="right">Connected:</th>
-      <td id="status-connected-icon">
-        <!-- Filled by JS -->
-      </td>
-    </tr>
+    <div style="text-overflow: scroll; border: 2px solid #DDD; border-radius: 2px; margin: 0.5em; padding: 0 0.5em 0 0.5em;">
+      <p>
+        This extension collects information about the active tab, such as its title, URL, wether it is audible, or incognito/private.
+      </p>
 
-    <tr align="right">
-      <th>Last sync:</th>
-      <td id="status-last-sync">
-        <!-- Filled by JS -->
-      </td>
-    </tr>
-  </table>
+      <p>
+        It stores that information in your locally installed ActivityWatch instance, which is required for the functioning of this extension.
+        It is never sent elsewhere than to the local device.
+      </p>
+
+      <p>
+        Due to Mozilla policy, we need to ask for your consent before we can start collecting this information, even if only kept locally.
+      </p>
+
+      <p>
+        Since this is the core functionality of this extension, if you do not consent, your only course of action is to uninstall.
+      </p>
+    </div>
+
+    <div class="action-container">
+      <div class="action"><button class="button" id="consent-refused">Remove ActivityWatch extension</button></div>
+      <div class="action"><button class="button accept" id="consent-given">Consent to offline data collection</button></div>
+    </div>
+  </div>
 
   <hr>
 
@@ -68,5 +100,4 @@
     </p>
   </small>
 </body>
-
 </html>

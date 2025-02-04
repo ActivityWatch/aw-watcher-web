@@ -58,7 +58,7 @@ export const sendInitialHeartbeat = async (client: AWClient) => {
   const activeWindowTab = await getActiveWindowTab()
   const tabs = await getTabs()
   console.debug('Sending initial heartbeat', activeWindowTab)
-  heartbeat(client, activeWindowTab, tabs.length)
+  await heartbeat(client, activeWindowTab, tabs.length)
 }
 
 export const heartbeatAlarmListener =
@@ -68,7 +68,7 @@ export const heartbeatAlarmListener =
     if (!activeWindowTab) return
     const tabs = await getTabs()
     console.debug('Sending heartbeat for alarm', activeWindowTab)
-    heartbeat(client, activeWindowTab, tabs.length)
+    await heartbeat(client, activeWindowTab, tabs.length)
   }
 
 export const tabActivatedListener =
@@ -77,5 +77,5 @@ export const tabActivatedListener =
     const tab = await getTab(activeInfo.tabId)
     const tabs = await getTabs()
     console.debug('Sending heartbeat for tab activation', tab)
-    heartbeat(client, tab, tabs.length)
+    await heartbeat(client, tab, tabs.length)
   }

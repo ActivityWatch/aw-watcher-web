@@ -1,7 +1,7 @@
 "use strict";
 
 function renderStatus() {
-  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled"], function(obj) {
+  chrome.storage.local.get(["lastSync", "lastSyncSuccess", "testing", "baseURL", "enabled", "browserName"], function(obj) {
     // Enabled checkbox
     let enabledCheckbox = document.getElementById('status-enabled-checkbox');
     enabledCheckbox.checked = obj.enabled;
@@ -37,6 +37,9 @@ function renderStatus() {
     let lastSyncString = obj.lastSync ? new Date(obj.lastSync).toLocaleString() : "never";
     document.getElementById('status-last-sync').innerHTML = lastSyncString;
 
+    // Browser name
+    document.getElementById("status-browser").innerText = obj.browserName;
+
     // Set webUI button link
     document.getElementById('webui-link').href = obj.baseURL;
   });
@@ -52,6 +55,10 @@ function domListeners() {
   consent_button.addEventListener('click', () => {
     const url = chrome.runtime.getURL("../static/consent.html");
     chrome.windows.create({ url, type: "popup", height: 550, width: 416, });
+  });
+  let browser_button = document.getElementById('edit-btn');
+  browser_button.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
   });
 }
 

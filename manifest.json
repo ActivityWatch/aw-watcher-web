@@ -27,6 +27,10 @@
     "persistent": false
   },
 
+  "options_ui": {
+    "page": "static/options.html"
+  },
+
   "permissions": [
     "tabs",
     "alarms",

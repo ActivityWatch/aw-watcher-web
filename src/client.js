@@ -23,13 +23,25 @@ function logHttpError(error) {
 }
 
 function getBrowserName() {
-  if (navigator.brave?.isBrave())
-    return "brave";
+  return new Promise((resolve) => {
+    chrome.storage.local.get("browserName", function (result) {
+      if (result.browserName) {
+        resolve(result.browserName);
+      } else {
+        const browserName = navigator.brave?.isBrave()
+          ? "brave"
+          : ua_parser(navigator.userAgent).browser.name.toLowerCase();
 
-  // Get browser name from UAParser (somewhat expensive operation)
-  var agent_parsed = ua_parser(navigator.userAgent);
-  var browserName = agent_parsed.browser.name.toLowerCase();
-  return browserName;
+        chrome.storage.local.set({ browserName }, () => {
+          if (chrome.runtime.lastError) {
+            console.error("Failed to save browser name:", chrome.runtime.lastError);
+          }
+        });
+
+        resolve(browserName);
+      }
+    });
+  });
 }
 
 var client = {
@@ -38,9 +50,9 @@ var client = {
   lastSyncSuccess: true,
   browserName: null,
 
-  setup: function() {
+  setup: async function () {
     console.log("Setting up client");
-    client.browserName = getBrowserName();
+    client.browserName = await getBrowserName();
     // Check if in dev mode
     chrome.management.getSelf(function(info) {
       client.testing = info.installType === "development";

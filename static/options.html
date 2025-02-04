@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>ActivityWatch settings</title>
+    <link href="./style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+    <form>
+        <label for="browser">Browser:</label>
+        <!-- List based on https://github.com/ActivityWatch/aw-webui/blob/master/src/queries.ts#L216 -->
+        <select id="browser" name="browser">
+            <option value="chrome">Chrome</option>
+            <option value="firefox">Firefox</option>
+            <option value="opera">Opera</option>
+            <option value="brave">Brave</option>
+            <option value="edge">Edge</option>
+            <option value="arc">Arc</option>
+            <option value="vivaldi">Vivaldi</option>
+            <option value="orion">Orion</option>
+            <option value="yandex">Yandex</option>
+        </select>
+        <button type="submit" class="button accept">Save</button>
+    </form>
+    <script src="./options.js"></script>
+</body>
+
+</html>

@@ -60,3 +60,11 @@ button {
 /* .action {
   flex: 1;
 } */
+
+form {
+  margin: 0 0.5em;
+}
+
+label {
+  font-weight: bold;
+}

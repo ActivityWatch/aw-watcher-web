@@ -35,10 +35,10 @@ update-firefox:
 
 # To build a zip archive for uploading to the Chrome Web Store or Mozilla Addons
 zip-build-chrome:
-	mkdir -p artifacts && cd build && zip ../artifacts/chrome.zip -r *
+	mkdir -p artifacts && cd build && zip -FS ../artifacts/chrome.zip -r *
 
 zip-build-firefox:
-	mkdir -p artifacts && cd build && zip ../artifacts/firefox.zip -r *
+	mkdir -p artifacts && cd build && zip -FS ../artifacts/firefox.zip -r *
 
 # To build a source archive, wanted by Mozilla reviewers. Include media subdir.
 # NOTE: we include the .git in the media archive so that it lines up with the output

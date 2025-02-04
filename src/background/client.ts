@@ -39,7 +39,10 @@ export async function sendHeartbeat(
         duration: 0,
         timestamp,
       }),
-    { retries: 3, onFailedAttempt: () => ensureBucket(client, bucketId).then(() => {}) },
+    {
+      retries: 3,
+      onFailedAttempt: () => ensureBucket(client, bucketId).then(() => {}),
+    },
   )
     .then(() => {
       if (syncStatus.success === false) {

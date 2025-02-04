@@ -1,6 +1,4 @@
 node_modules
 build
 artifacts
-
-# Editor directories and files
 .DS_Store

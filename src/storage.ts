@@ -6,7 +6,7 @@ function watchKey<T>(key: string, cb: (value: T) => void | Promise<void>) {
     changes: browser.Storage.StorageAreaOnChangedChangesType,
   ) => {
     if (!(key in changes)) return
-    cb(changes[key].newValue)
+    cb(changes[key].newValue as T)
   }
   browser.storage.local.onChanged.addListener(listener)
   return () => browser.storage.local.onChanged.removeListener(listener)
@@ -52,8 +52,8 @@ export const getConsentStatus = async (): Promise<ConsentStatus> =>
   browser.storage.local
     .get(['consentRequired', 'consent'])
     .then(({ consent, consentRequired }) => ({
-      consent,
-      required: consentRequired,
+      consent: typeof consent === 'boolean' ? consent : undefined,
+      required: typeof consentRequired === 'boolean' ? consentRequired : undefined,
     }))
 export const setConsentStatus = async (status: ConsentStatus): Promise<void> =>
   browser.storage.local.set({
@@ -70,12 +70,12 @@ export const setEnabled = (enabled: Enabled) =>
 
 type BaseUrl = string
 export const getBaseUrl = (): Promise<BaseUrl | undefined> =>
-  browser.storage.local.get('baseUrl').then((_) => _.baseUrl)
+  browser.storage.local.get('baseUrl').then((_) => _.baseUrl as string | undefined)
 export const setBaseUrl = (baseUrl: BaseUrl) =>
   browser.storage.local.set({ baseUrl })
 
 type HeartbeatData = IEvent['data']
 export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
-  browser.storage.local.get('heartbeatData').then((_) => _.heartbeatData)
+  browser.storage.local.get('heartbeatData').then((_) => _.heartbeatData as HeartbeatData | undefined)
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
   browser.storage.local.set({ heartbeatData })

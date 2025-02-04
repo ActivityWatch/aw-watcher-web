@@ -1,4 +1,5 @@
 {
+    "type": "module",
     "name": "aw-watcher-web",
     "license": "MPL-2.0",
     "bugs": {

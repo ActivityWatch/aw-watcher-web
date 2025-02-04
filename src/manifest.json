@@ -21,7 +21,7 @@
     "background": {
         "{{chrome}}.service_worker": "src/background/main.ts",
         "{{firefox}}.scripts": ["src/background/main.ts"],
-        "{{firefox}}.persistent": false
+        "{{firefox}}.persistent": true
     },
 
     "{{firefox}}.permissions": [

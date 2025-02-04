@@ -17,7 +17,7 @@ export const getActiveWindowTab = () =>
 export function emitNotification(title: string, message: string) {
   browser.notifications.create({
     type: 'basic',
-    iconUrl: browser.runtime.getURL('media/logo/logo-128.png'),
+    iconUrl: browser.runtime.getURL('logo-128.png'),
     title,
     message,
   })

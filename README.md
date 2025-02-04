@@ -9,8 +9,8 @@ A cross-browser WebExtension that serves as a web browser watcher for [ActivityW
 
 Install for your browser:
 
-- [Chrome][chrome]
-- [Firefox][firefox]
+-   [Chrome][chrome]
+-   [Firefox][firefox]
 
 [activitywatch]: https://github.com/ActivityWatch/activitywatch
 [firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
@@ -21,9 +21,10 @@ Install for your browser:
 
 ### Firefox Enterprise Policy
 
-**NOTE:** Due to Mozilla Addon policy, this is not possibly with the Mozilla-hosted versions of the extension. You need to fork the extension and modify a hardcoded value to get this to work.
+> [!NOTE]
+> Due to Mozilla Add-on Policy, this is not possible with the Mozilla-hosted versions of the extension. You will need to fork the extension and change a hardcoded value to make this work.
 
-Due to the issue mentioned above, a privacy notice has to be displayed to follow the Mozilla add-on policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
+Due to the above issue, a privacy notice must be displayed to comply with the Mozilla Add-on Policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
 
 ```json
 {

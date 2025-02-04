@@ -7,8 +7,11 @@ async function reloadExtension() {
 async function saveOptions(e) {
     e.preventDefault();
     const selectedBrowser = document.querySelector("#browser").value;
-    await chrome.storage.local.set({
-        browserName: selectedBrowser
+    
+    await new Promise((resolve) => {
+        chrome.storage.local.set({
+            browserName: selectedBrowser
+        }, resolve);
     });
 
     const button = e.target.querySelector("button");

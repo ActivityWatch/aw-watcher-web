@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Use Node.js 18.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: npm
@@ -21,7 +21,7 @@ jobs:
       - name: Build Firefox
         run: make build-firefox
       - name: Upload artifact
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v4
         with:
           name: firefox
           path: dist.zip
@@ -29,7 +29,7 @@ jobs:
       - name: Build Chrome
         run: make build-chrome
       - name: Upload artifact
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v4
         with:
           name: chrome
           path: dist.zip

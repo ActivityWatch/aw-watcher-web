@@ -25,7 +25,7 @@ export function emitNotification(title: string, message: string) {
 
 // FIXME: Detect Vivaldi? It seems to be intentionally impossible
 export const getBrowserName = () => {
-  if ((navigator as any).brave.isBrave()) {
+  if ((navigator as any).brave?.isBrave()) {
     return 'brave'
   } else if (
     navigator.userAgent.includes('Opera') ||

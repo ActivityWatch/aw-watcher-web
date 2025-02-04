@@ -11,11 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js 18.x
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Use Node.js 23.x
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 23.x
           cache: npm
 
       - name: Build Firefox
@@ -24,7 +28,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firefox
-          path: dist.zip
+          path: artifacts/firefox.zip
 
       - name: Build Chrome
         run: make build-chrome
@@ -32,4 +36,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chrome
-          path: dist.zip
+          path: artifacts/chrome.zip

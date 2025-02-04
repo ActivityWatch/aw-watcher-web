@@ -13,16 +13,9 @@ hr {
   border: 1px solid #ddd;
 }
 
-a {
-  text-decoration: none;
-}
-
-h1 {
-  margin: 0;
-}
-
+h1,
 h3 {
-  margin-top: 0;
+  margin: 0;
 }
 
 button {
@@ -39,28 +32,13 @@ button {
   border: 1px solid #ddd;
 }
 
-.action + .action {
-  margin-left: 0.5em;
-}
-
-#status-consent-btn {
-  display: none;
-}
-
 .accept {
   color: #fff;
   background-color: #007ef8;
   border: 1px solid #0073e6;
 }
 
-#status {
-  /* avoid an excessively wide status text */
-  white-space: pre;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: 400px;
-}
-
 .action-container {
   display: flex;
+  gap: 0.5em;
 }

@@ -17,10 +17,17 @@ async function heartbeat(
     return
   }
 
+  if (!tab.url || !tab.title) {
+    console.warn(
+      'Ignoring heartbeat because tab is missing required properties',
+    )
+    return
+  }
+
   const now = new Date()
   const data: IEvent['data'] = {
-    url: tab.url!,
-    title: tab.title!,
+    url: tab.url,
+    title: tab.title,
     audible: String(tab.audible ?? false),
     incognito: String(tab.incognito),
     tabCount: tabCount,

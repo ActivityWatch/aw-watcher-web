@@ -27,10 +27,13 @@ export default defineConfig({
   },
   plugins: [
     webExtension({
-      assets: 'media',
       webExtConfig: loadWebExtConfig(),
       manifest: generateManifest,
-      additionalInputs: ['src/consent/index.html', 'src/consent/main.ts'],
+      additionalInputs: [
+        'src/consent/index.html',
+        'src/consent/main.ts',
+        'media/logo/logo-128.png',
+      ],
       browser: process.env.VITE_TARGET_BROWSER,
     }),
   ],

@@ -7,20 +7,19 @@ async function reloadExtension() {
 async function saveOptions(e) {
     e.preventDefault();
     const selectedBrowser = document.querySelector("#browser").value;
-    
-    await new Promise((resolve) => {
-        chrome.storage.local.set({
-            browserName: selectedBrowser
-        }, resolve);
-    });
 
     const button = e.target.querySelector("button");
     button.textContent = "Saving...";
     button.classList.remove('accept');
 
-    setTimeout(() => {
-        reloadExtension();
-    }, 500);
+    await new Promise((resolve) => {
+        chrome.storage.local.set({
+            browserName: selectedBrowser
+        }, () => {
+            reloadExtension();
+            resolve();
+        });
+    });
 }
 
 function restoreOptions() {

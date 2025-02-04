@@ -4,10 +4,6 @@ body {
   width: 25em;
 }
 
-.consent {
-  width: 400px;
-}
-
 hr {
   border: 1px solid #ddd;
 }
@@ -16,13 +12,8 @@ a {
   text-decoration: none;
 }
 
-h1 {
-  margin-bottom: 0px;
-}
-
 button {
   cursor: pointer;
-  font-size: 100%;
 }
 
 .button {
@@ -38,25 +29,3 @@ button {
 #status-consent-btn {
   display: none;
 }
-
-.accept {
-  color: #fff;
-  background-color: #007ef8;
-  border: 1px solid #0073e6;
-}
-
-#status {
-  /* avoid an excessively wide status text */
-  white-space: pre;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: 400px;
-}
-
-.action-container {
-  display: flex;
-}
-
-/* .action {
-  flex: 1;
-} */

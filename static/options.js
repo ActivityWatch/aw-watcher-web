@@ -10,7 +10,7 @@ async function saveOptions(e) {
 
     const button = e.target.querySelector("button");
     button.textContent = "Saving...";
-    button.classList.remove('accept');
+    button.classList.remove("accept");
 
     await new Promise((resolve) => {
         chrome.storage.local.set({

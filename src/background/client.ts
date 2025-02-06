@@ -2,7 +2,7 @@ import config from '../config'
 
 import { AWClient, IEvent } from 'aw-client'
 import retry from 'p-retry'
-import { emitNotification, getBrowserName, logHttpError } from './helpers'
+import { emitNotification, getBrowser, logHttpError } from './helpers'
 import { getSyncStatus, setSyncStatus } from '../storage'
 
 export const getClient = () =>
@@ -65,4 +65,7 @@ export async function sendHeartbeat(
     })
 }
 
-export const getBucketId = () => `aw-watcher-web-${getBrowserName()}`
+export const getBucketId = async (): Promise<string> => {
+  const browser = await getBrowser()
+  return `aw-watcher-web-${browser}`
+}

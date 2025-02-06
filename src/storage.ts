@@ -84,3 +84,9 @@ export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
     .then((_) => _.heartbeatData as HeartbeatData | undefined)
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
   browser.storage.local.set({ heartbeatData })
+
+type BrowserName = string
+export const getBrowserName = (): Promise<BrowserName | undefined> =>
+  browser.storage.local.get('browserName').then((_) => _.browserName)
+export const setBrowserName = (browserName: BrowserName) =>
+  browser.storage.local.set({ browserName })

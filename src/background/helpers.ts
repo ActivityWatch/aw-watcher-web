@@ -1,5 +1,6 @@
 import browser from 'webextension-polyfill'
 import { FetchError } from 'aw-client'
+import { getBrowserName, setBrowserName } from '../storage'
 
 export const getTab = (id: number) => browser.tabs.get(id)
 export const getTabs = (query: browser.Tabs.QueryQueryInfoType = {}) =>
@@ -23,8 +24,20 @@ export function emitNotification(title: string, message: string) {
   })
 }
 
+export const getBrowser = async (): Promise<string> => {
+  const storedName = await getBrowserName()
+  if (storedName) {
+    return storedName
+  }
+
+  const browserName = detectBrowser()
+
+  await setBrowserName(browserName)
+  return browserName
+}
+
 // FIXME: Detect Vivaldi? It seems to be intentionally impossible
-export const getBrowserName = () => {
+export const detectBrowser = () => {
   if ((navigator as any).brave?.isBrave()) {
     return 'brave'
   } else if (

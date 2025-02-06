@@ -24,6 +24,10 @@
         "{{firefox}}.persistent": true
     },
 
+    "options_ui": {
+        "page": "src/settings/index.html"
+    },
+
     "{{firefox}}.permissions": [
         "tabs",
         "alarms",

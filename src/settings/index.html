@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ActivityWatch settings</title>
+    <link href="./style.css" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body>
+    <form>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label for="browser">Browser:</label>
+        <select id="browser" name="browser">
+          <option value="chrome">Chrome</option>
+          <option value="firefox">Firefox</option>
+          <option value="opera">Opera</option>
+          <option value="brave">Brave</option>
+          <option value="edge">Edge</option>
+          <option value="arc">Arc</option>
+          <option value="vivaldi">Vivaldi</option>
+          <option value="orion">Orion</option>
+          <option value="yandex">Yandex</option>
+          <option value="other">Other...</option>
+        </select>
+        <div id="otherBrowserInput" style="display: none">
+          <input
+            type="text"
+            id="customBrowser"
+            name="customBrowser"
+            pattern="[a-z]*"
+            placeholder="Enter browser name"
+            required
+          />
+        </div>
+        <button type="submit" class="button accept">Save</button>
+      </div>
+    </form>
+    <script src="./main.js"></script>
+  </body>
+</html>

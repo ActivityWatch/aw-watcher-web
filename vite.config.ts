@@ -20,12 +20,7 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: generateManifest,
-      additionalInputs: [
-        'src/consent/index.html',
-        'src/consent/main.ts',
-        'src/settings/index.html',
-        'src/settings/main.ts',
-      ],
+      additionalInputs: ['src/consent/index.html', 'src/consent/main.ts'],
       browser: process.env.VITE_TARGET_BROWSER,
     }),
   ],

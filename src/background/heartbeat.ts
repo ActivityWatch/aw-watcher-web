@@ -37,7 +37,7 @@ async function heartbeat(
     console.debug('Sending heartbeat for previous data', previousData)
     await sendHeartbeat(
       client,
-      getBucketId(),
+      await getBucketId(),
       new Date(now.getTime() - 1),
       previousData,
       config.heartbeat.intervalInSeconds + 20,
@@ -46,7 +46,7 @@ async function heartbeat(
   console.debug('Sending heartbeat', data)
   await sendHeartbeat(
     client,
-    getBucketId(),
+    await getBucketId(),
     now,
     data,
     config.heartbeat.intervalInSeconds + 20,

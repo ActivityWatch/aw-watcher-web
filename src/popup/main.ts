@@ -8,6 +8,7 @@ import {
   setEnabled,
   watchSyncDate,
   watchSyncSuccess,
+  getBrowserName,
 } from '../storage'
 
 function setConnected(connected: boolean | undefined) {
@@ -31,6 +32,7 @@ async function renderStatus() {
   const enabled = await getEnabled()
   const syncStatus = await getSyncStatus()
   const consentStatus = await getConsentStatus()
+  const browserName = await getBrowserName()
 
   // Enabled checkbox
   const enabledCheckbox = document.getElementById('status-enabled-checkbox')
@@ -72,6 +74,11 @@ async function renderStatus() {
   if (!(webuiLink instanceof HTMLAnchorElement))
     throw Error('Web UI link is not an anchor')
   webuiLink.href = baseUrl ?? '#'
+
+  const browserNameElement = document.getElementById('status-browser')
+  if (!(browserNameElement instanceof HTMLElement))
+    throw Error('Browser name element is not defined')
+  browserNameElement.innerText = browserName
 }
 
 function domListeners() {
@@ -82,12 +89,20 @@ function domListeners() {
     const enabled = enabledCheckbox.checked
     setEnabled(enabled)
   })
+
   const consentButton = document.getElementById('status-consent-btn')!
   consentButton.addEventListener('click', () => {
     browser.tabs.create({
       active: true,
       url: browser.runtime.getURL('src/consent/index.html'),
     })
+  })
+
+  const browserButton = document.getElementById('edit-btn')
+  if (!(browserButton instanceof HTMLButtonElement))
+    throw Error('Edit button is not a button')
+  browserButton.addEventListener('click', () => {
+    browser.runtime.openOptionsPage()
   })
 }
 

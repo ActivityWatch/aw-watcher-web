@@ -1,0 +1,14 @@
+body {
+  font-family: 'Segoe UI', 'Lucida Grande', Tahoma, sans-serif;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0.5em;
+}
+
+#customBrowser {
+  display: none;
+}

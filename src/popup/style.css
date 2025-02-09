@@ -29,3 +29,11 @@ button {
 #status-consent-btn {
   display: none;
 }
+
+form {
+  margin: 0 0.5em;
+}
+
+label {
+  font-weight: bold;
+}

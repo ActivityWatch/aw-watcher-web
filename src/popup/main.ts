@@ -98,10 +98,10 @@ function domListeners() {
     })
   })
 
-  const browserButton = document.getElementById('edit-btn')
-  if (!(browserButton instanceof HTMLButtonElement))
-    throw Error('Edit button is not a button')
-  browserButton.addEventListener('click', () => {
+  const settingsButton = document.getElementById('settings-btn')
+  if (!(settingsButton instanceof HTMLAnchorElement))
+    throw Error('Settings button is not a link')
+  settingsButton.addEventListener('click', () => {
     browser.runtime.openOptionsPage()
   })
 }

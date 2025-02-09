@@ -9,6 +9,14 @@ form {
   margin: 0.5em;
 }
 
+div {
+  display: block;
+}
+
+input:invalid {
+  border-color: red;
+}
+
 #customBrowser {
   display: none;
 }

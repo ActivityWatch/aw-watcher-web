@@ -3,18 +3,22 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import retry from 'p-retry'
 import { emitNotification, getBrowser, logHttpError } from './helpers'
-import { getSyncStatus, setSyncStatus } from '../storage'
+import { getHostname, getSyncStatus, setSyncStatus } from '../storage'
 
 export const getClient = () =>
   new AWClient('aw-client-web', { testing: config.isDevelopment })
 
 // TODO: We might want to get the hostname somehow, maybe like this:
 // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
-export function ensureBucket(client: AWClient, bucketId: string) {
+export function ensureBucket(
+  client: AWClient,
+  bucketId: string,
+  hostname: string,
+) {
   return retry(
     () =>
       client
-        .ensureBucket(bucketId, 'web.tab.current', 'unknown')
+        .ensureBucket(bucketId, 'web.tab.current', hostname)
         .catch((err) => {
           console.error('Failed to create bucket, retrying...')
           logHttpError(err)
@@ -24,6 +28,18 @@ export function ensureBucket(client: AWClient, bucketId: string) {
   )
 }
 
+export async function detectHostname(client: AWClient) {
+  return retry(() => client.getInfo(), {
+    retries: 3,
+  })
+    .then((info) => {
+      return info.hostname
+    })
+    .catch((err) => {
+      return undefined
+    })
+}
+
 export async function sendHeartbeat(
   client: AWClient,
   bucketId: string,
@@ -31,6 +47,7 @@ export async function sendHeartbeat(
   data: IEvent['data'],
   pulsetime: number,
 ) {
+  const hostname = await getHostname()
   const syncStatus = await getSyncStatus()
   return retry(
     () =>
@@ -41,7 +58,8 @@ export async function sendHeartbeat(
       }),
     {
       retries: 3,
-      onFailedAttempt: () => ensureBucket(client, bucketId).then(() => {}),
+      onFailedAttempt: () =>
+        ensureBucket(client, bucketId, hostname).then(() => {}),
     },
   )
     .then(() => {
@@ -67,5 +85,10 @@ export async function sendHeartbeat(
 
 export const getBucketId = async (): Promise<string> => {
   const browser = await getBrowser()
-  return `aw-watcher-web-${browser}`
+  const hostname = await getHostname()
+  if (hostname !== undefined) {
+    return `aw-watcher-web-${browser}_${hostname}`
+  } else {
+    return `aw-watcher-web-${browser}`
+  }
 }

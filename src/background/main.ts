@@ -5,12 +5,14 @@ import {
   sendInitialHeartbeat,
   tabActivatedListener,
 } from './heartbeat'
-import { getClient } from './client'
+import { getClient, detectHostname } from './client'
 import {
   getConsentStatus,
+  getHostname,
   setBaseUrl,
   setConsentStatus,
   setEnabled,
+  setHostname,
   waitForEnabled,
 } from '../storage'
 
@@ -21,6 +23,22 @@ async function getIsConsentRequired() {
     .then((consentOfflineDataCollection) => !consentOfflineDataCollection)
     .catch(() => true)
 }
+
+async function autodetectHostname() {
+  const hostname = await getHostname()
+  if (hostname === undefined) {
+    const detectedHostname = await detectHostname(client)
+    if (detectedHostname !== undefined) {
+      setHostname(detectedHostname)
+    }
+  }
+}
+
+/** Init */
+console.info('Starting...')
+
+console.debug('Creating client')
+const client = getClient()
 
 browser.runtime.onInstalled.addListener(async () => {
   const { consent } = await getConsentStatus()
@@ -38,13 +56,9 @@ browser.runtime.onInstalled.addListener(async () => {
       url: browser.runtime.getURL('src/consent/index.html'),
     })
   }
+
+  autodetectHostname()
 })
-
-/** Init */
-console.info('Starting...')
-
-console.debug('Creating client')
-const client = getClient()
 
 console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {

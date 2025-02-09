@@ -90,3 +90,9 @@ export const getBrowserName = (): Promise<BrowserName | undefined> =>
   browser.storage.local.get('browserName').then((_) => _.browserName)
 export const setBrowserName = (browserName: BrowserName) =>
   browser.storage.local.set({ browserName })
+
+type Hostname = string
+export const getHostname = (): Promise<Hostname | undefined> =>
+  browser.storage.local.get('hostname').then((_) => _.hostname)
+export const setHostname = (hostname: Hostname) =>
+  browser.storage.local.set({ hostname })

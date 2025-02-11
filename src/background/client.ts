@@ -47,7 +47,7 @@ export async function sendHeartbeat(
   data: IEvent['data'],
   pulsetime: number,
 ) {
-  const hostname = await getHostname()
+  const hostname = await getHostname() ?? 'unknown'
   const syncStatus = await getSyncStatus()
   return retry(
     () =>

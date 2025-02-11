@@ -7,7 +7,7 @@
   </head>
 
   <body>
-    <form action="">
+    <form>
       <div>
         <label for="browser">
           <strong>Browser:</strong>
@@ -40,16 +40,19 @@
         <label for="hostname">
           <strong>Hostname:</strong>
         </label>
+
         <input
           type="text"
           id="hostname"
           name="hostname"
           pattern="[a-zA-Z0-9_.\-]*"
-          required=""
+          required
         />
       </div>
 
-      <button type="submit" class="accept">Save</button>
+      <div>
+        <button type="submit">Save</button>
+      </div>
     </form>
 
     <script type="module" src="./main.ts"></script>

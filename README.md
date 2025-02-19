@@ -5,26 +5,34 @@
 
 A cross-browser WebExtension that serves as a web browser watcher for [ActivityWatch][activitywatch].
 
-## Usage
+## Installation
 
-Install for your browser:
+### Official Releases
 
-- [Chrome][chrome]
-- [Firefox][firefox]
+Install from official stores:
 
-[activitywatch]: https://github.com/ActivityWatch/activitywatch
-[firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
-[chrome]: https://chromewebstore.google.com/detail/activitywatch-web-watcher/nglaklhklhcoonedhgnpgddginnjdadi
-[build-source-cmt]: https://github.com/ActivityWatch/aw-watcher-web/issues/94#issuecomment-1315773537
-[last-xpi]: https://github.com/ActivityWatch/aw-watcher-web/releases/download/v0.4.3/aw-watcher-web-v0.4.3.xpi
-[818]: https://github.com/orgs/ActivityWatch/discussions/818#discussioncomment-4017528
+-   [Chrome Web Store][chrome]
+-   [Firefox Add-ons][firefox]
+
+### Development Build
+
+Download the latest development build from our [GitHub Actions][gh-actions]:
+
+1. Click on the latest successful workflow run
+2. Scroll down to "Artifacts"
+3. Download either `firefox.zip` or `chrome.zip`
+
+> [!NOTE]
+>
+> -   GitHub login is required to download artifacts
+> -   These builds are unsigned and require developer mode/settings
 
 ### Firefox Enterprise Policy
 
 > [!NOTE]
 > Due to Mozilla Add-on Policy, this is not possible with the Mozilla-hosted versions of the extension. You will need to fork the extension and change a hardcoded value to make this work.
 
-Due to the above issue, a privacy notice must be displayed to comply with the Mozilla Add-on Policy. This can be pre-accepted by setting the following Firefox Enterprise Policy:
+Due to the above issue, a privacy notice must be displayed to comply with the Mozilla Add-on Policy. This can be pre-accepted by setting the following Firefox Enterprise Policy ([More about Firefox Policies][mozilla-policy]):
 
 ```json
 {
@@ -40,22 +48,65 @@ Due to the above issue, a privacy notice must be displayed to comply with the Mo
 }
 ```
 
-## Building
+## Building from Source
 
-First, clone the repo with:
+### Prerequisites
+
+-   Node.js (23 or higher)
+-   Git
+-   Make
+
+### Build Steps
+
+1. Clone the repository with submodules:
 
 ```sh
-git pull --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
-# or, normal `git pull` and then:
-git submodule update --init
+git clone --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
+cd aw-watcher-web
 ```
 
-Then build with:
+2. Install dependencies:
 
+```sh
+make install
 ```
-make build
+
+3. Build the extension:
+
+```sh
+# For Firefox:
+make build-firefox
+
+# For Chrome:
+make build-chrome
 ```
 
-The resulting `aw-watcher-web.zip` can then be loaded into your browser in development mode. (for Firefox, loading unsigned extensions is only possible in Firefox Nightly and Developer Edition).
+This will create zip files in the `artifacts` directory:
 
-For further build instructions, refer to the `Makefile`.
+-   `artifacts/firefox.zip` for Firefox
+-   `artifacts/chrome.zip` for Chrome
+
+### Installing the Development Build
+
+#### Chrome
+
+1. Extract `artifacts/chrome.zip` to a folder
+2. Go to `chrome://extensions`
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the extracted folder
+
+#### Firefox
+
+1. Go to `about:addons`
+2. Click the gear icon (⚙️) and select "Install Add-on From File..."
+3. Navigate to and select the `artifacts/firefox.zip` file
+
+> [!NOTE]
+> For Firefox, installing unsigned extensions requires Firefox Developer Edition or Nightly.
+> In Firefox Developer Edition, you need to set `xpinstall.signatures.required` to `false` in `about:config`.
+
+[activitywatch]: https://github.com/ActivityWatch/activitywatch
+[firefox]: https://addons.mozilla.org/en-US/firefox/addon/aw-watcher-web/
+[chrome]: https://chromewebstore.google.com/detail/activitywatch-web-watcher/nglaklhklhcoonedhgnpgddginnjdadi
+[mozilla-policy]: https://mozilla.github.io/policy-templates/
+[gh-actions]: https://github.com/ActivityWatch/aw-watcher-web/actions/workflows/build.yml?query=branch%3Amaster+is%3Asuccess

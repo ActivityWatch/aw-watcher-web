@@ -11,8 +11,8 @@ A cross-browser WebExtension that serves as a web browser watcher for [ActivityW
 
 Install from official stores:
 
--   [Chrome Web Store][chrome]
--   [Firefox Add-ons][firefox]
+- [Chrome Web Store][chrome]
+- [Firefox Add-ons][firefox]
 
 ### Development Build
 
@@ -24,8 +24,8 @@ Download the latest development build from our [GitHub Actions][gh-actions]:
 
 > [!NOTE]
 >
-> -   GitHub login is required to download artifacts
-> -   These builds are unsigned and require developer mode/settings
+> - GitHub login is required to download artifacts
+> - These builds are unsigned and require developer mode/settings
 
 ### Firefox Enterprise Policy
 
@@ -52,9 +52,9 @@ Due to the above issue, a privacy notice must be displayed to comply with the Mo
 
 ### Prerequisites
 
--   Node.js (23 or higher)
--   Git
--   Make
+- Node.js (23 or higher)
+- Git
+- Make
 
 ### Build Steps
 
@@ -83,8 +83,8 @@ make build-chrome
 
 This will create zip files in the `artifacts` directory:
 
--   `artifacts/firefox.zip` for Firefox
--   `artifacts/chrome.zip` for Chrome
+- `artifacts/firefox.zip` for Firefox
+- `artifacts/chrome.zip` for Chrome
 
 ### Installing the Development Build
 

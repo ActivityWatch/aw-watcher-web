@@ -54,7 +54,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: make ci
+        run: make install
 
       - name: Typecheck TypeScript
         run: make compile

@@ -2,11 +2,15 @@ body {
   font-family: 'Segoe UI', 'Lucida Grande', Tahoma, sans-serif;
 }
 
-form {
+form div {
   display: flex;
   gap: 10px;
   align-items: center;
   margin: 0.5em;
+}
+
+input:invalid {
+  border-color: red;
 }
 
 #customBrowser {

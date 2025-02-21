@@ -9,6 +9,7 @@ import {
   watchSyncDate,
   watchSyncSuccess,
   getBrowserName,
+  getHostname,
 } from '../storage'
 
 function setConnected(connected: boolean | undefined) {
@@ -33,6 +34,7 @@ async function renderStatus() {
   const syncStatus = await getSyncStatus()
   const consentStatus = await getConsentStatus()
   const browserName = await getBrowserName()
+  const hostname = await getHostname()
 
   // Enabled checkbox
   const enabledCheckbox = document.getElementById('status-enabled-checkbox')
@@ -75,10 +77,17 @@ async function renderStatus() {
     throw Error('Web UI link is not an anchor')
   webuiLink.href = baseUrl ?? '#'
 
+  // Browser name
   const browserNameElement = document.getElementById('status-browser')
   if (!(browserNameElement instanceof HTMLElement))
     throw Error('Browser name element is not defined')
   browserNameElement.innerText = browserName
+
+  // Hostname
+  const hostnameElement = document.getElementById('status-hostname')
+  if (!(hostnameElement instanceof HTMLElement))
+    throw Error('Hostname element is not defined')
+  hostnameElement.innerText = hostname
 }
 
 function domListeners() {
@@ -98,10 +107,10 @@ function domListeners() {
     })
   })
 
-  const browserButton = document.getElementById('edit-btn')
-  if (!(browserButton instanceof HTMLButtonElement))
-    throw Error('Edit button is not a button')
-  browserButton.addEventListener('click', () => {
+  const settingsButton = document.getElementById('settings-btn')
+  if (!(settingsButton instanceof HTMLAnchorElement))
+    throw Error('Settings button is not a link')
+  settingsButton.addEventListener('click', () => {
     browser.runtime.openOptionsPage()
   })
 }

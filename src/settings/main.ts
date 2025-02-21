@@ -1,5 +1,10 @@
 import browser from 'webextension-polyfill'
-import { getBrowserName, setBrowserName } from '../storage'
+import {
+  getBrowserName,
+  setBrowserName,
+  getHostname,
+  setHostname,
+} from '../storage'
 
 interface HTMLElementEvent<T extends HTMLElement> extends Event {
   target: T
@@ -22,6 +27,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     selectedBrowser = customBrowserInput.value.toLowerCase()
   }
 
+  const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
+  let hostname = hostnameInput.value
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -31,6 +39,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
 
   try {
     await setBrowserName(selectedBrowser)
+    await setHostname(hostname)
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -73,6 +82,12 @@ async function restoreOptions(): Promise<void> {
       browserSelect.value = browserName
       customInput.style.display = 'none'
       customInput.required = false
+    }
+
+    const hostname = await getHostname()
+    const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
+    if (hostname !== undefined) {
+      hostnameInput.value = hostname
     }
   } catch (error) {
     console.error('Failed to restore options:', error)

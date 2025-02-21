@@ -37,3 +37,21 @@ jobs:
         with:
           name: chrome
           path: artifacts/chrome.zip
+
+  typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Use Node.js 23.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23.x
+          cache: npm
+
+      - name: Typecheck TypeScript
+        run: make compile

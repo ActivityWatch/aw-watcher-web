@@ -57,7 +57,7 @@ browser.runtime.onInstalled.addListener(async () => {
     })
   }
 
-  autodetectHostname()
+  await autodetectHostname()
 })
 
 console.debug('Creating alarms and tab listeners')

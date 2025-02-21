@@ -29,13 +29,28 @@ export function ensureBucket(
 }
 
 export async function detectHostname(client: AWClient) {
-  return retry(() => client.getInfo(), {
-    retries: 3,
-  })
+  console.debug('Attempting to detect hostname from server...')
+  return retry(
+    () => {
+      console.debug('Making request to server for hostname...')
+      return client.getInfo()
+    },
+    {
+      retries: 3,
+      onFailedAttempt: (error) => {
+        console.warn(
+          `Failed to detect hostname (attempt ${error.attemptNumber}/${error.retriesLeft + error.attemptNumber}):`,
+          error.message,
+        )
+      },
+    },
+  )
     .then((info) => {
+      console.info('Successfully detected hostname:', info.hostname)
       return info.hostname
     })
     .catch((err) => {
+      console.error('All attempts to detect hostname failed:', err)
       return undefined
     })
 }

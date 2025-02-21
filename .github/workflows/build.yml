@@ -53,5 +53,8 @@ jobs:
           node-version: 23.x
           cache: npm
 
+      - name: Install dependencies
+        run: make ci
+
       - name: Typecheck TypeScript
         run: make compile

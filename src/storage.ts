@@ -86,13 +86,14 @@ export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
   browser.storage.local.set({ heartbeatData })
 
 type BrowserName = string
+type StorageData = { [key: string]: any }
 export const getBrowserName = (): Promise<BrowserName | undefined> =>
-  browser.storage.local.get('browserName').then((_) => _.browserName)
+  browser.storage.local.get('browserName').then((data: StorageData) => data.browserName as string | undefined) 
 export const setBrowserName = (browserName: BrowserName) =>
   browser.storage.local.set({ browserName })
 
 type Hostname = string
 export const getHostname = (): Promise<Hostname | undefined> =>
-  browser.storage.local.get('hostname').then((_) => _.hostname)
+  browser.storage.local.get('hostname').then((data: StorageData) => data.hostname as string | undefined)
 export const setHostname = (hostname: Hostname) =>
   browser.storage.local.set({ hostname })

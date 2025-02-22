@@ -6,10 +6,6 @@ import {
   setHostname,
 } from '../storage'
 
-interface HTMLElementEvent<T extends HTMLElement> extends Event {
-  target: T
-}
-
 async function reloadExtension(): Promise<void> {
   browser.runtime.reload()
 }
@@ -28,7 +24,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   }
 
   const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
-  let hostname = hostnameInput.value
+  if (!hostnameInput) return
+  
+  const hostname = hostnameInput.value
 
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
@@ -86,6 +84,8 @@ async function restoreOptions(): Promise<void> {
 
     const hostname = await getHostname()
     const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
+    if (!hostnameInput) return
+    
     if (hostname !== undefined) {
       hostnameInput.value = hostname
     }
@@ -104,5 +104,8 @@ document
   ?.addEventListener('change', toggleCustomBrowserInput)
 const form = document.querySelector('form')
 if (form) {
-  form.addEventListener('submit', saveOptions as EventListener)
+  form.addEventListener('submit', (e: Event) => {
+    e.preventDefault()
+    saveOptions(e as SubmitEvent)
+  })
 }

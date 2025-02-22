@@ -25,7 +25,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
 
   const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
   if (!hostnameInput) return
-  
+
   const hostname = hostnameInput.value
 
   const form = e.target as HTMLFormElement
@@ -85,7 +85,7 @@ async function restoreOptions(): Promise<void> {
     const hostname = await getHostname()
     const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
     if (!hostnameInput) return
-    
+
     if (hostname !== undefined) {
       hostnameInput.value = hostname
     }

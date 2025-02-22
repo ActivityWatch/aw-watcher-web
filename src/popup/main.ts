@@ -81,13 +81,13 @@ async function renderStatus() {
   const browserNameElement = document.getElementById('status-browser')
   if (!(browserNameElement instanceof HTMLElement))
     throw Error('Browser name element is not defined')
-  browserNameElement.innerText = browserName
+  browserNameElement.innerText = browserName ?? 'unknown'
 
   // Hostname
   const hostnameElement = document.getElementById('status-hostname')
   if (!(hostnameElement instanceof HTMLElement))
     throw Error('Hostname element is not defined')
-  hostnameElement.innerText = hostname
+  hostnameElement.innerText = hostname ?? 'unknown'
 }
 
 function domListeners() {

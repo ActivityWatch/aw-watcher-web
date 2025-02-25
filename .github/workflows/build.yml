@@ -29,6 +29,8 @@ jobs:
         with:
           name: firefox
           path: artifacts/firefox.zip
+      - name: Check reproducibility from src-zip
+        run: make test-reproducibility-firefox
 
       - name: Build Chrome
         run: make build-chrome
@@ -37,6 +39,8 @@ jobs:
         with:
           name: chrome
           path: artifacts/chrome.zip
+      - name: Check reproducibility from src-zip
+        run: make test-reproducibility-chrome
 
   typecheck:
     runs-on: ubuntu-latest

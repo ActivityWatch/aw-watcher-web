@@ -6,14 +6,30 @@ export const getTab = (id: number) => browser.tabs.get(id)
 export const getTabs = (query: browser.Tabs.QueryQueryInfoType = {}) =>
   browser.tabs.query(query)
 
-export const getActiveWindowTab = () =>
-  getTabs({
+export const getActiveWindowTab = async () => {
+  const tabs = await getTabs({
     active: true,
     currentWindow: true,
-  }).then((tabs) => {
-    if (tabs.length === 0) throw Error('No active window tab found')
-    return tabs[0]
   })
+
+  if (tabs.length > 0) {
+    return tabs[0]
+  }
+
+  console.debug('No active tab found in current window')
+
+  const allTabs = await getTabs({
+    active: true,
+  })
+
+  if (allTabs.length > 0) {
+    return allTabs[0]
+  }
+
+  console.debug('No active tab found in any window')
+
+  return undefined
+}
 
 export function emitNotification(title: string, message: string) {
   browser.notifications.create({

@@ -8,7 +8,7 @@ import deepEqual from 'deep-equal'
 
 async function heartbeat(
   client: AWClient,
-  tab: browser.Tabs.Tab,
+  tab: browser.Tabs.Tab | undefined,
   tabCount: number,
 ) {
   const enabled = await getEnabled()
@@ -17,10 +17,13 @@ async function heartbeat(
     return
   }
 
+  if (!tab) {
+    console.warn('Ignoring heartbeat because no active tab was found')
+    return
+  }
+
   if (!tab.url || !tab.title) {
-    console.warn(
-      'Ignoring heartbeat because tab is missing required properties',
-    )
+    console.warn('Ignoring heartbeat because tab is missing URL or title')
     return
   }
 

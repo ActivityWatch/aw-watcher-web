@@ -6,7 +6,7 @@ export const getTab = (id: number) => browser.tabs.get(id)
 export const getTabs = (query: browser.Tabs.QueryQueryInfoType = {}) =>
   browser.tabs.query(query)
 
-export const getActiveWindowTab = async () => {
+export const getActiveWindowTab = async (): Promise<browser.Tabs.Tab | undefined> => {
   const tabs = await getTabs({
     active: true,
     currentWindow: true,

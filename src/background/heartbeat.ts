@@ -23,9 +23,7 @@ async function heartbeat(
   }
 
   if (!tab.url || !tab.title) {
-    console.warn(
-      'Ignoring heartbeat because tab is missing URL or title',
-    )
+    console.warn('Ignoring heartbeat because tab is missing URL or title')
     return
   }
 

@@ -5,9 +5,15 @@ import {
   getHostname,
   setHostname,
 } from '../storage'
+import { detectBrowser } from '../background/helpers'
 
 async function reloadExtension(): Promise<void> {
   browser.runtime.reload()
+
+  // Close the settings popup on Chromium based browsers
+  if (detectBrowser() !== 'firefox') {
+    window.close()
+  }
 }
 
 async function saveOptions(e: SubmitEvent): Promise<void> {

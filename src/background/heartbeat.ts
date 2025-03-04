@@ -31,8 +31,8 @@ async function heartbeat(
   const data: IEvent['data'] = {
     url: tab.url,
     title: tab.title,
-    audible: String(tab.audible ?? false),
-    incognito: String(tab.incognito),
+    audible: tab.audible ?? false,
+    incognito: tab.incognito,
     tabCount: tabCount,
   }
   const previousData = await getHeartbeatData()

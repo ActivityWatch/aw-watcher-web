@@ -70,13 +70,10 @@ test-reproducibility-chrome: zip-src build-chrome test-reproducibility-setup
 	@(cd build/aw-watcher-web && make build-chrome && cp artifacts/chrome.zip ../../artifacts/reproducibility-chrome.zip)
 	@rm -r build/aw-watcher-web
 	@echo "Checking..."
-	@wc -c artifacts/chrome.zip artifacts/reproducibility-chrome.zip | \
-		sort -n | \
-		cut -d' ' -f2 | \
-		uniq -c | \
-		grep -q ' 2 ' \
-	|| (echo "build artifacts not the same size" && exit 1)
-	@echo "✅ Reproducibility test passed"
+	@test "$$(wc -c artifacts/chrome.zip | awk '{print $$1}')" = \
+		"$$(wc -c artifacts/reproducibility-chrome.zip | awk '{print $$1}')" \
+		|| (echo "❌ Build artifacts are not the same size" && exit 1)
+	@echo "✅ Build artifacts are the same size"
 
 # Tests whether the zipped src reliably builds the same as the archive
 test-reproducibility-firefox: zip-src build-firefox test-reproducibility-setup
@@ -84,10 +81,7 @@ test-reproducibility-firefox: zip-src build-firefox test-reproducibility-setup
 	@(cd build/aw-watcher-web && make build-firefox && cp artifacts/firefox.zip ../../artifacts/reproducibility-firefox.zip)
 	@rm -r build/aw-watcher-web
 	@echo "Checking..."
-	@wc -c artifacts/firefox.zip artifacts/reproducibility-firefox.zip | \
-		sort -n | \
-		cut -d' ' -f2 | \
-		uniq -c | \
-		grep -q ' 2 ' \
-	|| (echo "build artifacts not the same size" && exit 1)
-	@echo "✅ Reproducibility test passed"
+	@test "$$(wc -c artifacts/firefox.zip | awk '{print $$1}')" = \
+		"$$(wc -c artifacts/reproducibility-firefox.zip | awk '{print $$1}')" \
+		|| (echo "❌ Build artifacts are not the same size" && exit 1)
+	@echo "✅ Build artifacts are the same size"

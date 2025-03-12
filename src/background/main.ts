@@ -79,6 +79,7 @@ setBaseUrl(client.baseURL)
 /**
  * Keep the service worker alive to prevent Chrome's 5-minute inactivity termination
  * This is a workaround for Chrome's behavior of terminating inactive service workers
+ * https://stackoverflow.com/questions/66618136
  */
 if (import.meta.env.VITE_TARGET_BROWSER === 'chrome') {
   function setupKeepAlive(): void {

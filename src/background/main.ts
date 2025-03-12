@@ -75,3 +75,30 @@ setBaseUrl(client.baseURL)
   .then(waitForEnabled)
   .then(() => sendInitialHeartbeat(client))
   .then(() => console.info('Started successfully'))
+
+/**
+ * Keep the service worker alive to prevent Chrome's 5-minute inactivity termination
+ * This is a workaround for Chrome's behavior of terminating inactive service workers
+ */
+if (import.meta.env.VITE_TARGET_BROWSER === 'chrome') {
+  function setupKeepAlive(): void {
+    console.debug(
+      'Setting up keep-alive ping to prevent service worker termination',
+    )
+
+    setInterval(
+      () => {
+        console.debug('Keep-alive ping')
+        // Force some minimal activity
+        browser.alarms
+          .get(config.heartbeat.alarmName)
+          .then(() => console.debug('Keep-alive ping completed'))
+          .catch((err) => console.error('Keep-alive ping failed:', err))
+      },
+      4 * 60 * 1000,
+    ) // 4 minutes (less than Chrome's ~5 minute timeout)
+  }
+
+  // Start the keep-alive mechanism
+  setupKeepAlive()
+}

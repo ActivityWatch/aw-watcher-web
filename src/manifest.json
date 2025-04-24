@@ -44,9 +44,7 @@
         "activeTab",
         "storage"
     ],
-    "{{chrome}}.host_permissions": [
-        "<all_urls>"
-    ],
+    "{{chrome}}.host_permissions": ["<all_urls>"],
 
     "{{firefox}}.browser_specific_settings": {
         "gecko": {

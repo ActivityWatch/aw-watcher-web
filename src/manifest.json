@@ -44,10 +44,7 @@
         "activeTab",
         "storage"
     ],
-    "{{chrome}}.host_permissions": [
-        "http://127.0.0.1:5600/api/*",
-        "http://127.0.0.1:5666/api/*"
-    ],
+    "{{chrome}}.host_permissions": ["<all_urls>"],
 
     "{{firefox}}.browser_specific_settings": {
         "gecko": {

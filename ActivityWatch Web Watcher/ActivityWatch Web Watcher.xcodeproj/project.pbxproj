@@ -1,0 +1,929 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		481DD7302DD7F76800CA6B64 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481DD72F2DD7F76800CA6B64 /* AppDelegate.swift */; };
+		481DD7332DD7F76800CA6B64 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7312DD7F76800CA6B64 /* Main.storyboard */; };
+		481DD73B2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 481DD73A2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		481DD7452DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 481DD7442DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		481DD74B2DD7F76800CA6B64 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 481DD70E2DD7F76700CA6B64 /* Main.html */; };
+		481DD74C2DD7F76800CA6B64 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 481DD70E2DD7F76700CA6B64 /* Main.html */; };
+		481DD74D2DD7F76800CA6B64 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7102DD7F76700CA6B64 /* Icon.png */; };
+		481DD74E2DD7F76800CA6B64 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7102DD7F76700CA6B64 /* Icon.png */; };
+		481DD74F2DD7F76800CA6B64 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7112DD7F76700CA6B64 /* Style.css */; };
+		481DD7502DD7F76800CA6B64 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7112DD7F76700CA6B64 /* Style.css */; };
+		481DD7512DD7F76800CA6B64 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7122DD7F76700CA6B64 /* Script.js */; };
+		481DD7522DD7F76800CA6B64 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7122DD7F76700CA6B64 /* Script.js */; };
+		481DD7532DD7F76800CA6B64 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481DD7132DD7F76700CA6B64 /* ViewController.swift */; };
+		481DD7542DD7F76800CA6B64 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481DD7132DD7F76700CA6B64 /* ViewController.swift */; };
+		481DD7552DD7F76800CA6B64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7142DD7F76800CA6B64 /* Assets.xcassets */; };
+		481DD7562DD7F76800CA6B64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7142DD7F76800CA6B64 /* Assets.xcassets */; };
+		481DD7572DD7F76800CA6B64 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481DD7162DD7F76800CA6B64 /* SafariWebExtensionHandler.swift */; };
+		481DD7582DD7F76800CA6B64 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481DD7162DD7F76800CA6B64 /* SafariWebExtensionHandler.swift */; };
+		481DD7722DD7F76800CA6B64 /* logo-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76A2DD7F76800CA6B64 /* logo-128.png */; };
+		481DD7732DD7F76800CA6B64 /* banner.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76B2DD7F76800CA6B64 /* banner.png */; };
+		481DD7742DD7F76800CA6B64 /* index.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76C2DD7F76800CA6B64 /* index.css */; };
+		481DD7752DD7F76800CA6B64 /* index3.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76D2DD7F76800CA6B64 /* index3.css */; };
+		481DD7762DD7F76800CA6B64 /* index2.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76E2DD7F76800CA6B64 /* index2.css */; };
+		481DD7772DD7F76800CA6B64 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76F2DD7F76800CA6B64 /* manifest.json */; };
+		481DD7782DD7F76800CA6B64 /* storage.js in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7702DD7F76800CA6B64 /* storage.js */; };
+		481DD7792DD7F76800CA6B64 /* src in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7712DD7F76800CA6B64 /* src */; };
+		481DD77A2DD7F76800CA6B64 /* logo-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76A2DD7F76800CA6B64 /* logo-128.png */; };
+		481DD77B2DD7F76800CA6B64 /* banner.png in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76B2DD7F76800CA6B64 /* banner.png */; };
+		481DD77C2DD7F76800CA6B64 /* index.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76C2DD7F76800CA6B64 /* index.css */; };
+		481DD77D2DD7F76800CA6B64 /* index3.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76D2DD7F76800CA6B64 /* index3.css */; };
+		481DD77E2DD7F76800CA6B64 /* index2.css in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76E2DD7F76800CA6B64 /* index2.css */; };
+		481DD77F2DD7F76800CA6B64 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 481DD76F2DD7F76800CA6B64 /* manifest.json */; };
+		481DD7802DD7F76800CA6B64 /* storage.js in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7702DD7F76800CA6B64 /* storage.js */; };
+		481DD7812DD7F76800CA6B64 /* src in Resources */ = {isa = PBXBuildFile; fileRef = 481DD7712DD7F76800CA6B64 /* src */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		481DD73C2DD7F76800CA6B64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 481DD7082DD7F76700CA6B64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 481DD7392DD7F76800CA6B64;
+			remoteInfo = "ActivityWatch Web Watcher Extension (iOS)";
+		};
+		481DD7462DD7F76800CA6B64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 481DD7082DD7F76700CA6B64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 481DD7432DD7F76800CA6B64;
+			remoteInfo = "ActivityWatch Web Watcher Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		481DD75E2DD7F76800CA6B64 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				481DD73B2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7652DD7F76800CA6B64 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				481DD7452DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		481DD70F2DD7F76700CA6B64 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		481DD7102DD7F76700CA6B64 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		481DD7112DD7F76700CA6B64 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		481DD7122DD7F76700CA6B64 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		481DD7132DD7F76700CA6B64 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		481DD7142DD7F76800CA6B64 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		481DD7162DD7F76800CA6B64 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		481DD71B2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ActivityWatch Web Watcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		481DD72D2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ActivityWatch Web Watcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		481DD72F2DD7F76800CA6B64 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		481DD7322DD7F76800CA6B64 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		481DD7342DD7F76800CA6B64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		481DD7352DD7F76800CA6B64 /* ActivityWatch Web Watcher.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "ActivityWatch Web Watcher.entitlements"; sourceTree = "<group>"; };
+		481DD73A2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "ActivityWatch Web Watcher Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		481DD7442DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "ActivityWatch Web Watcher Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		481DD7492DD7F76800CA6B64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		481DD74A2DD7F76800CA6B64 /* ActivityWatch Web Watcher.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "ActivityWatch Web Watcher.entitlements"; sourceTree = "<group>"; };
+		481DD76A2DD7F76800CA6B64 /* logo-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "logo-128.png"; path = "../../build/logo-128.png"; sourceTree = "<group>"; };
+		481DD76B2DD7F76800CA6B64 /* banner.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = banner.png; path = ../../build/banner.png; sourceTree = "<group>"; };
+		481DD76C2DD7F76800CA6B64 /* index.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = index.css; path = ../../build/index.css; sourceTree = "<group>"; };
+		481DD76D2DD7F76800CA6B64 /* index3.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = index3.css; path = ../../build/index3.css; sourceTree = "<group>"; };
+		481DD76E2DD7F76800CA6B64 /* index2.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = index2.css; path = ../../build/index2.css; sourceTree = "<group>"; };
+		481DD76F2DD7F76800CA6B64 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../build/manifest.json; sourceTree = "<group>"; };
+		481DD7702DD7F76800CA6B64 /* storage.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = storage.js; path = ../../build/storage.js; sourceTree = "<group>"; };
+		481DD7712DD7F76800CA6B64 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = ../../build/src; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		481DD7182DD7F76800CA6B64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD72A2DD7F76800CA6B64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7372DD7F76800CA6B64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7412DD7F76800CA6B64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		481DD7072DD7F76700CA6B64 = {
+			isa = PBXGroup;
+			children = (
+				481DD70C2DD7F76700CA6B64 /* Shared (App) */,
+				481DD7152DD7F76800CA6B64 /* Shared (Extension) */,
+				481DD72E2DD7F76800CA6B64 /* macOS (App) */,
+				481DD7482DD7F76800CA6B64 /* macOS (Extension) */,
+				481DD71C2DD7F76800CA6B64 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		481DD70C2DD7F76700CA6B64 /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				481DD7132DD7F76700CA6B64 /* ViewController.swift */,
+				481DD7142DD7F76800CA6B64 /* Assets.xcassets */,
+				481DD70D2DD7F76700CA6B64 /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		481DD70D2DD7F76700CA6B64 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				481DD70E2DD7F76700CA6B64 /* Main.html */,
+				481DD7102DD7F76700CA6B64 /* Icon.png */,
+				481DD7112DD7F76700CA6B64 /* Style.css */,
+				481DD7122DD7F76700CA6B64 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		481DD7152DD7F76800CA6B64 /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				481DD7692DD7F76800CA6B64 /* Resources */,
+				481DD7162DD7F76800CA6B64 /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		481DD71C2DD7F76800CA6B64 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				481DD71B2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */,
+				481DD72D2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */,
+				481DD73A2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */,
+				481DD7442DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		481DD72E2DD7F76800CA6B64 /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				481DD72F2DD7F76800CA6B64 /* AppDelegate.swift */,
+				481DD7312DD7F76800CA6B64 /* Main.storyboard */,
+				481DD7342DD7F76800CA6B64 /* Info.plist */,
+				481DD7352DD7F76800CA6B64 /* ActivityWatch Web Watcher.entitlements */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		481DD7482DD7F76800CA6B64 /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				481DD7492DD7F76800CA6B64 /* Info.plist */,
+				481DD74A2DD7F76800CA6B64 /* ActivityWatch Web Watcher.entitlements */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		481DD7692DD7F76800CA6B64 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				481DD76A2DD7F76800CA6B64 /* logo-128.png */,
+				481DD76B2DD7F76800CA6B64 /* banner.png */,
+				481DD76C2DD7F76800CA6B64 /* index.css */,
+				481DD76D2DD7F76800CA6B64 /* index3.css */,
+				481DD76E2DD7F76800CA6B64 /* index2.css */,
+				481DD76F2DD7F76800CA6B64 /* manifest.json */,
+				481DD7702DD7F76800CA6B64 /* storage.js */,
+				481DD7712DD7F76800CA6B64 /* src */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		481DD71A2DD7F76800CA6B64 /* ActivityWatch Web Watcher (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 481DD75F2DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher (iOS)" */;
+			buildPhases = (
+				481DD7172DD7F76800CA6B64 /* Sources */,
+				481DD7182DD7F76800CA6B64 /* Frameworks */,
+				481DD7192DD7F76800CA6B64 /* Resources */,
+				481DD75E2DD7F76800CA6B64 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				481DD73D2DD7F76800CA6B64 /* PBXTargetDependency */,
+			);
+			name = "ActivityWatch Web Watcher (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "ActivityWatch Web Watcher (iOS)";
+			productReference = 481DD71B2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */;
+			productType = "com.apple.product-type.application";
+		};
+		481DD72C2DD7F76800CA6B64 /* ActivityWatch Web Watcher (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 481DD7662DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher (macOS)" */;
+			buildPhases = (
+				481DD7292DD7F76800CA6B64 /* Sources */,
+				481DD72A2DD7F76800CA6B64 /* Frameworks */,
+				481DD72B2DD7F76800CA6B64 /* Resources */,
+				481DD7652DD7F76800CA6B64 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				481DD7472DD7F76800CA6B64 /* PBXTargetDependency */,
+			);
+			name = "ActivityWatch Web Watcher (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "ActivityWatch Web Watcher (macOS)";
+			productReference = 481DD72D2DD7F76800CA6B64 /* ActivityWatch Web Watcher.app */;
+			productType = "com.apple.product-type.application";
+		};
+		481DD7392DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 481DD75B2DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher Extension (iOS)" */;
+			buildPhases = (
+				481DD7362DD7F76800CA6B64 /* Sources */,
+				481DD7372DD7F76800CA6B64 /* Frameworks */,
+				481DD7382DD7F76800CA6B64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ActivityWatch Web Watcher Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "ActivityWatch Web Watcher Extension (iOS)";
+			productReference = 481DD73A2DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		481DD7432DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 481DD7622DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher Extension (macOS)" */;
+			buildPhases = (
+				481DD7402DD7F76800CA6B64 /* Sources */,
+				481DD7412DD7F76800CA6B64 /* Frameworks */,
+				481DD7422DD7F76800CA6B64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ActivityWatch Web Watcher Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "ActivityWatch Web Watcher Extension (macOS)";
+			productReference = 481DD7442DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		481DD7082DD7F76700CA6B64 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					481DD71A2DD7F76800CA6B64 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					481DD72C2DD7F76800CA6B64 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					481DD7392DD7F76800CA6B64 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					481DD7432DD7F76800CA6B64 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+				};
+			};
+			buildConfigurationList = 481DD70B2DD7F76700CA6B64 /* Build configuration list for PBXProject "ActivityWatch Web Watcher" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 481DD7072DD7F76700CA6B64;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 481DD71C2DD7F76800CA6B64 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				481DD71A2DD7F76800CA6B64 /* ActivityWatch Web Watcher (iOS) */,
+				481DD72C2DD7F76800CA6B64 /* ActivityWatch Web Watcher (macOS) */,
+				481DD7392DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (iOS) */,
+				481DD7432DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		481DD7192DD7F76800CA6B64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD74D2DD7F76800CA6B64 /* Icon.png in Resources */,
+				481DD74B2DD7F76800CA6B64 /* Main.html in Resources */,
+				481DD7512DD7F76800CA6B64 /* Script.js in Resources */,
+				481DD7552DD7F76800CA6B64 /* Assets.xcassets in Resources */,
+				481DD74F2DD7F76800CA6B64 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD72B2DD7F76800CA6B64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD74E2DD7F76800CA6B64 /* Icon.png in Resources */,
+				481DD7502DD7F76800CA6B64 /* Style.css in Resources */,
+				481DD7332DD7F76800CA6B64 /* Main.storyboard in Resources */,
+				481DD7522DD7F76800CA6B64 /* Script.js in Resources */,
+				481DD7562DD7F76800CA6B64 /* Assets.xcassets in Resources */,
+				481DD74C2DD7F76800CA6B64 /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7382DD7F76800CA6B64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD77E2DD7F76800CA6B64 /* index2.css in Resources */,
+				481DD77D2DD7F76800CA6B64 /* index3.css in Resources */,
+				481DD77A2DD7F76800CA6B64 /* logo-128.png in Resources */,
+				481DD7812DD7F76800CA6B64 /* src in Resources */,
+				481DD77B2DD7F76800CA6B64 /* banner.png in Resources */,
+				481DD7802DD7F76800CA6B64 /* storage.js in Resources */,
+				481DD77F2DD7F76800CA6B64 /* manifest.json in Resources */,
+				481DD77C2DD7F76800CA6B64 /* index.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7422DD7F76800CA6B64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD7762DD7F76800CA6B64 /* index2.css in Resources */,
+				481DD7752DD7F76800CA6B64 /* index3.css in Resources */,
+				481DD7722DD7F76800CA6B64 /* logo-128.png in Resources */,
+				481DD7792DD7F76800CA6B64 /* src in Resources */,
+				481DD7732DD7F76800CA6B64 /* banner.png in Resources */,
+				481DD7782DD7F76800CA6B64 /* storage.js in Resources */,
+				481DD7772DD7F76800CA6B64 /* manifest.json in Resources */,
+				481DD7742DD7F76800CA6B64 /* index.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		481DD7172DD7F76800CA6B64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD7532DD7F76800CA6B64 /* ViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7292DD7F76800CA6B64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD7542DD7F76800CA6B64 /* ViewController.swift in Sources */,
+				481DD7302DD7F76800CA6B64 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7362DD7F76800CA6B64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD7572DD7F76800CA6B64 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		481DD7402DD7F76800CA6B64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				481DD7582DD7F76800CA6B64 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		481DD73D2DD7F76800CA6B64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 481DD7392DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (iOS) */;
+			targetProxy = 481DD73C2DD7F76800CA6B64 /* PBXContainerItemProxy */;
+		};
+		481DD7472DD7F76800CA6B64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 481DD7432DD7F76800CA6B64 /* ActivityWatch Web Watcher Extension (macOS) */;
+			targetProxy = 481DD7462DD7F76800CA6B64 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		481DD70E2DD7F76700CA6B64 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				481DD70F2DD7F76700CA6B64 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		481DD7312DD7F76800CA6B64 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				481DD7322DD7F76800CA6B64 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		481DD7592DD7F76800CA6B64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		481DD75A2DD7F76800CA6B64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		481DD75C2DD7F76800CA6B64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher.Extension";
+				PRODUCT_NAME = "ActivityWatch Web Watcher Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		481DD75D2DD7F76800CA6B64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher.Extension";
+				PRODUCT_NAME = "ActivityWatch Web Watcher Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		481DD7602DD7F76800CA6B64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher";
+				PRODUCT_NAME = "ActivityWatch Web Watcher";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		481DD7612DD7F76800CA6B64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher";
+				PRODUCT_NAME = "ActivityWatch Web Watcher";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		481DD7632DD7F76800CA6B64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/ActivityWatch Web Watcher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher.Extension";
+				PRODUCT_NAME = "ActivityWatch Web Watcher Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		481DD7642DD7F76800CA6B64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/ActivityWatch Web Watcher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher.Extension";
+				PRODUCT_NAME = "ActivityWatch Web Watcher Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		481DD7672DD7F76800CA6B64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/ActivityWatch Web Watcher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher";
+				PRODUCT_NAME = "ActivityWatch Web Watcher";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		481DD7682DD7F76800CA6B64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/ActivityWatch Web Watcher.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "ActivityWatch Web Watcher";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yourCompany.ActivityWatch-Web-Watcher";
+				PRODUCT_NAME = "ActivityWatch Web Watcher";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		481DD70B2DD7F76700CA6B64 /* Build configuration list for PBXProject "ActivityWatch Web Watcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				481DD7592DD7F76800CA6B64 /* Debug */,
+				481DD75A2DD7F76800CA6B64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		481DD75B2DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				481DD75C2DD7F76800CA6B64 /* Debug */,
+				481DD75D2DD7F76800CA6B64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		481DD75F2DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				481DD7602DD7F76800CA6B64 /* Debug */,
+				481DD7612DD7F76800CA6B64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		481DD7622DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				481DD7632DD7F76800CA6B64 /* Debug */,
+				481DD7642DD7F76800CA6B64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		481DD7662DD7F76800CA6B64 /* Build configuration list for PBXNativeTarget "ActivityWatch Web Watcher (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				481DD7672DD7F76800CA6B64 /* Debug */,
+				481DD7682DD7F76800CA6B64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 481DD7082DD7F76700CA6B64 /* Project object */;
+}

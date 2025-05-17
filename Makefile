@@ -94,3 +94,14 @@ test-reproducibility-firefox: zip-src build-firefox test-reproducibility-setup
 		"$$(wc -c artifacts/reproducibility-firefox.zip | awk '{print $$1}')" \
 		|| (echo "❌ Build artifacts are not the same size" && exit 1)
 	@echo "✅ Build artifacts are the same size"
+
+# Tests whether the zipped src reliably builds the same as the archive
+test-reproducibility-safari: zip-src build-safari test-reproducibility-setup
+	@echo "Building from src-zip..."
+	@(cd build/aw-watcher-web && make build-safari && cp artifacts/safari.zip ../../artifacts/reproducibility-safari.zip)
+	@rm -r build/aw-watcher-web
+	@echo "Checking..."
+	@test "$$(wc -c artifacts/safari.zip | awk '{print$$1}')" = \
+		"$$(wc -c artifacts/reproducibility-safari.zip | awk '{print$$1}')" \
+		|| (echo "❌ Build artifacts are not the same size" && exit 1)
+	@echo "✅ Build artifacts are the same size"

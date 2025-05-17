@@ -101,7 +101,9 @@ make build-safari
 xcrun safari-web-extension-converter ./build
 ```
 
-after finished, xcode will open automatively. 3. In Xcode:
+after finished, xcode will open automatively.
+
+3. In Xcode:
 
 - Select build target of Macos
 - Build the project (⌘B)

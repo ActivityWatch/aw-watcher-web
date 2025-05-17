@@ -59,13 +59,13 @@ jobs:
               run: |
                 xcrun safari-web-extension-converter ./build \
                   --project-location . \
-                  --bundle-identifier com.example.activitywatchwebwatcher \
+                  --bundle-identifier net.activitywatch.activitywatchwebwatcher \
                   --macos-only \
                   --force
 
             - name: Build Xcode Project
               run: |
-                xcodebuild -project "ActivityWatch Web Watcher.xcodeproj" \
+                xcodebuild -project "aw-watcher-web-safari/ActivityWatch Web Watcher.xcodeproj" \
                            -scheme "ActivityWatch Web Watcher (macOS)" \
                            -configuration Release \
                            clean build

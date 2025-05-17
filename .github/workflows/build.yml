@@ -67,7 +67,7 @@ jobs:
               run: |
                 xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" -list
                 xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" \
-                           -scheme "ActivityWatch Web Watcher (macOS)" \
+                           -scheme "ActivityWatch Web Watcher" \
                            -configuration Release \
                            clean build
             - name: Debug ls dir

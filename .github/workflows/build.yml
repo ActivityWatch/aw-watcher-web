@@ -75,7 +75,8 @@ jobs:
         with:
           name: safari
           path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release/ActivityWatch Web Watcher.app
+            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release/
+            artifacts/safari.zip
   typecheck:
     runs-on: ubuntu-latest
 

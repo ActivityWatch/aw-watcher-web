@@ -63,7 +63,9 @@ jobs:
                   --macos-only \
                   --force
             - name: Debug ls dir
-              run: ls -la
+              run: |
+                pwd
+                ls -R
             - name: Build Xcode Project
               run: |
                 xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" \

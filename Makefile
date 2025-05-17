@@ -30,6 +30,12 @@ build-firefox: install update-firefox zip-build-firefox
 update-firefox:
 	VITE_TARGET_BROWSER=firefox npx vite build
 
+# Add Safari build targets
+build-safari: install update-safari zip-build-safari
+
+update-safari:
+	VITE_TARGET_BROWSER=safari npx vite build
+
 #---------
 ## Zipping
 
@@ -39,6 +45,9 @@ zip-build-chrome:
 
 zip-build-firefox:
 	mkdir -p artifacts && cd build && zip -FS ../artifacts/firefox.zip -r *
+
+zip-build-safari:
+	mkdir -p artifacts && cd build && zip -FS ../artifacts/safari.zip -r *
 
 # To build a source archive, wanted by Mozilla reviewers. Include media subdir.
 # NOTE: we include the .git in the media archive so that it lines up with the output

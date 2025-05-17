@@ -105,7 +105,7 @@ after finished, xcode will open automatively.
 
 3. In Xcode:
 
-- Select build target of Macos
+- Select build target of macOS
 - Build the project (⌘B)
 - Run the extension (⌘R)
 

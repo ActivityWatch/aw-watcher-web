@@ -70,13 +70,12 @@ jobs:
                            -scheme "ActivityWatch Web Watcher" \
                            -configuration Release \
                            clean build
-            - name: Debug ls dir
-              run: ls -la
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
                 name: safari
-                path: build/ActivityWatch\ Web\ Watcher.safariextz
+                path: |
+                  ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release/ActivityWatch Web Watcher.app
   typecheck:
     runs-on: ubuntu-latest
 

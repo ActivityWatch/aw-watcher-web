@@ -41,7 +41,41 @@ jobs:
           path: artifacts/chrome.zip
       - name: Check reproducibility from src-zip
         run: make test-reproducibility-chrome
+  build-safari:
+          runs-on: macos-latest
 
+          steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                submodules: recursive
+            - name: Build Safari
+              run: make build-safari
+
+            - name: Check reproducibility from src-zip
+              run: make test-reproducibility-firefox
+
+            - name: Convert Chrome Extension to Safari
+              run: |
+                xcrun safari-web-extension-converter ./build \
+                  --project-location . \
+                  --bundle-identifier com.example.activitywatchwebwatcher \
+                  --macos-only \
+                  --force
+
+            - name: Build Xcode Project
+              run: |
+                xcodebuild -project "ActivityWatch Web Watcher.xcodeproj" \
+                           -scheme "ActivityWatch Web Watcher (macOS)" \
+                           -configuration Release \
+                           clean build
+            - name: Debug ls dir
+              run: ls -la
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: safari
+                path: build/ActivityWatch\ Web\ Watcher.safariextz
   typecheck:
     runs-on: ubuntu-latest
 

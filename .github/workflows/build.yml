@@ -62,10 +62,11 @@ jobs:
                   --bundle-identifier net.activitywatch.activitywatchwebwatcher \
                   --macos-only \
                   --force
-
+            - name: Debug ls dir
+              run: ls -la
             - name: Build Xcode Project
               run: |
-                xcodebuild -project "aw-watcher-web-safari/ActivityWatch Web Watcher.xcodeproj" \
+                xcodebuild -project "/Users/runner/work/aw-watcher-web-safari/aw-watcher-web-safari" \
                            -scheme "ActivityWatch Web Watcher (macOS)" \
                            -configuration Release \
                            clean build

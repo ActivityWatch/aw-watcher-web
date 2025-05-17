@@ -66,7 +66,7 @@ jobs:
               run: ls -la
             - name: Build Xcode Project
               run: |
-                xcodebuild -project "/Users/runner/work/aw-watcher-web-safari/aw-watcher-web-safari" \
+                xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" \
                            -scheme "ActivityWatch Web Watcher (macOS)" \
                            -configuration Release \
                            clean build

@@ -42,40 +42,40 @@ jobs:
       - name: Check reproducibility from src-zip
         run: make test-reproducibility-chrome
   build-safari:
-          runs-on: macos-latest
+    runs-on: macos-latest
 
-          steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-              with:
-                submodules: recursive
-            - name: Build Safari
-              run: make build-safari
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build Safari
+        run: make build-safari
 
-            - name: Check reproducibility from src-zip
-              run: make test-reproducibility-firefox
+      - name: Check reproducibility from src-zip
+        run: make test-reproducibility-firefox
 
-            - name: Convert Chrome Extension to Safari
-              run: |
-                xcrun safari-web-extension-converter ./build \
-                  --project-location . \
-                  --bundle-identifier net.activitywatch.activitywatchwebwatcher \
-                  --macos-only \
-                  --force
+      - name: Convert Chrome Extension to Safari
+        run: |
+          xcrun safari-web-extension-converter ./build \
+            --project-location . \
+            --bundle-identifier net.activitywatch.activitywatchwebwatcher \
+            --macos-only \
+            --force
 
-            - name: Build Xcode Project
-              run: |
-                xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" -list
-                xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" \
-                           -scheme "ActivityWatch Web Watcher" \
-                           -configuration Release \
-                           clean build
-            - name: Upload artifact
-              uses: actions/upload-artifact@v4
-              with:
-                name: safari
-                path: |
-                  ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release/ActivityWatch Web Watcher.app
+      - name: Build Xcode Project
+        run: |
+          xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" -list
+          xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" \
+                     -scheme "ActivityWatch Web Watcher" \
+                     -configuration Release \
+                     clean build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release/ActivityWatch Web Watcher.app
   typecheck:
     runs-on: ubuntu-latest
 

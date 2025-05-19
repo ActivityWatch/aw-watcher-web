@@ -101,7 +101,7 @@ test-reproducibility-safari: zip-src build-safari test-reproducibility-setup
 	@(cd build/aw-watcher-web && make build-safari && cp artifacts/safari.zip ../../artifacts/reproducibility-safari.zip)
 	@rm -r build/aw-watcher-web
 	@echo "Checking..."
-	@test "$$(wc -c artifacts/safari.zip | awk '{print$$1}')" = \
+	@test "$$(wc -c artifacts/safari.zip | awk '{print $$1}')" = \
 		"$$(wc -c artifacts/reproducibility-safari.zip | awk '{print$$1}')" \
 		|| (echo "❌ Build artifacts are not the same size" && exit 1)
 	@echo "✅ Build artifacts are the same size"

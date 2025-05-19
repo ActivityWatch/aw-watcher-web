@@ -86,6 +86,40 @@ This will create zip files in the `artifacts` directory:
 - `artifacts/firefox.zip` for Firefox
 - `artifacts/chrome.zip` for Chrome
 
+## if you want to build safari version
+
+1. First follow the steps above to build the extension:
+
+```sh
+make install
+make build-safari
+```
+
+2. Convert the extension to Safari format:
+
+```sh
+xcrun safari-web-extension-converter ./build
+```
+
+after finished, xcode will open automatically.
+
+3. In Xcode:
+
+- Select build target of macOS
+- Build the project (⌘B)
+- Run the extension (⌘R)
+
+4. Enable the extension in Safari:
+    - Open Safari
+    - Go to Safari > Settings > Extensions
+    - Enable "aw-watcher-web"
+
+> [!NOTE]
+>
+> - You need Xcode installed to build Safari extensions
+> - The extension needs to be signed with your Apple Developer account
+> - Safari extensions require macOS 11.0 or later
+
 ### Installing the Development Build
 
 #### Chrome

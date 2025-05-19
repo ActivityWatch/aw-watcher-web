@@ -101,7 +101,7 @@ make build-safari
 xcrun safari-web-extension-converter ./build
 ```
 
-after finished, xcode will open automatively.
+after finished, xcode will open automatically.
 
 3. In Xcode:
 

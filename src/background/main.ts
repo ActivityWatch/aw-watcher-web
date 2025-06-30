@@ -5,6 +5,7 @@ import {
   sendInitialHeartbeat,
   tabActivatedListener,
 } from './heartbeat'
+import { blockedDomainsAlarmListener } from './blocker'
 import { getClient, detectHostname } from './client'
 import {
   getConsentStatus,
@@ -64,7 +65,11 @@ console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
+browser.alarms.create(config.blockedDomains.alarmName, {
+  periodInMinutes: Math.floor(config.blockedDomains.intervalInSeconds / 60)
+})
 browser.alarms.onAlarm.addListener(heartbeatAlarmListener(client))
+browser.alarms.onAlarm.addListener(blockedDomainsAlarmListener())
 browser.tabs.onActivated.addListener(tabActivatedListener(client))
 
 console.debug('Setting base url')

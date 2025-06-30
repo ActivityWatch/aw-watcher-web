@@ -42,7 +42,8 @@
         "alarms",
         "notifications",
         "activeTab",
-        "storage"
+        "storage",
+        "declarativeNetRequest"
     ],
     "{{chrome}}.host_permissions": ["<all_urls>"],
 

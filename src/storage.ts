@@ -101,3 +101,20 @@ export const getHostname = (): Promise<Hostname | undefined> =>
     .then((data: StorageData) => data.hostname as string | undefined)
 export const setHostname = (hostname: Hostname) =>
   browser.storage.local.set({ hostname })
+
+type Domain = { id: string, domain: string, matchType: string }
+export const getDomains = (): Promise<Domain[] | undefined> =>
+  browser.storage.local
+    .get('domains')
+    .then((data: StorageData) => {
+      const domains = data.domains as Domain[] | undefined
+      if (!Array.isArray(domains)) return undefined
+      return domains.map(domain => ({
+        id: domain.id as string,
+        domain: domain.domain as string,
+        matchType: domain.matchType as string
+      }))
+    })
+
+export const setDomains = (domains: Domain[]): Promise<void> =>
+  browser.storage.local.set({ domains })

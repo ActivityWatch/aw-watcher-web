@@ -11,7 +11,7 @@ const config = {
   },
   blockedDomains: {
     alarmName: 'blockedDomains',
-    intervalInSeconds: 3600,
+    intervalInSeconds: 1800,
   },
 }
 

@@ -1,4 +1,5 @@
 import browser from 'webextension-polyfill'
+import config from '../config'
 import { FetchError } from 'aw-client'
 import { getBrowserName, setBrowserName } from '../storage'
 
@@ -87,4 +88,9 @@ export async function logHttpError<T extends Error>(error: T) {
   } else {
     console.error('Unexpected error', error)
   }
+}
+
+export const assetsonarServerUrl = (subdomain?: string) => {
+  const { protocol, host } = config.assetsonarServer
+  return `${protocol}://${subdomain}.${host}`
 }

@@ -2,9 +2,9 @@
     "{{chrome}}.manifest_version": 3,
     "{{firefox}}.manifest_version": 2,
 
-    "name": "ActivityWatch Web Watcher",
-    "description": "Log the current tab and your browser activity with ActivityWatch.",
-    "version": "0.5.3",
+    "name": "AssetSonar SaaS Discovery & Usage Monitor",
+    "description": "Gain visibility into SaaS usage, track shadow IT, and optimize software management with AssetSonar's Chrome Extension.",
+    "version": "1.0",
     "icons": {
         "128": "logo-128.png"
     },
@@ -42,7 +42,8 @@
         "alarms",
         "notifications",
         "activeTab",
-        "storage"
+        "storage",
+        "declarativeNetRequest"
     ],
     "{{chrome}}.host_permissions": ["<all_urls>"],
 

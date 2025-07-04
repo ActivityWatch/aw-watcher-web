@@ -1,7 +1,6 @@
 import browser from 'webextension-polyfill'
 import config from '../config'
 import { assetsonarServerUrl } from './helpers'
-import { setDomains } from '../storage'
 
 
 export const blockedDomainsAlarmListener = () => async (alarm: browser.Alarms.Alarm) => {
@@ -36,11 +35,11 @@ export const updateDynamicRules = async (domains: Array<{ id: string, domain: st
 function buildUrlFilter(domain: string, matchType: string): string {
   switch (matchType) {
     case 'starts_with':
-      return `^(https?://)?(?:www\\.)?${domain}`
+      return `^(https?://)?(www\\.)?${domain}(\\.[^/?#]+)*([/?#]|$)`
     case 'ends_with':
-      return `${domain}/$`
+      return `^(https?://)?(www\\.)?[^/?#]*${domain}([/?#]|$)`
     default:
-      return `^(https?://)?(?:www\\.)?${domain}/$`
+      return `^(https?://)?(www\\.)?${domain}([/?#]|$)`
   }
 }
 
@@ -48,7 +47,7 @@ const fetchBlockedDomains = async () => {
   // Read subdomain and itam_access_token from managed storage
   const managed = await browser.storage.managed.get(['subdomain', 'itam_access_token'])
   const subdomain = typeof managed.subdomain === 'string' ? managed.subdomain : 'comtest'
-  const itamAccessToken = typeof managed.itam_access_token === 'string' ? managed.itam_access_token : 'f2d72f8a4ce0ecb89f6bd2cc0ed0964b'
+  const itamAccessToken = typeof managed.itam_access_token === 'string' ? managed.itam_access_token : '4c7e2fc19aa3ca6abdd905f7d99dd574'
   if (!subdomain) throw new Error('subdomain not found in managed storage')
   if (!itamAccessToken) throw new Error('itam_access_token not found in managed storage')
 

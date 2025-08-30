@@ -3,7 +3,10 @@ import { setConsentStatus, setEnabled } from '../storage'
 
 const consentRefused = document.getElementById('consent-refused')!
 consentRefused.addEventListener('click', () => {
-  browser.management.uninstallSelf()
+  // Conditionally uninstall if not Safari
+  if (import.meta.env.VITE_TARGET_BROWSER !== 'safari') {
+    browser.management.uninstallSelf()
+  }
   window.close()
 })
 

@@ -30,6 +30,12 @@ build-firefox: install update-firefox zip-build-firefox
 update-firefox:
 	VITE_TARGET_BROWSER=firefox npx vite build
 
+# Add Safari build targets
+build-safari: install update-safari zip-build-safari
+
+update-safari:
+	VITE_TARGET_BROWSER=safari npx vite build
+
 #---------
 ## Zipping
 
@@ -39,6 +45,9 @@ zip-build-chrome:
 
 zip-build-firefox:
 	mkdir -p artifacts && cd build && zip -FS ../artifacts/firefox.zip -r *
+
+zip-build-safari:
+	mkdir -p artifacts && cd build && zip -FS ../artifacts/safari.zip -r *
 
 # To build a source archive, wanted by Mozilla reviewers. Include media subdir.
 # NOTE: we include the .git in the media archive so that it lines up with the output
@@ -83,5 +92,16 @@ test-reproducibility-firefox: zip-src build-firefox test-reproducibility-setup
 	@echo "Checking..."
 	@test "$$(wc -c artifacts/firefox.zip | awk '{print $$1}')" = \
 		"$$(wc -c artifacts/reproducibility-firefox.zip | awk '{print $$1}')" \
+		|| (echo "❌ Build artifacts are not the same size" && exit 1)
+	@echo "✅ Build artifacts are the same size"
+
+# Tests whether the zipped src reliably builds the same as the archive
+test-reproducibility-safari: zip-src build-safari test-reproducibility-setup
+	@echo "Building from src-zip..."
+	@(cd build/aw-watcher-web && make build-safari && cp artifacts/safari.zip ../../artifacts/reproducibility-safari.zip)
+	@rm -r build/aw-watcher-web
+	@echo "Checking..."
+	@test "$$(wc -c artifacts/safari.zip | awk '{print $$1}')" = \
+		"$$(wc -c artifacts/reproducibility-safari.zip | awk '{print$$1}')" \
 		|| (echo "❌ Build artifacts are not the same size" && exit 1)
 	@echo "✅ Build artifacts are the same size"

@@ -1,6 +1,7 @@
 {
     "{{chrome}}.manifest_version": 3,
     "{{firefox}}.manifest_version": 2,
+    "{{safari}}.manifest_version": 3,
 
     "name": "ActivityWatch Web Watcher",
     "description": "Log the current tab and your browser activity with ActivityWatch.",
@@ -17,11 +18,16 @@
         "default_icon": "logo-128.png",
         "default_popup": "src/popup/index.html"
     },
+    "{{safari}}.action": {
+        "default_icon": { "128": "logo-128.png" },
+        "default_popup": "src/popup/index.html"
+    },
 
     "background": {
         "{{chrome}}.service_worker": "src/background/main.ts",
         "{{firefox}}.scripts": ["src/background/main.ts"],
-        "{{firefox}}.persistent": true
+        "{{firefox}}.persistent": true,
+        "{{safari}}.service_worker": "src/background/main.ts"
     },
 
     "options_ui": {
@@ -44,7 +50,15 @@
         "activeTab",
         "storage"
     ],
+    "{{safari}}.permissions": [
+        "tabs",
+        "alarms",
+        "notifications",
+        "activeTab",
+        "storage"
+    ],
     "{{chrome}}.host_permissions": ["<all_urls>"],
+    "{{safari}}.host_permissions": ["<all_urls>"],
 
     "{{firefox}}.browser_specific_settings": {
         "gecko": {

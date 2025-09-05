@@ -3,7 +3,7 @@ import { getActiveWindowTab, getTab, getTabs } from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
-import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
+import { getEnabled, getHeartbeatData, setHeartbeatData, getDisplayProfileName } from '../storage'
 import deepEqual from 'deep-equal'
 
 async function heartbeat(
@@ -28,12 +28,15 @@ async function heartbeat(
   }
 
   const now = new Date()
+  const profileName = await getDisplayProfileName()
+  
   const data: IEvent['data'] = {
     url: tab.url,
     title: tab.title,
     audible: tab.audible ?? false,
     incognito: tab.incognito,
     tabCount: tabCount,
+    profileName: profileName,
   }
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {

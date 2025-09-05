@@ -101,3 +101,49 @@ export const getHostname = (): Promise<Hostname | undefined> =>
     .then((data: StorageData) => data.hostname as string | undefined)
 export const setHostname = (hostname: Hostname) =>
   browser.storage.local.set({ hostname })
+
+type ProfileIdentifier = string
+export const getProfileIdentifier = (): Promise<ProfileIdentifier | undefined> =>
+  browser.storage.local
+    .get('profileIdentifier')
+    .then((data: StorageData) => data.profileIdentifier as string | undefined)
+
+export const setProfileIdentifier = (profileIdentifier: ProfileIdentifier) =>
+  browser.storage.local.set({ profileIdentifier })
+
+export const generateProfileIdentifier = async (): Promise<ProfileIdentifier> => {
+  const existing = await getProfileIdentifier()
+  if (existing) {
+    return existing
+  }
+  
+  // Generate a unique identifier for this profile/installation
+  const profileId = crypto.randomUUID()
+  await setProfileIdentifier(profileId)
+  return profileId
+}
+
+type CustomProfileName = string
+export const getCustomProfileName = (): Promise<CustomProfileName | undefined> =>
+  browser.storage.local
+    .get('customProfileName')
+    .then((data: StorageData) => data.customProfileName as string | undefined)
+
+export const setCustomProfileName = (customProfileName: CustomProfileName) => {
+  if (customProfileName.trim() === '') {
+    // Remove custom profile name if empty string is provided
+    return browser.storage.local.remove('customProfileName')
+  }
+  return browser.storage.local.set({ customProfileName })
+}
+
+export const getDisplayProfileName = async (): Promise<string> => {
+  const customName = await getCustomProfileName()
+  if (customName) {
+    return customName
+  }
+  
+  // Fallback to a shortened version of the unique identifier
+  const profileId = await generateProfileIdentifier()
+  return `Profile-${profileId.slice(0, 8)}`
+}

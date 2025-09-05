@@ -22,6 +22,6 @@ export default defineConfig({
       manifest: generateManifest,
       additionalInputs: ['src/consent/index.html', 'src/consent/main.ts'],
       browser: process.env.VITE_TARGET_BROWSER,
-    }),
+    }),    
   ],
 })

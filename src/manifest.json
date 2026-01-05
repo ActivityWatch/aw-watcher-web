@@ -48,6 +48,7 @@
         "alarms",
         "notifications",
         "activeTab",
+        "offscreen",
         "storage"
     ],
     "{{safari}}.permissions": [

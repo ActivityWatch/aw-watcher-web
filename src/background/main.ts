@@ -77,29 +77,34 @@ setBaseUrl(client.baseURL)
   .then(() => console.info('Started successfully'))
 
 /**
- * Keep the service worker alive to prevent Chrome's 5-minute inactivity termination
- * This is a workaround for Chrome's behavior of terminating inactive service workers
- * https://stackoverflow.com/questions/66618136
+ * Keep the service worker alive using Offscreen API to prevent Chrome's termination.
  */
-if (import.meta.env.VITE_TARGET_BROWSER === 'chrome') {
-  function setupKeepAlive(): void {
-    console.debug(
-      'Setting up keep-alive ping to prevent service worker termination',
-    )
+async function setupOffscreen() {
+  const _chrome = (globalThis as any).chrome
+  if (typeof _chrome === 'undefined' || !_chrome.offscreen) return
 
-    setInterval(
-      () => {
-        console.debug('Keep-alive ping')
-        // Force some minimal activity
-        browser.alarms
-          .get(config.heartbeat.alarmName)
-          .then(() => console.debug('Keep-alive ping completed'))
-          .catch((err) => console.error('Keep-alive ping failed:', err))
-      },
-      4 * 60 * 1000,
-    ) // 4 minutes (less than Chrome's ~5 minute timeout)
+  if (await _chrome.offscreen.hasDocument()) return
+
+  try {
+    await _chrome.offscreen.createDocument({
+      url: 'src/offscreen.html',
+      reasons: ['BLOBS'],
+      justification: 'Keep service worker alive for heartbeat packets',
+    })
+  } catch (e) {
+    console.error('Failed to create offscreen document:', e)
   }
-
-  // Start the keep-alive mechanism
-  setupKeepAlive()
 }
+
+browser.runtime.onMessage.addListener((message: any) => {
+  if (message.type === 'KEEP_ALIVE') {
+    return Promise.resolve({ status: 'ok' })
+  }
+  return undefined
+})
+
+// Initialize on startup and installation
+browser.runtime.onStartup.addListener(setupOffscreen)
+browser.runtime.onInstalled.addListener(setupOffscreen)
+
+setupOffscreen()

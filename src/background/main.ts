@@ -82,24 +82,23 @@ setBaseUrl(client.baseURL)
  * https://stackoverflow.com/questions/66618136
  */
 if (import.meta.env.VITE_TARGET_BROWSER === 'chrome') {
-  function setupKeepAlive(): void {
-    console.debug(
-      'Setting up keep-alive ping to prevent service worker termination',
-    )
-
-    setInterval(
-      () => {
-        console.debug('Keep-alive ping')
-        // Force some minimal activity
-        browser.alarms
-          .get(config.heartbeat.alarmName)
-          .then(() => console.debug('Keep-alive ping completed'))
-          .catch((err) => console.error('Keep-alive ping failed:', err))
-      },
-      4 * 60 * 1000,
-    ) // 4 minutes (less than Chrome's ~5 minute timeout)
+  console.debug('Setting up offscreen keep-alive')
+  const createOffscreen = async () => {
+    // @ts-ignore
+    if (await chrome.offscreen.hasDocument()) return
+    // @ts-ignore
+    await chrome.offscreen.createDocument({
+      url: 'src/offscreen/offscreen.html',
+      reasons: ['BLOBS'], // BLOBS or AUDIO_PLAYBACK
+      justification: 'keep service worker running',
+    })
   }
 
-  // Start the keep-alive mechanism
-  setupKeepAlive()
+  // @ts-ignore
+  chrome.runtime.onStartup.addListener(createOffscreen)
+  createOffscreen()
+  // @ts-ignore
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.keepAlive) console.debug('keepAlive')
+  })
 }

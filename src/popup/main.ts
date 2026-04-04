@@ -10,6 +10,8 @@ import {
   watchSyncSuccess,
   getBrowserName,
   getHostname,
+  getGmailEnabled,
+  setGmailEnabled,
 } from '../storage'
 
 function setConnected(connected: boolean | undefined) {
@@ -31,6 +33,7 @@ function setSyncDate(date: string | undefined) {
 async function renderStatus() {
   const baseUrl = await getBaseUrl()
   const enabled = await getEnabled()
+  const gmailEnabled = await getGmailEnabled()
   const syncStatus = await getSyncStatus()
   const consentStatus = await getConsentStatus()
   const browserName = await getBrowserName()
@@ -42,6 +45,12 @@ async function renderStatus() {
     throw Error('Enable checkbox is not an input')
   enabledCheckbox.checked = enabled
 
+  // Gmail checkbox
+  const gmailEnabledCheckbox = document.getElementById('status-gmail-enabled-checkbox')
+  if (!(gmailEnabledCheckbox instanceof HTMLInputElement))
+    throw Error('Gmail enable checkbox is not an input')
+  gmailEnabledCheckbox.checked = gmailEnabled
+
   // Consent Button
   const showConsentBtn = document.getElementById('status-consent-btn')
   if (!(showConsentBtn instanceof HTMLButtonElement))
@@ -49,9 +58,11 @@ async function renderStatus() {
 
   if (!consentStatus.required || consentStatus.consent) {
     enabledCheckbox.removeAttribute('disabled')
+    gmailEnabledCheckbox.removeAttribute('disabled')
     showConsentBtn.style.setProperty('display', 'none')
   } else {
     enabledCheckbox.setAttribute('disabled', '')
+    gmailEnabledCheckbox.setAttribute('disabled', '')
     showConsentBtn.style.setProperty('display', 'inline-block')
   }
 
@@ -97,6 +108,14 @@ function domListeners() {
   enabledCheckbox.addEventListener('change', async () => {
     const enabled = enabledCheckbox.checked
     setEnabled(enabled)
+  })
+
+  const gmailEnabledCheckbox = document.getElementById('status-gmail-enabled-checkbox')
+  if (!(gmailEnabledCheckbox instanceof HTMLInputElement))
+    throw Error('Gmail enable checkbox is not an input')
+  gmailEnabledCheckbox.addEventListener('change', async () => {
+    const gmailEnabled = gmailEnabledCheckbox.checked
+    setGmailEnabled(gmailEnabled)
   })
 
   const consentButton = document.getElementById('status-consent-btn')!

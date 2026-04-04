@@ -3,8 +3,75 @@ import { getActiveWindowTab, getTab, getTabs } from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
-import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
+import { getEnabled, getHeartbeatData, setHeartbeatData, getGmailEnabled } from '../storage'
 import deepEqual from 'deep-equal'
+
+export function setupMessageListener(client: AWClient) {
+  browser.runtime.onMessage.addListener(
+    async (message: any, sender: browser.Runtime.MessageSender) => {
+      const enabled = await getEnabled();
+      const gmailEnabled = await getGmailEnabled();
+      if (!enabled || !gmailEnabled) return;
+
+      if (message.type === 'AW_GMAIL_HEARTBEAT') {
+        const tab = sender.tab;
+        if (!tab || !tab.url || !tab.title) return;
+        if (!tab.url.includes('mail.google.com')) return;
+        const tabs = await getTabs();
+
+        const data: IEvent['data'] = {
+          url: tab.url,
+          title: tab.title,
+          audible: tab.audible ?? false,
+          incognito: tab.incognito,
+          tabCount: tabs.length,
+          ...message.data,
+        };
+        await performHeartbeat(client, data);
+      }
+    },
+  )
+}
+
+async function performHeartbeat(
+  client: AWClient,
+  data: IEvent['data'],
+  options: { finalizeOnly?: boolean } = {}
+) {
+  const bucketId = await getBucketId()
+  const now = new Date()
+  const previousData = await getHeartbeatData()
+  if (previousData && !deepEqual(previousData, data)) {
+    console.debug('[Background] Activity changed, finalizing previous session', previousData)
+    await sendHeartbeat(
+      client,
+      bucketId,
+      new Date(now.getTime() - 1),
+      previousData,
+      config.heartbeat.intervalInSeconds + 20,
+    ).catch(() => {})
+  }
+
+  if (options.finalizeOnly) {
+    if (previousData) {
+      await browser.storage.local.remove('heartbeatData');
+    }
+    return;
+  }
+
+  console.debug('[Background] Sending heartbeat', data)
+  await sendHeartbeat(
+    client,
+    bucketId,
+    now,
+    data,
+    config.heartbeat.intervalInSeconds + 20,
+  ).catch((err: unknown) => {
+    console.error('[Background] Failed to send heartbeat:', err);
+  })
+  
+  await setHeartbeatData(data)
+}
 
 async function heartbeat(
   client: AWClient,
@@ -27,7 +94,6 @@ async function heartbeat(
     return
   }
 
-  const now = new Date()
   const data: IEvent['data'] = {
     url: tab.url,
     title: tab.title,
@@ -35,26 +101,16 @@ async function heartbeat(
     incognito: tab.incognito,
     tabCount: tabCount,
   }
-  const previousData = await getHeartbeatData()
-  if (previousData && !deepEqual(previousData, data)) {
-    console.debug('Sending heartbeat for previous data', previousData)
-    await sendHeartbeat(
-      client,
-      await getBucketId(),
-      new Date(now.getTime() - 1),
-      previousData,
-      config.heartbeat.intervalInSeconds + 20,
-    )
+
+  const gmailEnabled = await getGmailEnabled();
+  if (gmailEnabled && tab.url.includes('mail.google.com')) {
+    // Sharp cut: finalize the previous activity (e.g. if we came from Google Search)
+    // but don't start the 'Generic' Gmail event. Gmail.ts will do that with metadata.
+    await performHeartbeat(client, data, { finalizeOnly: true });
+    return;
   }
-  console.debug('Sending heartbeat', data)
-  await sendHeartbeat(
-    client,
-    await getBucketId(),
-    now,
-    data,
-    config.heartbeat.intervalInSeconds + 20,
-  )
-  await setHeartbeatData(data)
+
+  await performHeartbeat(client, data);
 }
 
 export const sendInitialHeartbeat = async (client: AWClient) => {
@@ -76,9 +132,9 @@ export const heartbeatAlarmListener =
 
 export const tabActivatedListener =
   (client: AWClient) =>
-  async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    const tab = await getTab(activeInfo.tabId)
-    const tabs = await getTabs()
-    console.debug('Sending heartbeat for tab activation', tab)
-    await heartbeat(client, tab, tabs.length)
-  }
+    async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
+      const tab = await getTab(activeInfo.tabId)
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for tab activation', tab)
+      await heartbeat(client, tab, tabs.length)
+    }

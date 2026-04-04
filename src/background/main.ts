@@ -4,6 +4,7 @@ import {
   heartbeatAlarmListener,
   sendInitialHeartbeat,
   tabActivatedListener,
+  setupMessageListener,
 } from './heartbeat'
 import { getClient, detectHostname } from './client'
 import {
@@ -15,6 +16,7 @@ import {
   setHostname,
   waitForEnabled,
 } from '../storage'
+import { AWClient } from 'aw-client'
 
 async function getIsConsentRequired() {
   if (!config.requireConsent) return false
@@ -24,7 +26,7 @@ async function getIsConsentRequired() {
     .catch(() => true)
 }
 
-async function autodetectHostname() {
+async function autodetectHostname(client: AWClient) {
   const hostname = await getHostname()
   if (hostname === undefined) {
     const detectedHostname = await detectHostname(client)
@@ -57,13 +59,17 @@ browser.runtime.onInstalled.addListener(async () => {
     })
   }
 
-  await autodetectHostname()
+  await autodetectHostname(client)
 })
 
 console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
+
+// Set up Gmail message listener (other watchers will be added later)
+setupMessageListener(client)
+
 browser.alarms.onAlarm.addListener(heartbeatAlarmListener(client))
 browser.tabs.onActivated.addListener(tabActivatedListener(client))
 

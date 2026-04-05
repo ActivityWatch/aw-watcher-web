@@ -24,7 +24,7 @@ export function ensureBucket(
           logHttpError(err)
           return Promise.reject(err)
         }),
-    { forever: true, minTimeout: 500 },
+    { retries: 3, minTimeout: 500 },
   )
 }
 

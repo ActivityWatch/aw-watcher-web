@@ -27,17 +27,22 @@ async function heartbeat(
     return
   }
 
+  // Extract only the fields we need so we don't retain references to the
+  // full Tab object (which includes favIconUrl — a potentially large base64
+  // data URI).  Over thousands of heartbeats the retained Tab references
+  // cause unbounded memory growth (see #222).
+  const { url, title, audible, incognito } = tab
   const now = new Date()
   const data: IEvent['data'] = {
-    url: tab.url,
-    title: tab.title,
-    audible: tab.audible ?? false,
-    incognito: tab.incognito,
+    url,
+    title,
+    audible: audible ?? false,
+    incognito,
     tabCount: tabCount,
   }
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
-    console.debug('Sending heartbeat for previous data', previousData)
+    console.debug('Sending heartbeat for previous data')
     await sendHeartbeat(
       client,
       await getBucketId(),
@@ -46,7 +51,7 @@ async function heartbeat(
       config.heartbeat.intervalInSeconds + 20,
     )
   }
-  console.debug('Sending heartbeat', data)
+  console.debug('Sending heartbeat', url)
   await sendHeartbeat(
     client,
     await getBucketId(),
@@ -60,7 +65,7 @@ async function heartbeat(
 export const sendInitialHeartbeat = async (client: AWClient) => {
   const activeWindowTab = await getActiveWindowTab()
   const tabs = await getTabs()
-  console.debug('Sending initial heartbeat', activeWindowTab)
+  console.debug('Sending initial heartbeat', activeWindowTab?.url)
   await heartbeat(client, activeWindowTab, tabs.length)
 }
 
@@ -70,7 +75,7 @@ export const heartbeatAlarmListener =
     const activeWindowTab = await getActiveWindowTab()
     if (!activeWindowTab) return
     const tabs = await getTabs()
-    console.debug('Sending heartbeat for alarm', activeWindowTab)
+    console.debug('Sending heartbeat for alarm', activeWindowTab.url)
     await heartbeat(client, activeWindowTab, tabs.length)
   }
 
@@ -79,6 +84,6 @@ export const tabActivatedListener =
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const tab = await getTab(activeInfo.tabId)
     const tabs = await getTabs()
-    console.debug('Sending heartbeat for tab activation', tab)
+    console.debug('Sending heartbeat for tab activation', tab.url)
     await heartbeat(client, tab, tabs.length)
   }

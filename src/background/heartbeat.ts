@@ -42,7 +42,7 @@ async function heartbeat(
   }
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
-    console.debug('Sending heartbeat for previous data')
+    console.debug('Sending heartbeat for previous data', previousData)
     await sendHeartbeat(
       client,
       await getBucketId(),
@@ -51,7 +51,7 @@ async function heartbeat(
       config.heartbeat.intervalInSeconds + 20,
     )
   }
-  console.debug('Sending heartbeat', url)
+  console.debug('Sending heartbeat', data)
   await sendHeartbeat(
     client,
     await getBucketId(),

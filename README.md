@@ -5,6 +5,13 @@
 
 A cross-browser WebExtension that serves as a web browser watcher for [ActivityWatch][activitywatch].
 
+It enables detailed browser tracking by recording the active tab's title, URL,
+audible state, and incognito state. Without it, ActivityWatch can usually only
+see the browser window title from desktop window watchers.
+
+**Learn more:** [Watchers][docs-watchers] • [Architecture][docs-architecture] •
+[Buckets and events][docs-buckets-and-events]
+
 ## Installation
 
 ### Official Releases
@@ -144,3 +151,6 @@ after finished, xcode will open automatically.
 [chrome]: https://chromewebstore.google.com/detail/activitywatch-web-watcher/nglaklhklhcoonedhgnpgddginnjdadi
 [mozilla-policy]: https://mozilla.github.io/policy-templates/
 [gh-actions]: https://github.com/ActivityWatch/aw-watcher-web/actions/workflows/build.yml?query=branch%3Amaster+is%3Asuccess
+[docs-watchers]: https://docs.activitywatch.net/en/latest/watchers.html
+[docs-architecture]: https://docs.activitywatch.net/en/latest/architecture.html
+[docs-buckets-and-events]: https://docs.activitywatch.net/en/latest/buckets-and-events.html

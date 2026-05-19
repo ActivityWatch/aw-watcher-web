@@ -11,7 +11,7 @@ function formatHeartbeatLogData(data: IEvent['data']) {
     .map(([key, value]) => {
       const formattedValue =
         typeof value === 'string'
-          ? value
+          ? JSON.stringify(value)
           : value === undefined
             ? 'undefined'
             : JSON.stringify(value)

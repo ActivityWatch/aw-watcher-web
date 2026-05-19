@@ -6,6 +6,20 @@ import { getBucketId, sendHeartbeat } from './client'
 import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
 import deepEqual from 'deep-equal'
 
+function formatHeartbeatLogData(data: IEvent['data']) {
+  return Object.entries(data)
+    .map(([key, value]) => {
+      const formattedValue =
+        typeof value === 'string'
+          ? value
+          : value === undefined
+            ? 'undefined'
+            : JSON.stringify(value)
+      return `${key}=${formattedValue}`
+    })
+    .join(', ')
+}
+
 async function heartbeat(
   client: AWClient,
   tab: browser.Tabs.Tab | undefined,
@@ -42,7 +56,9 @@ async function heartbeat(
   }
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
-    console.debug('Sending heartbeat for previous data', previousData)
+    console.debug(
+      `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,
+    )
     await sendHeartbeat(
       client,
       await getBucketId(),
@@ -51,7 +67,7 @@ async function heartbeat(
       config.heartbeat.intervalInSeconds + 20,
     )
   }
-  console.debug('Sending heartbeat', data)
+  console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   await sendHeartbeat(
     client,
     await getBucketId(),

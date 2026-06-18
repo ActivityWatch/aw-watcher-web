@@ -4,6 +4,8 @@ import {
   setBrowserName,
   getHostname,
   setHostname,
+  getCustomProfileName,
+  setCustomProfileName,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -34,6 +36,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
 
   const hostname = hostnameInput.value
 
+  const profileNameInput = document.querySelector<HTMLInputElement>('#profileName')
+  const profileName = profileNameInput?.value.trim() || ''
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -44,6 +49,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   try {
     await setBrowserName(selectedBrowser)
     await setHostname(hostname)
+    
+    // Save custom profile name (empty string clears it)
+    await setCustomProfileName(profileName)
+    
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -94,6 +103,13 @@ async function restoreOptions(): Promise<void> {
 
     if (hostname !== undefined) {
       hostnameInput.value = hostname
+    }
+
+    // Restore custom profile name
+    const customProfileName = await getCustomProfileName()
+    const profileNameInput = document.querySelector<HTMLInputElement>('#profileName')
+    if (profileNameInput && customProfileName) {
+      profileNameInput.value = customProfileName
     }
   } catch (error) {
     console.error('Failed to restore options:', error)

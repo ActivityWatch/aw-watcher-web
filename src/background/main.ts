@@ -14,6 +14,7 @@ import {
   setEnabled,
   setHostname,
   waitForEnabled,
+  generateProfileIdentifier,
 } from '../storage'
 
 async function getIsConsentRequired() {
@@ -32,6 +33,11 @@ async function autodetectHostname() {
       setHostname(detectedHostname)
     }
   }
+}
+
+async function initializeProfileIdentifier() {
+  await generateProfileIdentifier()
+  console.debug('Profile identifier initialized')
 }
 
 /** Init */
@@ -58,6 +64,7 @@ browser.runtime.onInstalled.addListener(async () => {
   }
 
   await autodetectHostname()
+  await initializeProfileIdentifier()
 })
 
 console.debug('Creating alarms and tab listeners')

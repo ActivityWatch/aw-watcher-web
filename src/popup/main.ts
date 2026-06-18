@@ -10,6 +10,7 @@ import {
   watchSyncSuccess,
   getBrowserName,
   getHostname,
+  getDisplayProfileName,
 } from '../storage'
 
 function setConnected(connected: boolean | undefined) {
@@ -35,6 +36,7 @@ async function renderStatus() {
   const consentStatus = await getConsentStatus()
   const browserName = await getBrowserName()
   const hostname = await getHostname()
+  const profileName = await getDisplayProfileName()
 
   // Enabled checkbox
   const enabledCheckbox = document.getElementById('status-enabled-checkbox')
@@ -88,6 +90,12 @@ async function renderStatus() {
   if (!(hostnameElement instanceof HTMLElement))
     throw Error('Hostname element is not defined')
   hostnameElement.innerText = hostname ?? 'unknown'
+
+  // Profile
+  const profileElement = document.getElementById('status-profile')
+  if (!(profileElement instanceof HTMLElement))
+    throw Error('Profile element is not defined')
+  profileElement.innerText = profileName
 }
 
 function domListeners() {

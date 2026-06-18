@@ -26,6 +26,6 @@ export default defineConfig({
         'src/offscreen.html',
       ],
       browser: process.env.VITE_TARGET_BROWSER,
-    }),
+    }),    
   ],
 })

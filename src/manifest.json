@@ -3,9 +3,9 @@
     "{{firefox}}.manifest_version": 2,
     "{{safari}}.manifest_version": 3,
 
-    "name": "ActivityWatch Web Watcher",
-    "description": "Log the current tab and your browser activity with ActivityWatch.",
-    "version": "0.5.3",
+    "name": "Timesheets Assistant",
+    "description": "Log the current tab and your browser activity with ActivityWatch to use them to easily log your timesheets in Odoo.",
+    "version": "0.5.4",
     "icons": {
         "128": "logo-128.png"
     },
@@ -63,7 +63,10 @@
 
     "{{firefox}}.browser_specific_settings": {
         "gecko": {
-            "id": "{ef87d84c-2127-493f-b952-5b4e744245bc}"
+            "data_collection_permissions": {
+                "required": ["browsingActivity"],
+                "optional": ["personalCommunications", "websiteContent"]
+            }
         }
     }
 }

@@ -114,6 +114,7 @@ async function restoreOptions(): Promise<void> {
     }
   } catch (error) {
     console.error('Failed to restore options:', error)
+    throw error
   }
 }
 
@@ -126,8 +127,13 @@ async function initializeOptions(): Promise<void> {
   try {
     await restoreOptions()
     optionsReady = true
-  } finally {
     if (button) button.disabled = false
+  } catch (error) {
+    console.error('Failed to initialize options:', error)
+    if (button) {
+      button.textContent = 'Error loading settings'
+      button.classList.add('error')
+    }
   }
 }
 

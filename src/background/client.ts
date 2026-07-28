@@ -10,12 +10,11 @@ import {
   setSyncStatus,
 } from '../storage'
 
-export const getClient = async () => {
-  const apiKey = await getApiKey()
-  return new AWClient('aw-client-web', {
-    testing: config.isDevelopment,
-    ...(apiKey ? { token: apiKey } : {}),
-  })
+export const getClient = () =>
+  new AWClient('aw-client-web', { testing: config.isDevelopment })
+
+export const loadApiKey = async (client: AWClient) => {
+  client.token = await getApiKey()
 }
 
 // TODO: We might want to get the hostname somehow, maybe like this:

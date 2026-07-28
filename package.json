@@ -10,7 +10,7 @@
         "url": "git+https://github.com/ActivityWatch/aw-watcher-web.git"
     },
     "dependencies": {
-        "aw-client": "^0.4.1",
+        "aw-client": "github:ActivityWatch/aw-client-js#6093fbb10c2721510515c93ae7f85b9bc6210eda",
         "deep-equal": "^2.2.3",
         "p-retry": "^6.2.1",
         "webextension-polyfill": "^0.12.0"

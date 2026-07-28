@@ -82,27 +82,25 @@ async function restoreOptions(): Promise<void> {
     const customInput =
       document.querySelector<HTMLInputElement>('#customBrowser')
 
-    if (!browserSelect || !customInput || !browserName) return
-
-    const standardBrowsers = Array.from(browserSelect.options).map(
-      (opt) => opt.value,
-    )
-    if (!standardBrowsers.includes(browserName)) {
-      browserSelect.value = 'other'
-      customInput.style.display = 'block'
-      customInput.value = browserName
-      customInput.required = true
-    } else {
-      browserSelect.value = browserName
-      customInput.style.display = 'none'
-      customInput.required = false
+    if (browserSelect && customInput && browserName) {
+      const standardBrowsers = Array.from(browserSelect.options).map(
+        (opt) => opt.value,
+      )
+      if (!standardBrowsers.includes(browserName)) {
+        browserSelect.value = 'other'
+        customInput.style.display = 'block'
+        customInput.value = browserName
+        customInput.required = true
+      } else {
+        browserSelect.value = browserName
+        customInput.style.display = 'none'
+        customInput.required = false
+      }
     }
 
     const hostname = await getHostname()
     const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
-    if (!hostnameInput) return
-
-    if (hostname !== undefined) {
+    if (hostnameInput && hostname !== undefined) {
       hostnameInput.value = hostname
     }
 

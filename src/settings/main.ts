@@ -9,6 +9,8 @@ import {
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
+let optionsReady = false
+
 async function reloadExtension(): Promise<void> {
   browser.runtime.reload()
 
@@ -20,6 +22,7 @@ async function reloadExtension(): Promise<void> {
 
 async function saveOptions(e: SubmitEvent): Promise<void> {
   e.preventDefault()
+  if (!optionsReady) return
 
   const browserSelect = document.querySelector<HTMLSelectElement>('#browser')
   const customBrowserInput =
@@ -114,8 +117,22 @@ async function restoreOptions(): Promise<void> {
   }
 }
 
+async function initializeOptions(): Promise<void> {
+  const button = document.querySelector<HTMLButtonElement>(
+    'button[type="submit"]',
+  )
+  if (button) button.disabled = true
+
+  try {
+    await restoreOptions()
+    optionsReady = true
+  } finally {
+    if (button) button.disabled = false
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  restoreOptions()
+  void initializeOptions()
   toggleCustomBrowserInput()
 })
 

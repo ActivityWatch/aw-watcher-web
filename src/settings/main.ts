@@ -1,9 +1,11 @@
 import browser from 'webextension-polyfill'
 import {
+  getApiKey,
   getBrowserName,
   setBrowserName,
   getHostname,
   setHostname,
+  setApiKey,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -34,6 +36,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
 
   const hostname = hostnameInput.value
 
+  const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
+  const apiKey = apiKeyInput?.value?.trim() ?? ''
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -44,6 +49,11 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   try {
     await setBrowserName(selectedBrowser)
     await setHostname(hostname)
+    if (apiKey) {
+      await setApiKey(apiKey)
+    } else {
+      await browser.storage.local.remove('apiKey')
+    }
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -94,6 +104,12 @@ async function restoreOptions(): Promise<void> {
 
     if (hostname !== undefined) {
       hostnameInput.value = hostname
+    }
+
+    const apiKey = await getApiKey()
+    const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
+    if (apiKeyInput && apiKey !== undefined) {
+      apiKeyInput.value = apiKey
     }
   } catch (error) {
     console.error('Failed to restore options:', error)

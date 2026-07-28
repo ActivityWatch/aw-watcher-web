@@ -52,6 +52,23 @@
       </div>
 
       <div>
+        <label for="apiKey">
+          <strong>API Key:</strong>
+        </label>
+
+        <input
+          type="password"
+          id="apiKey"
+          name="apiKey"
+          placeholder="Leave blank if auth is disabled"
+        />
+        <small
+          >Found in <code>aw-server-rust/config.toml</code> under
+          <code>[auth] api_key</code></small
+        >
+      </div>
+
+      <div>
         <button type="submit">Save</button>
       </div>
     </form>

@@ -101,3 +101,11 @@ export const getHostname = (): Promise<Hostname | undefined> =>
     .then((data: StorageData) => data.hostname as string | undefined)
 export const setHostname = (hostname: Hostname) =>
   browser.storage.local.set({ hostname })
+
+type ApiKey = string
+export const getApiKey = (): Promise<ApiKey | undefined> =>
+  browser.storage.local
+    .get('apiKey')
+    .then((data: StorageData) => data.apiKey as string | undefined)
+export const setApiKey = (apiKey: ApiKey) =>
+  browser.storage.local.set({ apiKey })

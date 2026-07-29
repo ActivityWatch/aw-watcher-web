@@ -3,10 +3,19 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import retry from 'p-retry'
 import { emitNotification, getBrowser, logHttpError } from './helpers'
-import { getHostname, getSyncStatus, setSyncStatus } from '../storage'
+import {
+  getApiKey,
+  getHostname,
+  getSyncStatus,
+  setSyncStatus,
+} from '../storage'
 
 export const getClient = () =>
   new AWClient('aw-client-web', { testing: config.isDevelopment })
+
+export const loadApiKey = async (client: AWClient) => {
+  client.token = await getApiKey()
+}
 
 // TODO: We might want to get the hostname somehow, maybe like this:
 // https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
@@ -39,7 +48,9 @@ export async function detectHostname(client: AWClient) {
       retries: 3,
       onFailedAttempt: (error) => {
         console.warn(
-          `Failed to detect hostname (attempt ${error.attemptNumber}/${error.retriesLeft + error.attemptNumber}):`,
+          `Failed to detect hostname (attempt ${error.attemptNumber}/${
+            error.retriesLeft + error.attemptNumber
+          }):`,
           error.message,
         )
       },

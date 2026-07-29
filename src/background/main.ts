@@ -5,7 +5,7 @@ import {
   sendInitialHeartbeat,
   tabActivatedListener,
 } from './heartbeat'
-import { getClient, detectHostname } from './client'
+import { getClient, detectHostname, loadApiKey } from './client'
 import {
   getConsentStatus,
   getHostname,
@@ -24,7 +24,7 @@ async function getIsConsentRequired() {
     .catch(() => true)
 }
 
-async function autodetectHostname() {
+async function autodetectHostname(client: ReturnType<typeof getClient>) {
   const hostname = await getHostname()
   if (hostname === undefined) {
     const detectedHostname = await detectHostname(client)
@@ -39,6 +39,7 @@ console.info('Starting...')
 
 console.debug('Creating client')
 const client = getClient()
+const clientReady = loadApiKey(client)
 
 browser.runtime.onInstalled.addListener(async () => {
   const { consent } = await getConsentStatus()
@@ -57,24 +58,33 @@ browser.runtime.onInstalled.addListener(async () => {
     })
   }
 
-  await autodetectHostname()
+  await clientReady
+  await autodetectHostname(client)
 })
 
 console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
-browser.alarms.onAlarm.addListener(heartbeatAlarmListener(client))
-browser.tabs.onActivated.addListener(tabActivatedListener(client))
+browser.alarms.onAlarm.addListener(async (alarm) => {
+  await clientReady
+  return heartbeatAlarmListener(client)(alarm)
+})
+browser.tabs.onActivated.addListener(async (activeInfo) => {
+  await clientReady
+  return tabActivatedListener(client)(activeInfo)
+})
 
 console.debug('Setting base url')
-setBaseUrl(client.baseURL)
+clientReady
+  .then(() => setBaseUrl(client.baseURL))
   .then(() =>
     console.debug('Waiting for enable before sending initial heartbeat'),
   )
   .then(waitForEnabled)
   .then(() => sendInitialHeartbeat(client))
   .then(() => console.info('Started successfully'))
+  .catch((err) => console.error('Failed to initialize extension:', err))
 
 /**
  * Keep the service worker alive using Offscreen API to prevent Chrome's termination.

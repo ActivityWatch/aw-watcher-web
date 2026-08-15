@@ -21,10 +21,8 @@ function decodeURL(url: string): string {
     const userinfo =
       parsed.username === ''
         ? ''
-        : `${encodeURIComponent(parsed.username)}${
-            parsed.password === ''
-              ? ''
-              : `:${encodeURIComponent(parsed.password)}`
+        : `${parsed.username}${
+            parsed.password === '' ? '' : `:${parsed.password}`
           }@`
     const port = parsed.port === '' ? '' : `:${parsed.port}`
     return `${parsed.protocol}//${userinfo}${decodedHost}${port}${parsed.pathname}${parsed.search}${parsed.hash}`

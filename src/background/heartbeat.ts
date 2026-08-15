@@ -5,6 +5,39 @@ import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
 import deepEqual from 'deep-equal'
+import * as punycode from 'punycode.js'
+
+function decodeURL(url: string): string {
+  try {
+    const parsed = new URL(url)
+    const hostname = parsed.hostname
+    if (!hostname.includes('xn--')) {
+      return url
+    }
+
+    // URL.hostname assignment converts Unicode back to punycode, so swap
+    // the hostname in the original string instead of using the URL setter.
+    const decodedHostname = punycode.toUnicode(hostname)
+    const hostnameOffset = url.toLowerCase().indexOf(hostname)
+    if (hostnameOffset === -1) {
+      const userinfo =
+        parsed.username === ''
+          ? ''
+          : `${parsed.username}${parsed.password === '' ? '' : `:${parsed.password}`}@`
+      const port = parsed.port === '' ? '' : `:${parsed.port}`
+      return `${parsed.protocol}//${userinfo}${decodedHostname}${port}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+
+    return (
+      url.slice(0, hostnameOffset) +
+      decodedHostname +
+      url.slice(hostnameOffset + hostname.length)
+    )
+  } catch (e) {
+    console.error('Error decoding URL:', e)
+    return url
+  }
+}
 
 function formatHeartbeatLogData(data: IEvent['data']) {
   return Object.entries(data)
@@ -48,7 +81,7 @@ async function heartbeat(
   const { url, title, audible, incognito } = tab
   const now = new Date()
   const data: IEvent['data'] = {
-    url,
+    url: decodeURL(url),
     title,
     audible: audible ?? false,
     incognito,

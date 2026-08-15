@@ -13,6 +13,7 @@
         "aw-client": "git+https://github.com/ActivityWatch/aw-client-js.git#6093fbb10c2721510515c93ae7f85b9bc6210eda",
         "deep-equal": "^2.2.3",
         "p-retry": "^6.2.1",
+        "punycode.js": "^2.3.1",
         "webextension-polyfill": "^0.12.0"
     },
     "devDependencies": {

@@ -10,29 +10,24 @@ import * as punycode from 'punycode.js'
 function decodeURL(url: string): string {
   try {
     const parsed = new URL(url)
-    const hostname = parsed.hostname
-    if (!hostname.includes('xn--')) {
+    if (!parsed.hostname.includes('xn--')) {
       return url
     }
 
-    // URL.hostname assignment converts Unicode back to punycode, so swap
-    // the hostname in the original string instead of using the URL setter.
-    const decodedHostname = punycode.toUnicode(hostname)
-    const hostnameOffset = url.toLowerCase().indexOf(hostname)
-    if (hostnameOffset === -1) {
-      const userinfo =
-        parsed.username === ''
-          ? ''
-          : `${parsed.username}${parsed.password === '' ? '' : `:${parsed.password}`}@`
-      const port = parsed.port === '' ? '' : `:${parsed.port}`
-      return `${parsed.protocol}//${userinfo}${decodedHostname}${port}${parsed.pathname}${parsed.search}${parsed.hash}`
-    }
-
-    return (
-      url.slice(0, hostnameOffset) +
-      decodedHostname +
-      url.slice(hostnameOffset + hostname.length)
-    )
+    // Do not assign parsed.hostname — the setter converts Unicode back to
+    // punycode. Rebuild from parsed parts so userinfo is never mistaken
+    // for the hostname.
+    const decodedHost = punycode.toUnicode(parsed.hostname)
+    const userinfo =
+      parsed.username === ''
+        ? ''
+        : `${encodeURIComponent(parsed.username)}${
+            parsed.password === ''
+              ? ''
+              : `:${encodeURIComponent(parsed.password)}`
+          }@`
+    const port = parsed.port === '' ? '' : `:${parsed.port}`
+    return `${parsed.protocol}//${userinfo}${decodedHost}${port}${parsed.pathname}${parsed.search}${parsed.hash}`
   } catch (e) {
     console.error('Error decoding URL:', e)
     return url

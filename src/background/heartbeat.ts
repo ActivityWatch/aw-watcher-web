@@ -46,10 +46,16 @@ function formatHeartbeatLogData(data: IEvent['data']) {
     .join(', ')
 }
 
+type HeartbeatTab = Pick<
+  browser.Tabs.Tab,
+  'url' | 'title' | 'audible' | 'incognito'
+>
+
 async function heartbeat(
   client: AWClient,
-  tab: browser.Tabs.Tab | undefined,
+  tab: HeartbeatTab | undefined,
   tabCount: number,
+  now: Date,
 ) {
   const enabled = await getEnabled()
   if (!enabled) {
@@ -72,7 +78,6 @@ async function heartbeat(
   // data URI).  Over thousands of heartbeats the retained Tab references
   // cause unbounded memory growth (see #222).
   const { url, title, audible, incognito } = tab
-  const now = new Date()
   const data: IEvent['data'] = {
     url: decodeURL(url),
     title,
@@ -104,11 +109,41 @@ async function heartbeat(
   await setHeartbeatData(data)
 }
 
+// Chrome can report URL and title changes before a preceding asynchronous
+// heartbeat finishes. Serialize the complete previousData read/send/write
+// transaction so each update observes the preceding update.
+let heartbeatQueue: Promise<void> = Promise.resolve()
+
+function queueHeartbeat(
+  client: AWClient,
+  tab: browser.Tabs.Tab | undefined,
+  tabCount: number,
+  now: Date = new Date(),
+) {
+  const tabSnapshot: HeartbeatTab | undefined = tab
+    ? {
+        url: tab.url,
+        title: tab.title,
+        audible: tab.audible,
+        incognito: tab.incognito,
+      }
+    : undefined
+
+  const queuedHeartbeat = heartbeatQueue.then(() =>
+    heartbeat(client, tabSnapshot, tabCount, now),
+  )
+
+  // Keep processing later heartbeats if one fails, while still returning the
+  // original rejection to the caller.
+  heartbeatQueue = queuedHeartbeat.catch(() => undefined)
+  return queuedHeartbeat
+}
+
 export const sendInitialHeartbeat = async (client: AWClient) => {
   const activeWindowTab = await getActiveWindowTab()
   const tabs = await getTabs()
   console.debug('Sending initial heartbeat', activeWindowTab?.url)
-  await heartbeat(client, activeWindowTab, tabs.length)
+  await queueHeartbeat(client, activeWindowTab, tabs.length)
 }
 
 export const heartbeatAlarmListener =
@@ -118,7 +153,7 @@ export const heartbeatAlarmListener =
     if (!activeWindowTab) return
     const tabs = await getTabs()
     console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-    await heartbeat(client, activeWindowTab, tabs.length)
+    await queueHeartbeat(client, activeWindowTab, tabs.length)
   }
 
 export const tabActivatedListener =
@@ -127,5 +162,23 @@ export const tabActivatedListener =
     const tab = await getTab(activeInfo.tabId)
     const tabs = await getTabs()
     console.debug('Sending heartbeat for tab activation', tab.url)
-    await heartbeat(client, tab, tabs.length)
+    await queueHeartbeat(client, tab, tabs.length)
+  }
+
+export const tabUpdatedListener =
+  (client: AWClient) =>
+  async (
+    tabId: number,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    tab: browser.Tabs.Tab,
+  ) => {
+    if (changeInfo.url === undefined && changeInfo.title === undefined) return
+
+    const now = new Date()
+    const activeWindowTab = await getActiveWindowTab()
+    if (activeWindowTab?.id !== tabId) return
+
+    const tabs = await getTabs()
+    console.debug('Sending heartbeat for tab update', tab.url)
+    await queueHeartbeat(client, tab, tabs.length, now)
   }

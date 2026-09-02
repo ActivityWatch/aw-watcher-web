@@ -4,6 +4,7 @@ import {
   heartbeatAlarmListener,
   sendInitialHeartbeat,
   tabActivatedListener,
+  tabUpdatedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
 import {
@@ -73,6 +74,10 @@ browser.alarms.onAlarm.addListener(async (alarm) => {
 browser.tabs.onActivated.addListener(async (activeInfo) => {
   await clientReady
   return tabActivatedListener(client)(activeInfo)
+})
+browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  await clientReady
+  return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
 
 console.debug('Setting base url')

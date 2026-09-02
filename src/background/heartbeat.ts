@@ -114,24 +114,19 @@ async function heartbeat(
 // transaction so each update observes the preceding update.
 let heartbeatQueue: Promise<void> = Promise.resolve()
 
-function queueHeartbeat(
-  client: AWClient,
-  tab: browser.Tabs.Tab | undefined,
-  tabCount: number,
-  now: Date = new Date(),
-) {
-  const tabSnapshot: HeartbeatTab | undefined = tab
-    ? {
-        url: tab.url,
-        title: tab.title,
-        audible: tab.audible,
-        incognito: tab.incognito,
-      }
-    : undefined
+function snapshotTab(tab: browser.Tabs.Tab): HeartbeatTab {
+  return {
+    url: tab.url,
+    title: tab.title,
+    audible: tab.audible,
+    incognito: tab.incognito,
+  }
+}
 
-  const queuedHeartbeat = heartbeatQueue.then(() =>
-    heartbeat(client, tabSnapshot, tabCount, now),
-  )
+// Call this before starting asynchronous work so queue order matches event
+// order.
+function queueHeartbeat(task: () => Promise<void>) {
+  const queuedHeartbeat = heartbeatQueue.then(task)
 
   // Keep processing later heartbeats if one fails, while still returning the
   // original rejection to the caller.
@@ -140,29 +135,39 @@ function queueHeartbeat(
 }
 
 export const sendInitialHeartbeat = async (client: AWClient) => {
-  const activeWindowTab = await getActiveWindowTab()
-  const tabs = await getTabs()
-  console.debug('Sending initial heartbeat', activeWindowTab?.url)
-  await queueHeartbeat(client, activeWindowTab, tabs.length)
+  const now = new Date()
+  await queueHeartbeat(async () => {
+    const activeWindowTab = await getActiveWindowTab()
+    const tabs = await getTabs()
+    console.debug('Sending initial heartbeat', activeWindowTab?.url)
+    await heartbeat(client, activeWindowTab, tabs.length, now)
+  })
 }
 
 export const heartbeatAlarmListener =
   (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
     if (alarm.name !== config.heartbeat.alarmName) return
-    const activeWindowTab = await getActiveWindowTab()
-    if (!activeWindowTab) return
-    const tabs = await getTabs()
-    console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-    await queueHeartbeat(client, activeWindowTab, tabs.length)
+
+    const now = new Date()
+    await queueHeartbeat(async () => {
+      const activeWindowTab = await getActiveWindowTab()
+      if (!activeWindowTab) return
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+      await heartbeat(client, activeWindowTab, tabs.length, now)
+    })
   }
 
 export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    const tab = await getTab(activeInfo.tabId)
-    const tabs = await getTabs()
-    console.debug('Sending heartbeat for tab activation', tab.url)
-    await queueHeartbeat(client, tab, tabs.length)
+    const now = new Date()
+    await queueHeartbeat(async () => {
+      const tab = await getTab(activeInfo.tabId)
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for tab activation', tab.url)
+      await heartbeat(client, tab, tabs.length, now)
+    })
   }
 
 export const tabUpdatedListener =
@@ -175,10 +180,13 @@ export const tabUpdatedListener =
     if (changeInfo.url === undefined && changeInfo.title === undefined) return
 
     const now = new Date()
-    const activeWindowTab = await getActiveWindowTab()
-    if (activeWindowTab?.id !== tabId) return
+    const tabSnapshot = snapshotTab(tab)
+    await queueHeartbeat(async () => {
+      const activeWindowTab = await getActiveWindowTab()
+      if (activeWindowTab?.id !== tabId) return
 
-    const tabs = await getTabs()
-    console.debug('Sending heartbeat for tab update', tab.url)
-    await queueHeartbeat(client, tab, tabs.length, now)
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for tab update', tabSnapshot.url)
+      await heartbeat(client, tabSnapshot, tabs.length, now)
+    })
   }

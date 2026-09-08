@@ -1,0 +1,121 @@
+name: Release
+
+# Builds store artifacts on version tags (v*), creates a GitHub release, and
+# publishes to the extension stores when credentials are configured.
+#
+# Store publishing requires these repository secrets:
+#   Chrome Web Store (https://github.com/fregante/chrome-webstore-upload/blob/main/How%20to%20generate%20Google%20API%20keys.md):
+#     CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN
+#   Mozilla Add-ons (https://addons.mozilla.org/en-US/developers/addon/api/key/):
+#     AMO_JWT_ISSUER, AMO_JWT_SECRET
+# Missing credentials skip the corresponding publish step with a warning, so
+# the GitHub release still gets created and the zips can be uploaded manually.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Use Node.js 23.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23.x
+          cache: npm
+
+      - name: Verify manifest version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          MANIFEST_VERSION=$(python3 -c "import json; print(json.load(open('src/manifest.json'))['version'])")
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match src/manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+
+      - name: Build Chrome
+        run: make build-chrome
+      - name: Build Firefox
+        run: make build-firefox
+      - name: Build source archive (for AMO reviewers)
+        run: make zip-src
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" \
+              artifacts/chrome.zip artifacts/firefox.zip artifacts/src.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              artifacts/chrome.zip artifacts/firefox.zip artifacts/src.zip \
+              --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
+      - name: Check store credentials
+        id: creds
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          cws=false
+          if [ -n "$CWS_CLIENT_ID" ] && [ -n "$CWS_CLIENT_SECRET" ] && [ -n "$CWS_REFRESH_TOKEN" ]; then
+            cws=true
+          elif [ -n "$CWS_CLIENT_ID$CWS_CLIENT_SECRET$CWS_REFRESH_TOKEN" ]; then
+            echo "::error::Partial Chrome Web Store credentials: all of CWS_CLIENT_ID, CWS_CLIENT_SECRET and CWS_REFRESH_TOKEN must be set"
+            exit 1
+          fi
+          amo=false
+          if [ -n "$AMO_JWT_ISSUER" ] && [ -n "$AMO_JWT_SECRET" ]; then
+            amo=true
+          elif [ -n "$AMO_JWT_ISSUER$AMO_JWT_SECRET" ]; then
+            echo "::error::Partial Mozilla Add-ons credentials: both AMO_JWT_ISSUER and AMO_JWT_SECRET must be set"
+            exit 1
+          fi
+          echo "cws=$cws" >> "$GITHUB_OUTPUT"
+          echo "amo=$amo" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Chrome Web Store
+        if: steps.creds.outputs.cws == 'true'
+        env:
+          EXTENSION_ID: nglaklhklhcoonedhgnpgddginnjdadi
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        # bare command = upload + publish
+        run: npx --yes chrome-webstore-upload-cli@4.0.1 --source artifacts/chrome.zip
+
+      - name: Publish to Mozilla Add-ons
+        if: steps.creds.outputs.amo == 'true'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          # zip-src wiped build/; recreate the unzipped Firefox build for web-ext
+          make update-firefox
+          npx --yes web-ext@10.6.0 sign \
+            --channel listed \
+            --source-dir build \
+            --upload-source-code artifacts/src.zip \
+            --approval-timeout 0
+
+      - name: Warn about skipped publishes
+        if: steps.creds.outputs.cws != 'true' || steps.creds.outputs.amo != 'true'
+        run: |
+          [ "${{ steps.creds.outputs.cws }}" = "true" ] || echo "::warning::CWS credentials missing - chrome.zip was not uploaded to the Chrome Web Store"
+          [ "${{ steps.creds.outputs.amo }}" = "true" ] || echo "::warning::AMO credentials missing - firefox.zip was not submitted to Mozilla Add-ons"

@@ -67,11 +67,28 @@ jobs:
       - name: Check store credentials
         id: creds
         env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
           CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
         run: |
-          echo "cws=$([ -n "$CWS_REFRESH_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "amo=$([ -n "$AMO_JWT_SECRET" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          cws=false
+          if [ -n "$CWS_CLIENT_ID" ] && [ -n "$CWS_CLIENT_SECRET" ] && [ -n "$CWS_REFRESH_TOKEN" ]; then
+            cws=true
+          elif [ -n "$CWS_CLIENT_ID$CWS_CLIENT_SECRET$CWS_REFRESH_TOKEN" ]; then
+            echo "::error::Partial Chrome Web Store credentials: all of CWS_CLIENT_ID, CWS_CLIENT_SECRET and CWS_REFRESH_TOKEN must be set"
+            exit 1
+          fi
+          amo=false
+          if [ -n "$AMO_JWT_ISSUER" ] && [ -n "$AMO_JWT_SECRET" ]; then
+            amo=true
+          elif [ -n "$AMO_JWT_ISSUER$AMO_JWT_SECRET" ]; then
+            echo "::error::Partial Mozilla Add-ons credentials: both AMO_JWT_ISSUER and AMO_JWT_SECRET must be set"
+            exit 1
+          fi
+          echo "cws=$cws" >> "$GITHUB_OUTPUT"
+          echo "amo=$amo" >> "$GITHUB_OUTPUT"
 
       - name: Publish to Chrome Web Store
         if: steps.creds.outputs.cws == 'true'
@@ -80,7 +97,8 @@ jobs:
           CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
-        run: npx --yes chrome-webstore-upload-cli@3 upload --source artifacts/chrome.zip --auto-publish
+        # bare command = upload + publish
+        run: npx --yes chrome-webstore-upload-cli@4.0.1 --source artifacts/chrome.zip
 
       - name: Publish to Mozilla Add-ons
         if: steps.creds.outputs.amo == 'true'
@@ -90,7 +108,7 @@ jobs:
         run: |
           # zip-src wiped build/; recreate the unzipped Firefox build for web-ext
           make update-firefox
-          npx --yes web-ext@8 sign \
+          npx --yes web-ext@10.6.0 sign \
             --channel listed \
             --source-dir build \
             --upload-source-code artifacts/src.zip \

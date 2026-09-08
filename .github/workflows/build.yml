@@ -63,6 +63,25 @@ jobs:
             --macos-only \
             --force
 
+      # Xcode 26's safari-web-extension-converter applies --bundle-identifier
+      # only to the extension target and derives the app target's identifier
+      # from the app name (net.activitywatch.ActivityWatch-Web-Watcher), which
+      # fails ValidateEmbeddedBinary ("Embedded binary's bundle identifier is
+      # not prefixed with the parent app's bundle identifier"). Force both
+      # targets to the intended identifiers.
+      - name: Normalize bundle identifiers
+        run: |
+          BUNDLE_ID="net.activitywatch.activitywatchwebwatcher"
+          PBXPROJ="ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj/project.pbxproj"
+          sed -i '' -E \
+            -e "s/(PRODUCT_BUNDLE_IDENTIFIER = )\"?[^;\"]+\.Extension\"?;/\1${BUNDLE_ID}.Extension;/" \
+            -e "/\.Extension;/!s/(PRODUCT_BUNDLE_IDENTIFIER = )\"?[^;\"]+\"?;/\1${BUNDLE_ID};/" \
+            "$PBXPROJ"
+          grep -n 'PRODUCT_BUNDLE_IDENTIFIER' "$PBXPROJ"
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};" "$PBXPROJ"
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID}.Extension;" "$PBXPROJ"
+          ! grep 'PRODUCT_BUNDLE_IDENTIFIER' "$PBXPROJ" | grep -vE "= ${BUNDLE_ID}(\.Extension)?;$"
+
       - name: Build Xcode Project
         run: |
           xcodebuild -project "ActivityWatch Web Watcher/ActivityWatch Web Watcher.xcodeproj" -list

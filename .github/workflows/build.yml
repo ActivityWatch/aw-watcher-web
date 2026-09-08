@@ -79,6 +79,8 @@ jobs:
             "$PBXPROJ"
           grep -n 'PRODUCT_BUNDLE_IDENTIFIER' "$PBXPROJ"
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};" "$PBXPROJ"
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID}.Extension;" "$PBXPROJ"
+          ! grep 'PRODUCT_BUNDLE_IDENTIFIER' "$PBXPROJ" | grep -vE "= ${BUNDLE_ID}(\.Extension)?;$"
 
       - name: Build Xcode Project
         run: |

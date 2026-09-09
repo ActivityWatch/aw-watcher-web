@@ -116,17 +116,29 @@ function domListeners() {
 }
 
 async function initSupportNudge() {
-  const result = await browser.storage.local.get('supportNudgeDismissed')
-  if (result.supportNudgeDismissed) return
-
   const nudge = document.getElementById('support-nudge')
   if (!nudge) return
+
+  let dismissed = false
+  try {
+    const result = await browser.storage.local.get('supportNudgeDismissed')
+    dismissed = Boolean(result.supportNudgeDismissed)
+  } catch (error) {
+    console.error('Failed to read support nudge state:', error)
+  }
+  if (dismissed) return
+
   nudge.style.removeProperty('display')
 
   const dismiss = document.getElementById('support-nudge-dismiss')
   dismiss?.addEventListener('click', async () => {
-    await browser.storage.local.set({ supportNudgeDismissed: true })
+    // Hide first so a failed persist still honors the click this session.
     nudge.style.setProperty('display', 'none')
+    try {
+      await browser.storage.local.set({ supportNudgeDismissed: true })
+    } catch (error) {
+      console.error('Failed to persist support nudge dismissal:', error)
+    }
   })
 }
 

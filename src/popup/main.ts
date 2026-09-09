@@ -115,5 +115,21 @@ function domListeners() {
   })
 }
 
+async function initSupportNudge() {
+  const result = await browser.storage.local.get('supportNudgeDismissed')
+  if (result.supportNudgeDismissed) return
+
+  const nudge = document.getElementById('support-nudge')
+  if (!nudge) return
+  nudge.style.removeProperty('display')
+
+  const dismiss = document.getElementById('support-nudge-dismiss')
+  dismiss?.addEventListener('click', async () => {
+    await browser.storage.local.set({ supportNudgeDismissed: true })
+    nudge.style.setProperty('display', 'none')
+  })
+}
+
 renderStatus()
 domListeners()
+initSupportNudge()

@@ -4,6 +4,7 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  clearHeartbeatData,
   getEnabled,
   getHeartbeatData,
   getProfileName,
@@ -87,7 +88,7 @@ async function heartbeat(
   const { url, title, audible, incognito } = tab
   const data: IEvent['data'] = {
     url: decodeURL(url),
-    title: await originalTitle(tab.id, url, title),
+    title,
     audible: audible ?? false,
     incognito,
     tabCount: tabCount,
@@ -109,6 +110,9 @@ async function heartbeat(
       config.heartbeat.intervalInSeconds + 20,
     )
     if (!sent) return
+    // This context is closed even if sending the next one fails. Never extend
+    // it a second time when a later heartbeat retries the new activity.
+    await clearHeartbeatData()
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   const sent = await sendHeartbeat(
@@ -126,20 +130,33 @@ async function heartbeat(
 // transaction so each update observes the preceding update.
 const queueHeartbeat = createHeartbeatQueue()
 
-function snapshotTab(tab: browser.Tabs.Tab): HeartbeatTab {
-  return {
-    id: tab.id,
-    url: tab.url,
-    title: tab.title,
-    audible: tab.audible,
-    incognito: tab.incognito,
+async function captureTab(
+  readTab: () => Promise<browser.Tabs.Tab | undefined>,
+): Promise<HeartbeatTab | undefined> {
+  try {
+    const tab = await readTab()
+    if (!tab?.url || !tab.title) return undefined
+    const snapshot = {
+      id: tab.id,
+      url: tab.url,
+      title: tab.title,
+      audible: tab.audible,
+      incognito: tab.incognito,
+    }
+    const title = await originalTitle(snapshot.id, snapshot.url, snapshot.title)
+    if (title === undefined) return undefined
+    return { ...snapshot, title }
+  } catch (err) {
+    console.debug('Unable to capture tab:', err)
+    return undefined
   }
 }
 
 export const sendInitialHeartbeat = async (client: AWClient) => {
   const now = new Date()
+  const capturedTab = captureTab(getActiveWindowTab)
   await queueHeartbeat(async () => {
-    const activeWindowTab = await getActiveWindowTab()
+    const activeWindowTab = await capturedTab
     const tabs = await getTabs()
     console.debug('Sending initial heartbeat', activeWindowTab?.url)
     await heartbeat(client, activeWindowTab, tabs.length, now)
@@ -151,8 +168,9 @@ export const heartbeatAlarmListener =
     if (alarm.name !== config.heartbeat.alarmName) return
 
     const now = new Date()
+    const capturedTab = captureTab(getActiveWindowTab)
     await queueHeartbeat(async () => {
-      const activeWindowTab = await getActiveWindowTab()
+      const activeWindowTab = await capturedTab
       if (!activeWindowTab) return
       const tabs = await getTabs()
       console.debug('Sending heartbeat for alarm', activeWindowTab.url)
@@ -164,8 +182,10 @@ export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const now = new Date()
+    const capturedTab = captureTab(() => getTab(activeInfo.tabId))
     await queueHeartbeat(async () => {
-      const tab = await getTab(activeInfo.tabId)
+      const tab = await capturedTab
+      if (!tab) return
       const tabs = await getTabs()
       console.debug('Sending heartbeat for tab activation', tab.url)
       await heartbeat(client, tab, tabs.length, now)
@@ -182,8 +202,12 @@ export const tabUpdatedListener =
     if (changeInfo.url === undefined && changeInfo.title === undefined) return
 
     const now = new Date()
-    const tabSnapshot = snapshotTab(tab)
+    // Capture provenance before network retries can hold up the send queue
+    // and the document replaces its last-write marker.
+    const capturedTab = captureTab(async () => tab)
     await queueHeartbeat(async () => {
+      const tabSnapshot = await capturedTab
+      if (!tabSnapshot) return
       const activeWindowTab = await getActiveWindowTab()
       if (activeWindowTab?.id !== tabId) return
 

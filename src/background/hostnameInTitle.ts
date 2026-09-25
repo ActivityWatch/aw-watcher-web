@@ -192,17 +192,22 @@ function readOriginalTitle(
   writtenTitleAttr: string,
   suffix: string,
 ) {
-  if (location.href !== url) return title
+  if (location.href !== url) return undefined
   const written = document.documentElement.getAttribute(writtenTitleAttr)
-  if (!written?.endsWith(suffix) || !title.includes(written)) return title
-  return title.replace(written, () => written.slice(0, -suffix.length))
+  if (written?.endsWith(suffix) && title.includes(written)) {
+    return title.replace(written, () => written.slice(0, -suffix.length))
+  }
+  // Navigation/title changes can race even an immediate capture. Drop a stale
+  // sample whose provenance is gone rather than guess from its suffix.
+  if (document.title !== title) return undefined
+  return title
 }
 
 export async function originalTitle(
   tabId: number | undefined,
   url: string,
   title: string,
-): Promise<string> {
+): Promise<string | undefined> {
   if (tabId === undefined || !(await pageTitlesHaveHostname())) return title
   try {
     const results = await (globalThis as any).chrome.scripting.executeScript({
@@ -215,7 +220,9 @@ export async function originalTitle(
         titleSuffix(titleHost(new URL(url))),
       ],
     })
-    return typeof results[0]?.result === 'string' ? results[0].result : title
+    return typeof results[0]?.result === 'string'
+      ? results[0].result
+      : undefined
   } catch {
     // Restricted pages, closed tabs, and pages without injection permission
     // keep their own title exactly as reported by the browser.

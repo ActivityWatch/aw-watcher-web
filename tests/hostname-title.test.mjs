@@ -82,8 +82,8 @@ test('a natural hostname suffix survives before and after content-script injecti
     page.inject()
     assert.equal(page.document.title, 'Report - example.com/ - example.com/')
     assert.equal(await page.original(), original)
-    // An event captured before injection must not be stripped afterwards either.
-    assert.equal(await page.original(original), original)
+    // A stale pre-injection event is skipped if its marker is no longer current.
+    assert.equal(await page.original(original), undefined)
 })
 
 test('page additions around an extension-written title retain their own suffix-like text', async () => {
@@ -103,7 +103,20 @@ test('a response from a navigated document does not rewrite the old event', asyn
     const page = chromiumPage()
     page.inject()
     page.location.href = 'https://example.com/new-document'
-    assert.equal(await page.original(), page.document.title)
+    assert.equal(await page.original(), undefined)
+})
+
+test('a replaced title marker makes the previous snapshot stale', async () => {
+    const page = chromiumPage()
+    page.inject()
+    const oldTitle = page.document.title
+    page.document.title = 'New title - example.com/'
+    page.document.documentElement.setAttribute(
+        'data-aw-watcher-web-title',
+        page.document.title,
+    )
+    assert.equal(await page.original(oldTitle), undefined)
+    assert.equal(await page.original(), 'New title')
 })
 
 test('loopback ports are removed only when the document marker confirms the write', async () => {

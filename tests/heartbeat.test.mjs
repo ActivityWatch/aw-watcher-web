@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import retry from 'p-retry'
 import { FetchError } from 'aw-client'
-import { loadModule } from './load-module.mjs'
+import { flush, loadModule } from './load-module.mjs'
 
 function clientModule() {
     const statuses = []
@@ -169,4 +169,130 @@ test('failed sends do not overwrite the last successfully recorded heartbeat', a
     })
     await sendInitialHeartbeat({})
     assert.equal(writes, 0)
+})
+
+test('a successful close followed by a failed new heartbeat does not extend the old context again', async () => {
+    let previous = { url: 'https://old.example/', title: 'Old' }
+    const tab = { id: 1, url: 'https://new.example/', title: 'New' }
+    const sent = []
+    const outcomes = [true, false, true]
+    const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
+        'webextension-polyfill': {},
+        './hostnameInTitle': {
+            originalTitle: async (_id, _url, title) => title,
+        },
+        './client': {
+            getBucketId: async () => 'test',
+            sendHeartbeat: async (_client, _bucket, _time, data) => {
+                sent.push(data.title)
+                return outcomes.shift()
+            },
+        },
+        './helpers': {
+            getActiveWindowTab: async () => tab,
+            getTabs: async () => [tab],
+        },
+        '../storage': {
+            getEnabled: async () => true,
+            getHeartbeatData: async () => previous,
+            clearHeartbeatData: async () => {
+                previous = undefined
+            },
+            setHeartbeatData: async (data) => {
+                previous = data
+            },
+        },
+    })
+    await sendInitialHeartbeat({})
+    assert.equal(previous, undefined)
+    await sendInitialHeartbeat({})
+    assert.deepEqual(sent, ['Old', 'New', 'New'])
+    assert.equal(previous.title, 'New')
+})
+
+test('queued events capture original titles before waiting for network delivery', async () => {
+    let previous
+    let release
+    let currentTitle = 'First'
+    const normalized = []
+    const sent = []
+    const tab = () => ({
+        id: 1,
+        url: 'https://example.com/',
+        title: `${currentTitle} - example.com/`,
+    })
+    const { tabUpdatedListener } = loadModule('src/background/heartbeat.ts', {
+        'webextension-polyfill': {},
+        './hostnameInTitle': {
+            originalTitle: async (_id, _url, title) => {
+                // Simulate a marker which only covers the document's current title.
+                if (title !== `${currentTitle} - example.com/`) return undefined
+                normalized.push(currentTitle)
+                return currentTitle
+            },
+        },
+        './client': {
+            getBucketId: async () => 'test',
+            sendHeartbeat: async (_client, _bucket, _time, data) => {
+                sent.push(data.title)
+                if (sent.length === 1)
+                    await new Promise((resolve) => {
+                        release = resolve
+                    })
+                return true
+            },
+        },
+        './helpers': {
+            getActiveWindowTab: async () => tab(),
+            getTabs: async () => [tab()],
+        },
+        '../storage': {
+            getEnabled: async () => true,
+            getHeartbeatData: async () => previous,
+            clearHeartbeatData: async () => {
+                previous = undefined
+            },
+            setHeartbeatData: async (data) => {
+                previous = data
+            },
+        },
+    })
+    const onUpdated = tabUpdatedListener({})
+    const first = onUpdated(1, { title: tab().title }, tab())
+    await flush()
+    currentTitle = 'Second'
+    const second = onUpdated(1, { title: tab().title }, tab())
+    await flush()
+    assert.deepEqual(normalized, ['First', 'Second'])
+    currentTitle = 'Third'
+    release()
+    await Promise.all([first, second])
+    assert.deepEqual(sent, ['First', 'First', 'Second'])
+})
+
+test('an event whose original title cannot be verified is not recorded', async () => {
+    let sends = 0
+    const tab = {
+        id: 1,
+        url: 'https://example.com/',
+        title: 'Old - example.com/',
+    }
+    const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
+        'webextension-polyfill': {},
+        './hostnameInTitle': { originalTitle: async () => undefined },
+        './client': {
+            getBucketId: async () => 'test',
+            sendHeartbeat: async () => {
+                sends++
+                return true
+            },
+        },
+        './helpers': {
+            getActiveWindowTab: async () => tab,
+            getTabs: async () => [tab],
+        },
+        '../storage': { getEnabled: async () => true },
+    })
+    await sendInitialHeartbeat({})
+    assert.equal(sends, 0)
 })

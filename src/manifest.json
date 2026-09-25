@@ -49,6 +49,7 @@
         "notifications",
         "activeTab",
         "offscreen",
+        "scripting",
         "storage"
     ],
     "{{safari}}.permissions": [

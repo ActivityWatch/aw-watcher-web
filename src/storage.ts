@@ -84,6 +84,8 @@ export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
     .then((_) => _.heartbeatData as HeartbeatData | undefined)
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
   browser.storage.local.set({ heartbeatData })
+export const clearHeartbeatData = () =>
+  browser.storage.local.remove('heartbeatData')
 
 type BrowserName = string
 type StorageData = { [key: string]: any }
@@ -109,3 +111,43 @@ export const getApiKey = (): Promise<ApiKey | undefined> =>
     .then((data: StorageData) => data.apiKey as string | undefined)
 export const setApiKey = (apiKey: ApiKey) =>
   browser.storage.local.set({ apiKey })
+
+type UrlInTitle = boolean
+export const getUrlInTitle = (): Promise<UrlInTitle> =>
+  browser.storage.local.get('urlInTitle').then((_) => Boolean(_.urlInTitle))
+export const setUrlInTitle = (urlInTitle: UrlInTitle) =>
+  browser.storage.local.set({ urlInTitle })
+export const watchUrlInTitle = (
+  cb: (urlInTitle: UrlInTitle | undefined) => void | Promise<void>,
+) => watchKey('urlInTitle', cb)
+
+// Show only the domain instead of the full URL. Key shared with the content
+// script as DOMAIN_ONLY_KEY.
+export const getUrlInTitleDomainOnly = (): Promise<boolean> =>
+  browser.storage.local
+    .get('urlInTitleDomainOnly')
+    .then((_) => Boolean(_.urlInTitleDomainOnly))
+export const setUrlInTitleDomainOnly = (urlInTitleDomainOnly: boolean) =>
+  browser.storage.local.set({ urlInTitleDomainOnly })
+export const watchUrlInTitleDomainOnly = (
+  cb: (domainOnly: boolean | undefined) => void | Promise<void>,
+) => watchKey('urlInTitleDomainOnly', cb)
+
+// Whether titles in open Chromium tabs may still carry the URL, so we know to
+// clean them up after the setting is turned off.
+export const getUrlInTitleApplied = (): Promise<boolean> =>
+  browser.storage.local
+    .get('urlInTitleApplied')
+    .then((_) => Boolean(_.urlInTitleApplied))
+export const setUrlInTitleApplied = (urlInTitleApplied: boolean) =>
+  browser.storage.local.set({ urlInTitleApplied })
+
+// Persist ownership across extension reloads so disabling can clean up only
+// Firefox prefixes that this extension actually wrote.
+export const getFirefoxTitlePrefaces = (): Promise<Record<string, string>> =>
+  browser.storage.local
+    .get('firefoxTitlePrefaces')
+    .then((_) => (_.firefoxTitlePrefaces as Record<string, string>) ?? {})
+export const setFirefoxTitlePrefaces = (
+  firefoxTitlePrefaces: Record<string, string>,
+) => browser.storage.local.set({ firefoxTitlePrefaces })

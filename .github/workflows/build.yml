@@ -116,3 +116,5 @@ jobs:
 
       - name: Typecheck TypeScript
         run: make compile
+      - name: Run regression tests
+        run: npm test

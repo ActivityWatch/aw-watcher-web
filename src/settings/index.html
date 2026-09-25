@@ -68,6 +68,34 @@
         >
       </div>
 
+      <div class="url-in-title-option">
+        <label>
+          <input type="checkbox" id="urlInTitle" name="urlInTitle" />
+          <strong>Show URL in window title</strong>
+        </label>
+        <small
+          >Lets window watchers such as <code>aw-watcher-window</code> see which
+          page you are on. Window titles can be read by other apps and appear
+          when sharing your screen, so full URLs may expose query strings. In
+          Chromium browsers this also changes the tab title.</small
+        >
+      </div>
+
+      <div class="url-in-title-option">
+        <label>
+          <input
+            type="checkbox"
+            id="urlInTitleDomainOnly"
+            name="urlInTitleDomainOnly"
+          />
+          <strong>Domain only</strong>
+        </label>
+        <small
+          >Show just the domain, e.g. <code>example.com/</code> (with the port
+          for <code>localhost</code>), instead of the full URL.</small
+        >
+      </div>
+
       <div>
         <button type="submit">Save</button>
       </div>

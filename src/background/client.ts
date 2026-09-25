@@ -1,6 +1,6 @@
 import config from '../config'
 
-import { AWClient, IEvent } from 'aw-client'
+import { AWClient, FetchError, IEvent } from 'aw-client'
 import retry from 'p-retry'
 import { emitNotification, getBrowser, logHttpError } from './helpers'
 import {
@@ -15,26 +15,6 @@ export const getClient = () =>
 
 export const loadApiKey = async (client: AWClient) => {
   client.token = await getApiKey()
-}
-
-// TODO: We might want to get the hostname somehow, maybe like this:
-// https://stackoverflow.com/questions/28223087/how-can-i-allow-firefox-or-chrome-to-read-a-pcs-hostname-or-other-assignable
-export function ensureBucket(
-  client: AWClient,
-  bucketId: string,
-  hostname: string,
-) {
-  return retry(
-    () =>
-      client
-        .ensureBucket(bucketId, 'web.tab.current', hostname)
-        .catch((err) => {
-          console.error('Failed to create bucket, retrying...')
-          logHttpError(err)
-          return Promise.reject(err)
-        }),
-    { forever: true, minTimeout: 500 },
-  )
 }
 
 export async function detectHostname(client: AWClient) {
@@ -76,36 +56,55 @@ export async function sendHeartbeat(
   const hostname = (await getHostname()) ?? 'unknown'
   const syncStatus = await getSyncStatus()
   return retry(
-    () =>
-      client.heartbeat(bucketId, pulsetime, {
+    async () => {
+      const event = {
         data,
         duration: 0,
         timestamp,
-      }),
+      }
+      try {
+        await client.heartbeat(bucketId, pulsetime, event)
+      } catch (err) {
+        // Only a missing bucket needs creation. Network/authentication failures
+        // must not enter a separate retry loop that blocks every later event.
+        if (!(err instanceof FetchError) || err.response.status !== 404)
+          throw err
+        await client.ensureBucket(bucketId, 'web.tab.current', hostname)
+        await client.heartbeat(bucketId, pulsetime, event)
+      }
+    },
     {
       retries: 3,
-      onFailedAttempt: () =>
-        ensureBucket(client, bucketId, hostname).then(() => {}),
+      minTimeout: 500,
+      maxTimeout: 2000,
+      shouldRetry: (err) =>
+        !(err instanceof FetchError) ||
+        err.response.status === 404 ||
+        err.response.status === 429 ||
+        err.response.status >= 500,
+      onFailedAttempt: () => setSyncStatus(false),
     },
   )
-    .then(() => {
+    .then(async () => {
       if (syncStatus.success === false) {
         emitNotification(
           'Now connected again',
           'Connection to ActivityWatch server established again',
         )
       }
-      setSyncStatus(true)
+      await setSyncStatus(true)
+      return true
     })
-    .catch((err) => {
+    .catch(async (err) => {
       if (syncStatus.success) {
         emitNotification(
           'Unable to send event to server',
           'Please ensure that ActivityWatch is running',
         )
       }
-      setSyncStatus(false)
-      return logHttpError(err)
+      await setSyncStatus(false)
+      await logHttpError(err)
+      return false
     })
 }
 

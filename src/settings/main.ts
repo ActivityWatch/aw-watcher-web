@@ -9,6 +9,8 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getHostnameInTitle,
+  setHostnameInTitle,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -49,6 +51,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
 
+  const hostnameInTitleInput =
+    document.querySelector<HTMLInputElement>('#hostnameInTitle')
+  const hostnameInTitle = hostnameInTitleInput?.checked ?? false
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -68,6 +74,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     } else {
       await browser.storage.local.remove('apiKey')
     }
+    await setHostnameInTitle(hostnameInTitle)
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -130,6 +137,12 @@ async function restoreOptions(): Promise<void> {
     if (apiKeyInput && apiKey !== undefined) {
       apiKeyInput.value = apiKey
     }
+
+    const hostnameInTitleInput =
+      document.querySelector<HTMLInputElement>('#hostnameInTitle')
+    if (hostnameInTitleInput) {
+      hostnameInTitleInput.checked = await getHostnameInTitle()
+    }
   } catch (error) {
     console.error('Failed to restore options:', error)
     throw error
@@ -155,7 +168,15 @@ async function initializeOptions(): Promise<void> {
   }
 }
 
+// Safari already exposes the URL to window watchers on macOS.
+function hideUnsupportedOptions(): void {
+  if (import.meta.env.VITE_TARGET_BROWSER !== 'safari') return
+  const option = document.querySelector<HTMLElement>('#hostnameInTitleOption')
+  if (option) option.style.display = 'none'
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  hideUnsupportedOptions()
   void initializeOptions()
   toggleCustomBrowserInput()
 })

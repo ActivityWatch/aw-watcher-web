@@ -55,6 +55,15 @@ Due to the above issue, a privacy notice must be displayed to comply with the Mo
 }
 ```
 
+## Hostname in Window Title
+
+Window watchers such as [aw-watcher-window](https://github.com/ActivityWatch/aw-watcher-window) only see the browser's window title, which on most platforms doesn't include the URL. Enabling **Show site hostname in window title** in the extension settings adds the active site's hostname to the window title so they can categorize browser activity by site. It is off by default.
+
+- **Firefox** prepends `<hostname>/ - ` to the window title. The page and tab titles are not changed.
+- **Chromium browsers** have no API for the window title, so the extension appends ` - <hostname>/` to the page title, which Chromium uses as the window title. This is also visible in the tab strip and history. It can't change built-in pages (`chrome://`, the New Tab page, the Chrome Web Store, the PDF viewer), and has no effect on windows renamed with Chrome's "Name window". The hostname is stripped again before the title is recorded in the web watcher bucket.
+
+In both cases the hostname is followed by `/`, so a rule matching `example.com/` won't match `example.com-other.net`.
+
 ## Building from Source
 
 ### Prerequisites

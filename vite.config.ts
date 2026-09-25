@@ -24,6 +24,7 @@ export default defineConfig({
         'src/consent/index.html',
         'src/consent/main.ts',
         'src/offscreen.html',
+        'src/content/hostnameInTitle.ts',
       ],
       browser: process.env.VITE_TARGET_BROWSER,
     }),

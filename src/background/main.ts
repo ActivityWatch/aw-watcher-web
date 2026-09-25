@@ -7,6 +7,7 @@ import {
   tabUpdatedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
+import { setupHostnameInTitle } from './hostnameInTitle'
 import {
   getConsentStatus,
   getHostname,
@@ -79,6 +80,9 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await clientReady
   return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
+
+console.debug('Setting up hostname in window title')
+setupHostnameInTitle()
 
 console.debug('Setting base url')
 clientReady

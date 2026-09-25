@@ -1,5 +1,10 @@
 import browser from 'webextension-polyfill'
-import { titlePreface, WRITTEN_TITLE_ATTR } from '../hostnameInTitle'
+import {
+  titleHost,
+  titlePreface,
+  titleSuffix,
+  WRITTEN_TITLE_ATTR,
+} from '../hostnameInTitle'
 import {
   getHostnameInTitle,
   getHostnameInTitleApplied,
@@ -52,11 +57,11 @@ async function syncChromium(chrome: any, enabled: boolean) {
     })
   }
   if (!(await getHostnameInTitleApplied())) return
-  await forEachWebTab((tabId) =>
+  await forEachWebTab((tabId, url) =>
     chrome.scripting.executeScript({
       target: { tabId },
       func: removeHostnameFromTitle,
-      args: [WRITTEN_TITLE_ATTR],
+      args: [WRITTEN_TITLE_ATTR, titleSuffix(titleHost(url))],
     }),
   )
   await setHostnameInTitleApplied(false)
@@ -68,7 +73,7 @@ async function syncChromium(chrome: any, enabled: boolean) {
  * was orphaned by a reload) undo its last write ourselves; the orphaned
  * observer notices it has lost its runtime and stays out of the way.
  */
-function removeHostnameFromTitle(writtenTitleAttr: string) {
+function removeHostnameFromTitle(writtenTitleAttr: string, suffix: string) {
   const controller = (globalThis as any).__awHostnameInTitle
   if (controller) {
     controller.stop()
@@ -77,18 +82,21 @@ function removeHostnameFromTitle(writtenTitleAttr: string) {
   const root = document.documentElement
   const written = root.getAttribute(writtenTitleAttr)
   root.removeAttribute(writtenTitleAttr)
-  const suffix = ` - ${location.hostname}/`
   if (!written?.endsWith(suffix) || !document.title.includes(written)) return
   const own = written.slice(0, -suffix.length)
   document.title = document.title.replace(written, () => own)
 }
 
-async function forEachWebTab(fn: (tabId: number) => Promise<unknown>) {
+async function forEachWebTab(
+  fn: (tabId: number, url: URL) => Promise<unknown>,
+) {
   const tabs = await browser.tabs.query({ url: WEB_PAGE_PATTERNS })
   await Promise.all(
     tabs.map((tab) =>
-      // Some pages (e.g. the Chrome Web Store) refuse script injection.
-      tab.id === undefined ? undefined : fn(tab.id).catch(() => undefined),
+      tab.id === undefined || tab.url === undefined
+        ? undefined
+        : // Some pages (e.g. the Chrome Web Store) refuse script injection.
+          fn(tab.id, new URL(tab.url)).catch(() => undefined),
     ),
   )
 }
@@ -114,7 +122,7 @@ function updateFirefoxPreface(windowId: number) {
         !tab.incognito &&
         isWebPage(tab.url)
       await browser.windows.update(windowId, {
-        titlePreface: show ? titlePreface(new URL(tab.url!).hostname) : '',
+        titlePreface: show ? titlePreface(titleHost(new URL(tab.url!))) : '',
       })
     })
     .catch((err) => console.error('Failed to update title preface:', err))

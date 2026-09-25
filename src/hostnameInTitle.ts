@@ -5,16 +5,36 @@
  * we append the hostname to it. Chrome derives the window title from the
  * active tab's document.title, so there we append ` - <hostname>/`. Firefox
  * can only prepend via windows.update({ titlePreface }), so there we prepend
- * `<hostname>/ - `. Both forms contain the `<hostname>/` token, whose
- * trailing slash keeps e.g. `google.com-evil.com` from matching `google.com/`.
+ * `<hostname>/ - `. Both forms contain the `<hostname>/` token (with the port
+ * for loopback hosts, see titleHost), whose trailing slash keeps e.g.
+ * `google.com-evil.com` from matching `google.com/`.
  */
 
-export const hostnameToken = (hostname: string) => `${hostname}/`
+/**
+ * The host shown in the title: the hostname, plus the port for loopback hosts,
+ * where several local servers commonly differ only by port. Default ports are
+ * never included, since URL.host already omits them.
+ */
+export function titleHost({
+  hostname,
+  host,
+}: {
+  hostname: string
+  host: string
+}) {
+  const isLoopback =
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    /^127(\.\d{1,3}){3}$/.test(hostname) ||
+    hostname === '[::1]'
+  return isLoopback ? host : hostname
+}
 
-export const titleSuffix = (hostname: string) => ` - ${hostnameToken(hostname)}`
+export const hostToken = (host: string) => `${host}/`
 
-export const titlePreface = (hostname: string) =>
-  `${hostnameToken(hostname)} - `
+export const titleSuffix = (host: string) => ` - ${hostToken(host)}`
+
+export const titlePreface = (host: string) => `${hostToken(host)} - `
 
 /**
  * Attribute on <html> holding the exact title the content script last wrote.
@@ -30,8 +50,8 @@ export const WRITTEN_TITLE_ATTR = 'data-aw-watcher-web-title'
  * ours (e.g. `document.title += ' (1)'`), the suffix may briefly sit elsewhere
  * until the content script moves it back, so remove it wherever it is.
  */
-export function stripHostnameFromTitle(title: string, hostname: string) {
-  const suffix = titleSuffix(hostname)
+export function stripHostnameFromTitle(title: string, host: string) {
+  const suffix = titleSuffix(host)
   if (title.endsWith(suffix)) return title.slice(0, -suffix.length)
   return title.split(suffix).join('')
 }

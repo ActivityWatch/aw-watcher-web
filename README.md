@@ -62,7 +62,7 @@ Window watchers such as [aw-watcher-window](https://github.com/ActivityWatch/aw-
 - **Firefox** prepends `<hostname>/ - ` to the window title. The page and tab titles are not changed.
 - **Chromium browsers** have no API for the window title, so the extension appends ` - <hostname>/` to the page title, which Chromium uses as the window title. This is also visible in the tab strip and history. It can't change built-in pages (`chrome://`, the New Tab page, the Chrome Web Store, the PDF viewer), and has no effect on windows renamed with Chrome's "Name window". The hostname is stripped again before the title is recorded in the web watcher bucket.
 
-In both cases the hostname is followed by `/`, so a rule matching `example.com/` won't match `example.com-other.net`.
+In both cases the hostname is followed by `/`, so a rule matching `example.com/` won't match `example.com-other.net`. For loopback hosts (`localhost`, `*.localhost`, `127.x.x.x`, `[::1]`) the port is included too, e.g. `localhost:3000/`, since local servers often differ only by port.
 
 ## Building from Source
 

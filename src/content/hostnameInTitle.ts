@@ -3,7 +3,7 @@
  * which Chromium uses as the OS window title. Registered at runtime by the
  * background script only while the setting is enabled.
  */
-import { titleSuffix, WRITTEN_TITLE_ATTR } from '../hostnameInTitle'
+import { titleHost, titleSuffix, WRITTEN_TITLE_ATTR } from '../hostnameInTitle'
 
 type Controller = { isOrphaned: () => boolean; stop: () => void }
 const globals = globalThis as typeof globalThis & {
@@ -14,9 +14,8 @@ const chrome = (globalThis as any).chrome
 
 function start(): Controller | undefined {
   if (chrome?.extension?.inIncognitoContext) return
-  const { hostname } = location
-  if (!hostname) return
-  const suffix = titleSuffix(hostname)
+  if (!location.hostname) return
+  const suffix = titleSuffix(titleHost(location))
   const root = document.documentElement
 
   // After the extension reloads, scripts injected by the previous instance

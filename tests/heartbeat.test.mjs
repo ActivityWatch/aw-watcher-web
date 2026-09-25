@@ -403,3 +403,40 @@ test('a capture that never verifies is retried a bounded number of times', async
     assert.equal(checks, 3)
     assert.deepEqual(module.sent, [])
 })
+
+test('a failing retry rejects the event handler instead of going unhandled', async () => {
+    let active = { id: 1, url: 'https://example.com/a', title: 'A' }
+    let reads = 0
+    const module = loadModule('src/background/heartbeat.ts', {
+        'webextension-polyfill': {},
+        './urlInTitle': {
+            originalTitle: async (_id, _url, title) =>
+                title === 'A' ? undefined : title,
+        },
+        './client': {
+            getBucketId: async () => 'test',
+            sendHeartbeat: async () => true,
+        },
+        './helpers': {
+            getActiveWindowTab: async () => {
+                if (reads++ === 1) active = { ...active, title: 'B' }
+                return active
+            },
+            getTab: async () => active,
+            // Reading the tab list fails for the retry.
+            getTabs: async () => {
+                throw Error('tabs unavailable')
+            },
+        },
+        '../storage': {
+            getEnabled: async () => true,
+            getHeartbeatData: async () => undefined,
+            setHeartbeatData: async () => {},
+            clearHeartbeatData: async () => {},
+        },
+    })
+    await assert.rejects(
+        module.heartbeatAlarmListener({})({ name: 'heartbeat' }),
+        /tabs unavailable/,
+    )
+})

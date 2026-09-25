@@ -174,23 +174,29 @@ type Activity = {
  * therefore always matches timestamp order, and the retry records whatever
  * tab is active then, not a tab that may since have been left.
  */
-function recordActivity(client: AWClient, activity: Activity, attempt = 1) {
+async function recordActivity(
+  client: AWClient,
+  activity: Activity,
+  attempt = 1,
+): Promise<void> {
   const now = new Date()
   const captured = captureTab(activity.readTab)
-  captured.then((tab) => {
-    if (tab === STALE && attempt < CAPTURE_ATTEMPTS) {
-      recordActivity(
-        client,
-        {
-          label: `${activity.label} (retry)`,
-          readTab: getActiveWindowTab,
-          requireTab: true,
-        },
-        attempt + 1,
-      )
-    }
-  })
-  return queueHeartbeat(async () => {
+  // The retry is queued the moment the staleness is found, but awaited here
+  // so its failures still reach whoever handles this event.
+  const retried = captured.then((tab) =>
+    tab === STALE && attempt < CAPTURE_ATTEMPTS
+      ? recordActivity(
+          client,
+          {
+            label: `${activity.label} (retry)`,
+            readTab: getActiveWindowTab,
+            requireTab: true,
+          },
+          attempt + 1,
+        )
+      : undefined,
+  )
+  const queued = queueHeartbeat(async () => {
     const tab = await captured
     if (tab === STALE) return
     if (!tab && activity.requireTab) return
@@ -202,6 +208,7 @@ function recordActivity(client: AWClient, activity: Activity, attempt = 1) {
     console.debug(`Sending heartbeat for ${activity.label}`, tab?.url)
     await heartbeat(client, tab, tabs.length, now)
   })
+  await Promise.all([queued, retried])
 }
 
 export const sendInitialHeartbeat = (client: AWClient) =>

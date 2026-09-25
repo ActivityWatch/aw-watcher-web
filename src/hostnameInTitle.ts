@@ -23,6 +23,16 @@ export function stripHostnameFromTitle(title: string, hostname: string) {
 }
 
 /**
+ * Removes every copy of the suffix, for titles the content script has written
+ * to. A page may have appended text after our suffix (e.g.
+ * `document.title += ' (1)'`), and heartbeats can see that title before the
+ * content script moves the suffix back to the end.
+ */
+export function removeHostnameSuffixes(title: string, hostname: string) {
+  return title.split(titleSuffix(hostname)).join('')
+}
+
+/**
  * Idempotent: applying it to its own output returns the same string, so
  * repeated observer callbacks never stack suffixes. A page that prefixes its
  * own title (e.g. `(3) ` + document.title) keeps our suffix at the end.

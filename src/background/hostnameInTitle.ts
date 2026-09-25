@@ -139,9 +139,14 @@ const usesContentScript = () =>
   import.meta.env.VITE_TARGET_BROWSER !== 'firefox' &&
   Boolean((globalThis as any).chrome?.scripting?.registerContentScripts)
 
-/** Whether page titles may carry the hostname suffix added by the content script. */
+/**
+ * Whether page titles may carry the hostname suffix added by the content
+ * script. Stays true after the option is turned off until open tabs have been
+ * cleaned up.
+ */
 export const pageTitlesHaveHostname = async () =>
-  usesContentScript() && (await getHostnameInTitle())
+  usesContentScript() &&
+  ((await getHostnameInTitle()) || (await getHostnameInTitleApplied()))
 
 export function setupHostnameInTitle() {
   let sync: (enabled: boolean) => Promise<void>

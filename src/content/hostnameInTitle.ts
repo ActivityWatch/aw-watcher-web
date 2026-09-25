@@ -3,7 +3,11 @@
  * which Chromium uses as the OS window title. Registered at runtime by the
  * background script only while the setting is enabled.
  */
-import { addHostnameToTitle, stripHostnameFromTitle } from '../hostnameInTitle'
+import {
+  addHostnameToTitle,
+  removeHostnameSuffixes,
+  stripHostnameFromTitle,
+} from '../hostnameInTitle'
 
 type Controller = { isOrphaned: () => boolean; stop: () => void }
 const globals = globalThis as typeof globalThis & {
@@ -23,6 +27,8 @@ function start(): Controller | undefined {
   const isOrphaned = () => !runtime?.id
 
   let observedHead: HTMLHeadElement | null = null
+  // Until we write, a matching suffix can only be the page's own text.
+  let hasWritten = false
   const observe = () => {
     observer.disconnect()
     // Direct children of <html>, to notice the page replacing <head>.
@@ -45,9 +51,15 @@ function start(): Controller | undefined {
     }
     if (document.head !== observedHead) observe()
     const title = document.title
-    const updated = addHostnameToTitle(title, hostname)
+    // Once we've written, the page may have built its new title from ours,
+    // e.g. by appending to it, so collapse to a single trailing suffix.
+    const base = hasWritten ? removeHostnameSuffixes(title, hostname) : title
+    const updated = addHostnameToTitle(base, hostname)
     // Skipping no-op writes is what stops our own write from re-triggering us.
-    if (updated !== title) document.title = updated
+    if (updated !== title) {
+      document.title = updated
+      hasWritten = true
+    }
   }
 
   const observer = new MutationObserver(apply)

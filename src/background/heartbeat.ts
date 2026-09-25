@@ -11,7 +11,7 @@ import {
 } from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
-import { stripHostnameFromTitle } from '../hostnameInTitle'
+import { removeHostnameSuffixes } from '../hostnameInTitle'
 import { pageTitlesHaveHostname } from './hostnameInTitle'
 
 function decodeURL(url: string): string {
@@ -44,7 +44,7 @@ function decodeURL(url: string): string {
 async function originalTitle(url: string, title: string): Promise<string> {
   if (!(await pageTitlesHaveHostname())) return title
   try {
-    return stripHostnameFromTitle(title, new URL(url).hostname)
+    return removeHostnameSuffixes(title, new URL(url).hostname)
   } catch {
     return title
   }

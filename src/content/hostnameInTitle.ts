@@ -3,11 +3,7 @@
  * which Chromium uses as the OS window title. Registered at runtime by the
  * background script only while the setting is enabled.
  */
-import {
-  addHostnameToTitle,
-  removeHostnameSuffixes,
-  stripHostnameFromTitle,
-} from '../hostnameInTitle'
+import { titleSuffix, WRITTEN_TITLE_ATTR } from '../hostnameInTitle'
 
 type Controller = { isOrphaned: () => boolean; stop: () => void }
 const globals = globalThis as typeof globalThis & {
@@ -20,19 +16,36 @@ function start(): Controller | undefined {
   if (chrome?.extension?.inIncognitoContext) return
   const { hostname } = location
   if (!hostname) return
+  const suffix = titleSuffix(hostname)
+  const root = document.documentElement
 
   // After the extension reloads, scripts injected by the previous instance
   // keep running but their runtime loses its id.
   const runtime = chrome?.runtime
   const isOrphaned = () => !runtime?.id
 
+  const lastWritten = () => {
+    const written = root.getAttribute(WRITTEN_TITLE_ATTR)
+    return written?.endsWith(suffix) ? written : null
+  }
+
+  // The page's own title. If the page built its current title from the one we
+  // wrote (e.g. prefixing an unread count, or appending to it), put its own
+  // title back in place of ours. Anything else is page-authored, including
+  // text that happens to look like our suffix.
+  const pageTitle = () => {
+    const title = document.title
+    const written = lastWritten()
+    if (!written || !title.includes(written)) return title
+    const own = written.slice(0, -suffix.length)
+    return title.replace(written, () => own)
+  }
+
   let observedHead: HTMLHeadElement | null = null
-  // Until we write, a matching suffix can only be the page's own text.
-  let hasWritten = false
   const observe = () => {
     observer.disconnect()
     // Direct children of <html>, to notice the page replacing <head>.
-    observer.observe(document.documentElement, { childList: true })
+    observer.observe(root, { childList: true })
     observedHead = document.head
     if (!observedHead) return
     // All of <head> rather than just <title>, so we also catch pages that
@@ -50,16 +63,18 @@ function start(): Controller | undefined {
       return
     }
     if (document.head !== observedHead) observe()
-    const title = document.title
-    // Once we've written, the page may have built its new title from ours,
-    // e.g. by appending to it, so collapse to a single trailing suffix.
-    const base = hasWritten ? removeHostnameSuffixes(title, hostname) : title
-    const updated = addHostnameToTitle(base, hostname)
-    // Skipping no-op writes is what stops our own write from re-triggering us.
-    if (updated !== title) {
-      document.title = updated
-      hasWritten = true
+    // Skipping our own write is what stops it from re-triggering us.
+    if (document.title === lastWritten()) return
+
+    const own = pageTitle()
+    // Chrome already falls back to showing the URL for untitled pages.
+    if (!own) {
+      root.removeAttribute(WRITTEN_TITLE_ATTR)
+      return
     }
+    document.title = own + suffix
+    // Read back, since the title getter normalizes whitespace.
+    root.setAttribute(WRITTEN_TITLE_ATTR, document.title)
   }
 
   const observer = new MutationObserver(apply)
@@ -70,7 +85,9 @@ function start(): Controller | undefined {
     isOrphaned,
     stop() {
       observer.disconnect()
-      document.title = stripHostnameFromTitle(document.title, hostname)
+      const own = pageTitle()
+      if (own !== document.title) document.title = own
+      root.removeAttribute(WRITTEN_TITLE_ATTR)
       delete globals.__awHostnameInTitle
     },
   }

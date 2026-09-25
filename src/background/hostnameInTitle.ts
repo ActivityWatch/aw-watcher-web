@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill'
-import { titlePreface } from '../hostnameInTitle'
+import { titlePreface, WRITTEN_TITLE_ATTR } from '../hostnameInTitle'
 import {
   getHostnameInTitle,
   getHostnameInTitleApplied,
@@ -56,6 +56,7 @@ async function syncChromium(chrome: any, enabled: boolean) {
     chrome.scripting.executeScript({
       target: { tabId },
       func: removeHostnameFromTitle,
+      args: [WRITTEN_TITLE_ATTR],
     }),
   )
   await setHostnameInTitleApplied(false)
@@ -64,19 +65,22 @@ async function syncChromium(chrome: any, enabled: boolean) {
 /**
  * Serialized and run in the page, so it must be self-contained. If the content
  * script from this extension instance is running, stop it. Otherwise (e.g. it
- * was orphaned by a reload) strip the suffix ourselves; the orphaned observer
- * notices it has lost its runtime and stays out of the way.
+ * was orphaned by a reload) undo its last write ourselves; the orphaned
+ * observer notices it has lost its runtime and stays out of the way.
  */
-function removeHostnameFromTitle() {
+function removeHostnameFromTitle(writtenTitleAttr: string) {
   const controller = (globalThis as any).__awHostnameInTitle
   if (controller) {
     controller.stop()
     return
   }
+  const root = document.documentElement
+  const written = root.getAttribute(writtenTitleAttr)
+  root.removeAttribute(writtenTitleAttr)
   const suffix = ` - ${location.hostname}/`
-  if (document.title.endsWith(suffix)) {
-    document.title = document.title.slice(0, -suffix.length)
-  }
+  if (!written?.endsWith(suffix) || !document.title.includes(written)) return
+  const own = written.slice(0, -suffix.length)
+  document.title = document.title.replace(written, () => own)
 }
 
 async function forEachWebTab(fn: (tabId: number) => Promise<unknown>) {

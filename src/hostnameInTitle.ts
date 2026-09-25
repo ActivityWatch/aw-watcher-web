@@ -11,34 +11,27 @@
 
 export const hostnameToken = (hostname: string) => `${hostname}/`
 
-const titleSuffix = (hostname: string) => ` - ${hostnameToken(hostname)}`
+export const titleSuffix = (hostname: string) => ` - ${hostnameToken(hostname)}`
 
 export const titlePreface = (hostname: string) =>
   `${hostnameToken(hostname)} - `
 
-/** Removes the suffix added by addHostnameToTitle, if present. */
+/**
+ * Attribute on <html> holding the exact title the content script last wrote.
+ * The DOM is shared by the page and by every copy of the script (including
+ * ones orphaned by an extension reload), so this is how any of them can tell
+ * our suffix apart from page-authored text.
+ */
+export const WRITTEN_TITLE_ATTR = 'data-aw-watcher-web-title'
+
+/**
+ * The page's own title, given a tab title while the content script is active.
+ * Normally our suffix is at the end. If a page has just updated its title from
+ * ours (e.g. `document.title += ' (1)'`), the suffix may briefly sit elsewhere
+ * until the content script moves it back, so remove it wherever it is.
+ */
 export function stripHostnameFromTitle(title: string, hostname: string) {
   const suffix = titleSuffix(hostname)
-  return title.endsWith(suffix) ? title.slice(0, -suffix.length) : title
-}
-
-/**
- * Removes every copy of the suffix, for titles the content script has written
- * to. A page may have appended text after our suffix (e.g.
- * `document.title += ' (1)'`), and heartbeats can see that title before the
- * content script moves the suffix back to the end.
- */
-export function removeHostnameSuffixes(title: string, hostname: string) {
-  return title.split(titleSuffix(hostname)).join('')
-}
-
-/**
- * Idempotent: applying it to its own output returns the same string, so
- * repeated observer callbacks never stack suffixes. A page that prefixes its
- * own title (e.g. `(3) ` + document.title) keeps our suffix at the end.
- */
-export function addHostnameToTitle(title: string, hostname: string) {
-  // Chrome already falls back to showing the URL for untitled pages.
-  if (!title || title.endsWith(titleSuffix(hostname))) return title
-  return `${title}${titleSuffix(hostname)}`
+  if (title.endsWith(suffix)) return title.slice(0, -suffix.length)
+  return title.split(suffix).join('')
 }

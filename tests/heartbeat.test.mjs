@@ -297,19 +297,15 @@ test('an event whose original title cannot be verified is not recorded', async (
     assert.equal(sends, 0)
 })
 
-test('a stale capture is re-read and timed at the re-read, not the earlier event', async () => {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// The heartbeat module with a scripted active tab and title checks.
+function heartbeatModule({ activeTab, originalTitle }) {
     const sent = []
-    const stale = { id: 1, url: 'https://example.com/a', title: 'Old' }
-    const fresh = { id: 1, url: 'https://example.com/b', title: 'Fresh' }
-    let checks = 0
-    let rereadAt
-    const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
+    let stored
+    const module = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
-        // The first sample went stale before the page was checked.
-        './urlInTitle': {
-            originalTitle: async (_id, _url, title) =>
-                checks++ === 0 ? undefined : title,
-        },
+        './urlInTitle': { originalTitle },
         './client': {
             getBucketId: async () => 'test',
             sendHeartbeat: async (_client, _bucket, time, data) => {
@@ -318,30 +314,92 @@ test('a stale capture is re-read and timed at the re-read, not the earlier event
             },
         },
         './helpers': {
-            getActiveWindowTab: async () => {
-                // The page moves on to /b while the first sample is checked.
-                await new Promise((resolve) => setTimeout(resolve, 20))
-                return stale
-            },
-            getTab: async () => {
-                rereadAt = Date.now()
-                return fresh
-            },
-            getTabs: async () => [fresh],
+            getActiveWindowTab: async () => activeTab(),
+            getTab: async () => activeTab(),
+            getTabs: async () => [activeTab()],
         },
         '../storage': {
             getEnabled: async () => true,
-            getHeartbeatData: async () => undefined,
-            setHeartbeatData: async () => {},
+            getHeartbeatData: async () => stored,
+            setHeartbeatData: async (data) => {
+                stored = data
+            },
+            clearHeartbeatData: async () => {
+                stored = undefined
+            },
+        },
+    })
+    return { ...module, sent }
+}
+
+test('a stale capture records the tab active when found stale, timed then', async () => {
+    let active = { id: 1, url: 'https://example.com/a', title: 'A' }
+    let foundStaleAt
+    const module = heartbeatModule({
+        activeTab: () => active,
+        originalTitle: async (_id, _url, title) => {
+            if (title !== 'A') return title
+            // The user moves to another tab while A's title is checked.
+            await sleep(20)
+            active = { id: 2, url: 'https://example.com/b', title: 'B' }
+            foundStaleAt = Date.now()
+            return undefined
         },
     })
     const eventAt = Date.now()
-    await sendInitialHeartbeat({})
+    await module.heartbeatAlarmListener({})({ name: 'heartbeat' })
+    await sleep(20)
+    await flush()
     assert.deepEqual(
-        sent.map(({ title }) => title),
-        ['Fresh'],
+        module.sent.map(({ title }) => title),
+        ['B'],
     )
-    // Stamped when /b was observed, not when the event for /a fired.
-    assert.ok(sent[0].time >= rereadAt - 1)
-    assert.ok(sent[0].time > eventAt + 10)
+    assert.ok(module.sent[0].time >= foundStaleAt - 1)
+    assert.ok(module.sent[0].time > eventAt + 10)
+})
+
+test('heartbeats stay in timestamp order when a stale check finishes late', async () => {
+    let active = { id: 1, url: 'https://example.com/a', title: 'A' }
+    const module = heartbeatModule({
+        activeTab: () => active,
+        originalTitle: async (_id, _url, title) => {
+            if (title !== 'A') return title
+            await sleep(30)
+            return undefined
+        },
+    })
+    // Event 1 captures A, whose check goes stale only after event 2.
+    const first = module.tabUpdatedListener({})(1, { title: 'A' }, active)
+    await sleep(5)
+    active = { id: 1, url: 'https://example.com/b', title: 'B' }
+    const second = module.heartbeatAlarmListener({})({ name: 'heartbeat' })
+    await sleep(10)
+    active = { id: 1, url: 'https://example.com/c', title: 'C' }
+    await Promise.all([first, second])
+    await sleep(40)
+    await flush()
+    const titles = module.sent.map(({ title }) => title)
+    assert.equal(titles.includes('A'), false)
+    const times = module.sent.map(({ time }) => time)
+    assert.deepEqual(
+        times,
+        [...times].sort((a, b) => a - b),
+    )
+    assert.equal(titles.at(-1), 'C')
+})
+
+test('a capture that never verifies is retried a bounded number of times', async () => {
+    let checks = 0
+    const module = heartbeatModule({
+        activeTab: () => ({ id: 1, url: 'https://example.com/', title: 'T' }),
+        originalTitle: async () => {
+            checks++
+            return undefined
+        },
+    })
+    await module.heartbeatAlarmListener({})({ name: 'heartbeat' })
+    await sleep(20)
+    await flush()
+    assert.equal(checks, 3)
+    assert.deepEqual(module.sent, [])
 })

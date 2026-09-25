@@ -386,3 +386,69 @@ test('a relayed URL change updates the title without any DOM event', async () =>
     await page.message({ type: 'aw-watcher-web:url-in-title:url-changed' })
     assert.equal(page.document.title, 'App - https://example.com/replaced')
 })
+
+async function chromiumBackground({ enabled }) {
+    const sentMessages = []
+    const onUpdated = event()
+    let onEnabledChanged
+    const browser = {
+        tabs: {
+            onUpdated,
+            query: async () => [],
+            sendMessage: async (tabId, message) => {
+                sentMessages.push({ tabId, message })
+            },
+        },
+    }
+    const chrome = {
+        scripting: {
+            registerContentScripts: async () => {},
+            unregisterContentScripts: async () => {},
+            getRegisteredContentScripts: async () => [],
+            executeScript: async () => [],
+        },
+    }
+    const module = loadModule(
+        'src/background/urlInTitle.ts',
+        {
+            'webextension-polyfill': browser,
+            '../storage': {
+                getUrlInTitle: async () => enabled,
+                getUrlInTitleDomainOnly: async () => false,
+                getUrlInTitleApplied: async () => false,
+                setUrlInTitleApplied: async () => {},
+                watchUrlInTitle: (listener) => {
+                    onEnabledChanged = listener
+                },
+                watchUrlInTitleDomainOnly: () => {},
+            },
+        },
+        { chrome },
+    )
+    module.setupUrlInTitle()
+    await flush()
+    return {
+        sentMessages,
+        update: (tabId, changeInfo) => onUpdated.emit(tabId, changeInfo, {}),
+        toggle: async (value) => {
+            onEnabledChanged(value)
+            await flush()
+        },
+    }
+}
+
+test('the background relays browser URL changes to the tab while enabled', async () => {
+    const background = await chromiumBackground({ enabled: true })
+    await background.update(5, { url: 'https://example.com/replaced' })
+    await background.update(5, { title: 'Only the title changed' })
+    // Messages are built inside the module's own context, so compare values.
+    assert.deepEqual(JSON.parse(JSON.stringify(background.sentMessages)), [
+        {
+            tabId: 5,
+            message: { type: 'aw-watcher-web:url-in-title:url-changed' },
+        },
+    ])
+    await background.toggle(false)
+    await background.update(5, { url: 'https://example.com/later' })
+    assert.equal(background.sentMessages.length, 1)
+})

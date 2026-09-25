@@ -132,86 +132,98 @@ const queueHeartbeat = createHeartbeatQueue()
 
 // A sample goes stale when the page changes its URL or title (or the URL in
 // title script rewrites it) between reading the tab and checking the page.
-// Re-read the tab rather than dropping the event, so the transition is still
-// recorded even if no further update arrives.
+const STALE = Symbol('stale')
 const CAPTURE_ATTEMPTS = 3
 
-type CapturedTab = { tab: HeartbeatTab; time: Date }
-
-// Returns the tab and when that state was observed: the event time for the
-// first read, or the re-read time for a retry, so newer page state is never
-// backdated to an event that happened while the previous page was showing.
 async function captureTab(
   readTab: () => Promise<browser.Tabs.Tab | undefined>,
-  eventTime: Date,
-): Promise<CapturedTab | undefined> {
+): Promise<HeartbeatTab | typeof STALE | undefined> {
   try {
-    let tab = await readTab()
-    let time = eventTime
-    for (let attempt = 1; ; attempt++) {
-      if (!tab?.url || !tab.title) return undefined
-      const snapshot = {
-        id: tab.id,
-        url: tab.url,
-        title: tab.title,
-        audible: tab.audible,
-        incognito: tab.incognito,
-      }
-      const title = await originalTitle(
-        snapshot.id,
-        snapshot.url,
-        snapshot.title,
-      )
-      if (title !== undefined) return { tab: { ...snapshot, title }, time }
-      if (attempt >= CAPTURE_ATTEMPTS || snapshot.id === undefined) {
-        return undefined
-      }
-      time = new Date()
-      tab = await getTab(snapshot.id)
+    const tab = await readTab()
+    if (!tab?.url || !tab.title) return undefined
+    const snapshot = {
+      id: tab.id,
+      url: tab.url,
+      title: tab.title,
+      audible: tab.audible,
+      incognito: tab.incognito,
     }
+    const title = await originalTitle(snapshot.id, snapshot.url, snapshot.title)
+    if (title === undefined) return STALE
+    return { ...snapshot, title }
   } catch (err) {
     console.debug('Unable to capture tab:', err)
     return undefined
   }
 }
 
-export const sendInitialHeartbeat = async (client: AWClient) => {
+type Activity = {
+  label: string
+  readTab: () => Promise<browser.Tabs.Tab | undefined>
+  // Only send if this tab is still the active one when the queue reaches it.
+  requireActiveTabId?: number
+  // Skip rather than send when no tab could be captured.
+  requireTab?: boolean
+}
+
+/**
+ * Captures the tab now, before network retries can hold up the queue and the
+ * document replaces its last-write marker, and queues its heartbeat with the
+ * current time. A stale capture is not sent; instead the active tab is
+ * recorded afresh, timed and queued when the staleness is found. Queue order
+ * therefore always matches timestamp order, and the retry records whatever
+ * tab is active then, not a tab that may since have been left.
+ */
+function recordActivity(client: AWClient, activity: Activity, attempt = 1) {
   const now = new Date()
-  const capturedTab = captureTab(getActiveWindowTab, now)
-  await queueHeartbeat(async () => {
-    const captured = await capturedTab
+  const captured = captureTab(activity.readTab)
+  captured.then((tab) => {
+    if (tab === STALE && attempt < CAPTURE_ATTEMPTS) {
+      recordActivity(
+        client,
+        {
+          label: `${activity.label} (retry)`,
+          readTab: getActiveWindowTab,
+          requireTab: true,
+        },
+        attempt + 1,
+      )
+    }
+  })
+  return queueHeartbeat(async () => {
+    const tab = await captured
+    if (tab === STALE) return
+    if (!tab && activity.requireTab) return
+    if (activity.requireActiveTabId !== undefined) {
+      const activeWindowTab = await getActiveWindowTab()
+      if (activeWindowTab?.id !== activity.requireActiveTabId) return
+    }
     const tabs = await getTabs()
-    console.debug('Sending initial heartbeat', captured?.tab.url)
-    await heartbeat(client, captured?.tab, tabs.length, captured?.time ?? now)
+    console.debug(`Sending heartbeat for ${activity.label}`, tab?.url)
+    await heartbeat(client, tab, tabs.length, now)
   })
 }
+
+export const sendInitialHeartbeat = (client: AWClient) =>
+  recordActivity(client, { label: 'startup', readTab: getActiveWindowTab })
 
 export const heartbeatAlarmListener =
   (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
     if (alarm.name !== config.heartbeat.alarmName) return
-
-    const now = new Date()
-    const capturedTab = captureTab(getActiveWindowTab, now)
-    await queueHeartbeat(async () => {
-      const captured = await capturedTab
-      if (!captured) return
-      const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', captured.tab.url)
-      await heartbeat(client, captured.tab, tabs.length, captured.time)
+    await recordActivity(client, {
+      label: 'alarm',
+      readTab: getActiveWindowTab,
+      requireTab: true,
     })
   }
 
 export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    const now = new Date()
-    const capturedTab = captureTab(() => getTab(activeInfo.tabId), now)
-    await queueHeartbeat(async () => {
-      const captured = await capturedTab
-      if (!captured) return
-      const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab activation', captured.tab.url)
-      await heartbeat(client, captured.tab, tabs.length, captured.time)
+    await recordActivity(client, {
+      label: 'tab activation',
+      readTab: () => getTab(activeInfo.tabId),
+      requireTab: true,
     })
   }
 
@@ -223,19 +235,10 @@ export const tabUpdatedListener =
     tab: browser.Tabs.Tab,
   ) => {
     if (changeInfo.url === undefined && changeInfo.title === undefined) return
-
-    const now = new Date()
-    // Capture provenance before network retries can hold up the send queue
-    // and the document replaces its last-write marker.
-    const capturedTab = captureTab(async () => tab, now)
-    await queueHeartbeat(async () => {
-      const captured = await capturedTab
-      if (!captured) return
-      const activeWindowTab = await getActiveWindowTab()
-      if (activeWindowTab?.id !== tabId) return
-
-      const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab update', captured.tab.url)
-      await heartbeat(client, captured.tab, tabs.length, captured.time)
+    await recordActivity(client, {
+      label: 'tab update',
+      readTab: async () => tab,
+      requireActiveTabId: tabId,
+      requireTab: true,
     })
   }

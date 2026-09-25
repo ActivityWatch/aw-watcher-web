@@ -55,14 +55,14 @@ Due to the above issue, a privacy notice must be displayed to comply with the Mo
 }
 ```
 
-## Hostname in Window Title
+## URL in Window Title
 
-Window watchers such as [aw-watcher-window](https://github.com/ActivityWatch/aw-watcher-window) only see the browser's window title, which on most platforms doesn't include the URL. Enabling **Show site hostname in window title** in the extension settings adds the active site's hostname to the window title so they can categorize browser activity by site. It is off by default.
+Window watchers such as [aw-watcher-window](https://github.com/ActivityWatch/aw-watcher-window) only see the browser's window title, which on most platforms doesn't include the URL. Enabling **Show URL in window title** in the extension settings adds the active page's URL to the window title, so they can categorize browser activity by site. It is off by default.
 
-- **Firefox** prepends `<hostname>/ - ` to the window title. The page and tab titles are not changed.
-- **Chromium browsers** have no API for the window title, so the extension appends ` - <hostname>/` to the page title, which Chromium uses as the window title. This is also visible in the tab strip and history. It can't change built-in pages (`chrome://`, the New Tab page, the Chrome Web Store, the PDF viewer), and has no effect on windows renamed with Chrome's "Name window". The hostname is stripped again before the title is recorded in the web watcher bucket.
+- **Firefox** prepends `<url> - ` to the window title. The page and tab titles are not changed.
+- **Chromium browsers** have no API for the window title, so the extension appends ` - <url>` to the page title, which Chromium uses as the window title. This is also visible in the tab strip and history. It follows in-page navigation (`pushState`, `#fragment` changes). It can't change built-in pages (`chrome://`, the New Tab page, the Chrome Web Store, the PDF viewer), and has no effect on windows renamed with Chrome's "Name window". The URL is removed again before the title is recorded in the web watcher bucket.
 
-In both cases the hostname is followed by `/`, so a rule matching `example.com/` won't match `example.com-other.net`. For loopback hosts (`localhost`, `*.localhost`, `127.x.x.x`, `[::1]`) the port is included too, e.g. `localhost:3000/`, since local servers often differ only by port.
+By default the full URL is shown, e.g. `https://example.com/docs?page=2`. Window titles can be read by other apps and appear when sharing your screen, so turn on **Domain only** to show just the domain instead, e.g. `example.com/`. The domain is followed by `/`, so a rule matching `example.com/` won't match `example.com-other.net`. For loopback hosts (`localhost`, `*.localhost`, `127.x.x.x`, `[::1]`) the port is included too, e.g. `localhost:3000/`, since local servers often differ only by port.
 
 ## Building from Source
 

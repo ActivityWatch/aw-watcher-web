@@ -135,25 +135,35 @@ export const setProfileName = (profileName: ProfileName) => {
   return browser.storage.local.set({ profileName: trimmed })
 }
 
-type HostnameInTitle = boolean
-export const getHostnameInTitle = (): Promise<HostnameInTitle> =>
-  browser.storage.local
-    .get('hostnameInTitle')
-    .then((_) => Boolean(_.hostnameInTitle))
-export const setHostnameInTitle = (hostnameInTitle: HostnameInTitle) =>
-  browser.storage.local.set({ hostnameInTitle })
-export const watchHostnameInTitle = (
-  cb: (hostnameInTitle: HostnameInTitle | undefined) => void | Promise<void>,
-) => watchKey('hostnameInTitle', cb)
+type UrlInTitle = boolean
+export const getUrlInTitle = (): Promise<UrlInTitle> =>
+  browser.storage.local.get('urlInTitle').then((_) => Boolean(_.urlInTitle))
+export const setUrlInTitle = (urlInTitle: UrlInTitle) =>
+  browser.storage.local.set({ urlInTitle })
+export const watchUrlInTitle = (
+  cb: (urlInTitle: UrlInTitle | undefined) => void | Promise<void>,
+) => watchKey('urlInTitle', cb)
 
-// Whether titles in open Chromium tabs may still carry the hostname, so we
-// know to clean them up after the setting is turned off.
-export const getHostnameInTitleApplied = (): Promise<boolean> =>
+// Show only the domain instead of the full URL. Key shared with the content
+// script as DOMAIN_ONLY_KEY.
+export const getUrlInTitleDomainOnly = (): Promise<boolean> =>
   browser.storage.local
-    .get('hostnameInTitleApplied')
-    .then((_) => Boolean(_.hostnameInTitleApplied))
-export const setHostnameInTitleApplied = (hostnameInTitleApplied: boolean) =>
-  browser.storage.local.set({ hostnameInTitleApplied })
+    .get('urlInTitleDomainOnly')
+    .then((_) => Boolean(_.urlInTitleDomainOnly))
+export const setUrlInTitleDomainOnly = (urlInTitleDomainOnly: boolean) =>
+  browser.storage.local.set({ urlInTitleDomainOnly })
+export const watchUrlInTitleDomainOnly = (
+  cb: (domainOnly: boolean | undefined) => void | Promise<void>,
+) => watchKey('urlInTitleDomainOnly', cb)
+
+// Whether titles in open Chromium tabs may still carry the URL, so we know to
+// clean them up after the setting is turned off.
+export const getUrlInTitleApplied = (): Promise<boolean> =>
+  browser.storage.local
+    .get('urlInTitleApplied')
+    .then((_) => Boolean(_.urlInTitleApplied))
+export const setUrlInTitleApplied = (urlInTitleApplied: boolean) =>
+  browser.storage.local.set({ urlInTitleApplied })
 
 // Persist ownership across extension reloads so disabling can clean up only
 // Firefox prefixes that this extension actually wrote.

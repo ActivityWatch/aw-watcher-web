@@ -1,21 +1,20 @@
 import browser from 'webextension-polyfill'
+import { titlePreface, titleToken, WRITTEN_TITLE_ATTR } from '../urlInTitle'
 import {
-  titleHost,
-  titlePreface,
-  titleSuffix,
-  WRITTEN_TITLE_ATTR,
-} from '../hostnameInTitle'
-import {
-  getHostnameInTitle,
-  getHostnameInTitleApplied,
-  setHostnameInTitleApplied,
-  watchHostnameInTitle,
+  getUrlInTitle,
+  getUrlInTitleApplied,
+  getUrlInTitleDomainOnly,
+  setUrlInTitleApplied,
+  watchUrlInTitle,
+  watchUrlInTitleDomainOnly,
   getFirefoxTitlePrefaces,
   setFirefoxTitlePrefaces,
 } from '../storage'
 
-const CONTENT_SCRIPT_ID = 'hostname-in-title'
-const CONTENT_SCRIPT_FILE = 'src/content/hostnameInTitle.js'
+type Settings = { enabled: boolean; domainOnly: boolean }
+
+const CONTENT_SCRIPT_ID = 'url-in-title'
+const CONTENT_SCRIPT_FILE = 'src/content/urlInTitle.js'
 const WEB_PAGE_PATTERNS = ['http://*/*', 'https://*/*']
 
 const isWebPage = (url: string | undefined) =>
@@ -24,8 +23,9 @@ const isWebPage = (url: string | undefined) =>
 /**
  * Chromium has no API for the window title, so we inject a content script
  * that rewrites document.title (which Chromium uses as the window title).
+ * The script reads the domain-only setting itself and follows its changes.
  */
-async function syncChromium(chrome: any, enabled: boolean) {
+async function syncChromium(chrome: any, { enabled }: Settings) {
   const registered: unknown[] =
     await chrome.scripting.getRegisteredContentScripts({
       ids: [CONTENT_SCRIPT_ID],
@@ -42,7 +42,7 @@ async function syncChromium(chrome: any, enabled: boolean) {
         },
       ])
     }
-    await setHostnameInTitleApplied(true)
+    await setUrlInTitleApplied(true)
     // Registered scripts only run on future page loads.
     await forEachWebTab((tabId) =>
       chrome.scripting.executeScript({
@@ -58,15 +58,15 @@ async function syncChromium(chrome: any, enabled: boolean) {
       ids: [CONTENT_SCRIPT_ID],
     })
   }
-  if (!(await getHostnameInTitleApplied())) return
-  await forEachWebTab((tabId, url) =>
+  if (!(await getUrlInTitleApplied())) return
+  await forEachWebTab((tabId) =>
     chrome.scripting.executeScript({
       target: { tabId },
-      func: removeHostnameFromTitle,
-      args: [WRITTEN_TITLE_ATTR, titleSuffix(titleHost(url))],
+      func: removeUrlFromTitle,
+      args: [WRITTEN_TITLE_ATTR],
     }),
   )
-  await setHostnameInTitleApplied(false)
+  await setUrlInTitleApplied(false)
 }
 
 /**
@@ -75,30 +75,34 @@ async function syncChromium(chrome: any, enabled: boolean) {
  * was orphaned by a reload) undo its last write ourselves; the orphaned
  * observer notices it has lost its runtime and stays out of the way.
  */
-function removeHostnameFromTitle(writtenTitleAttr: string, suffix: string) {
-  const controller = (globalThis as any).__awHostnameInTitle
+function removeUrlFromTitle(writtenTitleAttr: string) {
+  const controller = (globalThis as any).__awUrlInTitle
   if (controller) {
     controller.stop()
     return
   }
   const root = document.documentElement
-  const written = root.getAttribute(writtenTitleAttr)
+  const raw = root.getAttribute(writtenTitleAttr)
   root.removeAttribute(writtenTitleAttr)
-  if (!written?.endsWith(suffix) || !document.title.includes(written)) return
-  const own = written.slice(0, -suffix.length)
-  document.title = document.title.replace(written, () => own)
+  let written
+  try {
+    written = JSON.parse(raw ?? '')
+  } catch {
+    return
+  }
+  const { title, suffix } = written ?? {}
+  if (typeof title !== 'string' || typeof suffix !== 'string') return
+  if (!title.endsWith(suffix) || !document.title.includes(title)) return
+  const own = title.slice(0, -suffix.length)
+  document.title = document.title.replace(title, () => own)
 }
 
-async function forEachWebTab(
-  fn: (tabId: number, url: URL) => Promise<unknown>,
-) {
+async function forEachWebTab(fn: (tabId: number) => Promise<unknown>) {
   const tabs = await browser.tabs.query({ url: WEB_PAGE_PATTERNS })
   await Promise.all(
     tabs.map((tab) =>
-      tab.id === undefined || tab.url === undefined
-        ? undefined
-        : // Some pages (e.g. the Chrome Web Store) refuse script injection.
-          fn(tab.id, new URL(tab.url)).catch(() => undefined),
+      // Some pages (e.g. the Chrome Web Store) refuse script injection.
+      tab.id === undefined ? undefined : fn(tab.id).catch(() => undefined),
     ),
   )
 }
@@ -108,24 +112,26 @@ async function forEachWebTab(
  * page. The preface is per window, so update it whenever a window's active
  * tab or its URL changes.
  */
-let firefoxEnabled = false
+let firefoxSettings: Settings = { enabled: false, domainOnly: false }
 let firefoxQueue = Promise.resolve()
 
 // Serialized, and reads the window's active tab when it runs rather than
 // trusting the event's tab, so rapid tab switches can't finish out of order
-// and leave a stale hostname.
+// and leave a stale URL.
 function updateFirefoxPreface(windowId: number) {
   firefoxQueue = firefoxQueue
     .then(async () => {
       const [tab] = await browser.tabs.query({ windowId, active: true })
       const show =
-        firefoxEnabled &&
+        firefoxSettings.enabled &&
         tab !== undefined &&
         !tab.incognito &&
         isWebPage(tab.url)
       const owned = await getFirefoxTitlePrefaces()
       if (show) {
-        const preface = titlePreface(titleHost(new URL(tab.url!)))
+        const preface = titlePreface(
+          titleToken(new URL(tab.url!), firefoxSettings.domainOnly),
+        )
         await browser.windows.update(windowId, { titlePreface: preface })
         owned[windowId] = preface
       } else {
@@ -144,8 +150,8 @@ function updateFirefoxPreface(windowId: number) {
   return firefoxQueue
 }
 
-async function syncFirefox(enabled: boolean) {
-  firefoxEnabled = enabled
+async function syncFirefox(settings: Settings) {
+  firefoxSettings = settings
   const windows = await browser.windows.getAll({ windowTypes: ['normal'] })
   await Promise.all(
     windows.map((w) => w.id !== undefined && updateFirefoxPreface(w.id)),
@@ -163,10 +169,11 @@ function listenFirefox() {
       .catch((err) => console.error('Failed to forget title preface:', err))
   })
   browser.tabs.onActivated.addListener(({ windowId }) => {
-    if (firefoxEnabled) updateFirefoxPreface(windowId)
+    if (firefoxSettings.enabled) updateFirefoxPreface(windowId)
   })
   browser.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
-    if (!firefoxEnabled || changeInfo.url === undefined || !tab.active) return
+    if (!firefoxSettings.enabled || changeInfo.url === undefined || !tab.active)
+      return
     if (tab.windowId !== undefined) updateFirefoxPreface(tab.windowId)
   })
 }
@@ -176,13 +183,13 @@ const usesContentScript = () =>
   Boolean((globalThis as any).chrome?.scripting?.registerContentScripts)
 
 /**
- * Whether page titles may carry the hostname suffix added by the content
- * script. Stays true after the option is turned off until open tabs have been
- * cleaned up.
+ * Whether page titles may carry the URL suffix added by the content script.
+ * Stays true after the option is turned off until open tabs have been cleaned
+ * up.
  */
-export const pageTitlesHaveHostname = async () =>
+export const pageTitlesHaveUrl = async () =>
   usesContentScript() &&
-  ((await getHostnameInTitle()) || (await getHostnameInTitleApplied()))
+  ((await getUrlInTitle()) || (await getUrlInTitleApplied()))
 
 // Serialized into the tab: only remove text covered by this document's exact
 // last-write marker. A global setting or a matching suffix is not provenance.
@@ -190,15 +197,28 @@ function readOriginalTitle(
   url: string,
   title: string,
   writtenTitleAttr: string,
-  suffix: string,
 ) {
   if (location.href !== url) return undefined
-  const written = document.documentElement.getAttribute(writtenTitleAttr)
-  if (written?.endsWith(suffix) && title.includes(written)) {
-    return title.replace(written, () => written.slice(0, -suffix.length))
+  let written
+  try {
+    written = JSON.parse(
+      document.documentElement.getAttribute(writtenTitleAttr) ?? '',
+    )
+  } catch {
+    written = undefined
   }
-  // Navigation/title changes can race even an immediate capture. Drop a stale
-  // sample whose provenance is gone rather than guess from its suffix.
+  const { title: wrote, suffix } = written ?? {}
+  if (
+    typeof wrote === 'string' &&
+    typeof suffix === 'string' &&
+    wrote.endsWith(suffix) &&
+    title.includes(wrote)
+  ) {
+    return title.replace(wrote, () => wrote.slice(0, -suffix.length))
+  }
+  // Navigation/title changes can race even an immediate capture, e.g. a
+  // pushState in full-URL mode rewrites the suffix. Drop a stale sample whose
+  // provenance is gone rather than guess from its suffix.
   if (document.title !== title) return undefined
   return title
 }
@@ -208,17 +228,12 @@ export async function originalTitle(
   url: string,
   title: string,
 ): Promise<string | undefined> {
-  if (tabId === undefined || !(await pageTitlesHaveHostname())) return title
+  if (tabId === undefined || !(await pageTitlesHaveUrl())) return title
   try {
     const results = await (globalThis as any).chrome.scripting.executeScript({
       target: { tabId },
       func: readOriginalTitle,
-      args: [
-        url,
-        title,
-        WRITTEN_TITLE_ATTR,
-        titleSuffix(titleHost(new URL(url))),
-      ],
+      args: [url, title, WRITTEN_TITLE_ATTR],
     })
     return typeof results[0]?.result === 'string'
       ? results[0].result
@@ -230,26 +245,35 @@ export async function originalTitle(
   }
 }
 
-export function setupHostnameInTitle() {
-  let sync: (enabled: boolean) => Promise<void>
+export function setupUrlInTitle() {
+  let sync: (settings: Settings) => Promise<void>
   const chrome = (globalThis as any).chrome
   if (import.meta.env.VITE_TARGET_BROWSER === 'firefox') {
     listenFirefox()
     sync = syncFirefox
   } else if (usesContentScript()) {
-    sync = (enabled) => syncChromium(chrome, enabled)
+    sync = (settings) => syncChromium(chrome, settings)
   } else {
     return
   }
 
   // Serialize so toggling quickly can't interleave register/unregister.
   let queue = Promise.resolve()
-  const enqueue = (enabled: boolean) => {
+  let settings: Settings = { enabled: false, domainOnly: false }
+  const enqueue = (update: Partial<Settings>) => {
     queue = queue
-      .then(() => sync(enabled))
-      .catch((err) => console.error('Failed to sync hostname in title:', err))
+      .then(() => {
+        settings = { ...settings, ...update }
+        return sync(settings)
+      })
+      .catch((err) => console.error('Failed to sync URL in title:', err))
   }
 
-  getHostnameInTitle().then(enqueue)
-  watchHostnameInTitle((enabled) => enqueue(Boolean(enabled)))
+  Promise.all([getUrlInTitle(), getUrlInTitleDomainOnly()]).then(
+    ([enabled, domainOnly]) => enqueue({ enabled, domainOnly }),
+  )
+  watchUrlInTitle((enabled) => enqueue({ enabled: Boolean(enabled) }))
+  watchUrlInTitleDomainOnly((domainOnly) =>
+    enqueue({ domainOnly: Boolean(domainOnly) }),
+  )
 }

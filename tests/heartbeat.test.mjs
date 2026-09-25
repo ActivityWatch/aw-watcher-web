@@ -150,7 +150,7 @@ test('failed sends do not overwrite the last successfully recorded heartbeat', a
     const tab = { id: 1, url: 'https://example.com', title: 'Example' }
     const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
-        './hostnameInTitle': {
+        './urlInTitle': {
             originalTitle: async (_id, _url, title) => title,
         },
         './client': {
@@ -178,7 +178,7 @@ test('a successful close followed by a failed new heartbeat does not extend the 
     const outcomes = [true, false, true]
     const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
-        './hostnameInTitle': {
+        './urlInTitle': {
             originalTitle: async (_id, _url, title) => title,
         },
         './client': {
@@ -223,7 +223,7 @@ test('queued events capture original titles before waiting for network delivery'
     })
     const { tabUpdatedListener } = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
-        './hostnameInTitle': {
+        './urlInTitle': {
             originalTitle: async (_id, _url, title) => {
                 // Simulate a marker which only covers the document's current title.
                 if (title !== `${currentTitle} - example.com/`) return undefined
@@ -279,7 +279,7 @@ test('an event whose original title cannot be verified is not recorded', async (
     }
     const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
-        './hostnameInTitle': { originalTitle: async () => undefined },
+        './urlInTitle': { originalTitle: async () => undefined },
         './client': {
             getBucketId: async () => 'test',
             sendHeartbeat: async () => {

@@ -6,6 +6,7 @@ import { event, flush, loadModule } from './load-module.mjs'
 function chromiumPage({
     url = 'https://example.com/',
     title = 'Report - example.com/',
+    domainOnly = true,
 } = {}) {
     const attributes = new Map()
     const document = {
@@ -19,8 +20,20 @@ function chromiumPage({
     }
     const location = new URL(url)
     let rejectInjection = false
+    const settings = { urlInTitleDomainOnly: domainOnly }
+    const storageChanged = event()
+    const navigation = event()
     const chrome = {
         runtime: { id: 'test-extension' },
+        storage: {
+            local: {
+                get: async (key) => ({ [key]: settings[key] }),
+            },
+            onChanged: {
+                addListener: storageChanged.addListener,
+                removeListener() {},
+            },
+        },
         scripting: {
             registerContentScripts() {},
             executeScript: async ({ func, args, target }) => {
@@ -40,12 +53,12 @@ function chromiumPage({
         },
     }
     const module = loadModule(
-        'src/background/hostnameInTitle.ts',
+        'src/background/urlInTitle.ts',
         {
             'webextension-polyfill': {},
             '../storage': {
-                getHostnameInTitle: async () => true,
-                getHostnameInTitleApplied: async () => false,
+                getUrlInTitle: async () => true,
+                getUrlInTitleApplied: async () => false,
             },
         },
         { chrome },
@@ -56,22 +69,43 @@ function chromiumPage({
         rejectInjection: () => {
             rejectInjection = true
         },
-        original: (snapshot = document.title) =>
-            module.originalTitle(7, url, snapshot),
-        inject: () =>
+        // Heartbeats pass the tab URL they captured with the title.
+        original: (snapshot = document.title, tabUrl = url) =>
+            module.originalTitle(7, tabUrl, snapshot),
+        // The content script reads its mode from storage before writing.
+        inject: async () => {
             loadModule(
-                'src/content/hostnameInTitle.ts',
+                'src/content/urlInTitle.ts',
                 {},
                 {
                     chrome,
                     document,
                     location,
+                    navigation: {
+                        addEventListener: (_type, listener) =>
+                            navigation.addListener(listener),
+                        removeEventListener() {},
+                    },
                     MutationObserver: class {
                         observe() {}
                         disconnect() {}
                     },
                 },
-            ),
+            )
+            await flush()
+        },
+        navigate: async (href) => {
+            location.href = href
+            await navigation.emit()
+        },
+        setDomainOnly: async (value) => {
+            settings.urlInTitleDomainOnly = value
+            await storageChanged.emit(
+                { urlInTitleDomainOnly: { newValue: value } },
+                'local',
+            )
+            await flush()
+        },
     }
 }
 
@@ -79,7 +113,7 @@ test('a natural hostname suffix survives before and after content-script injecti
     const page = chromiumPage()
     const original = page.document.title
     assert.equal(await page.original(), original)
-    page.inject()
+    await page.inject()
     assert.equal(page.document.title, 'Report - example.com/ - example.com/')
     assert.equal(await page.original(), original)
     // A stale pre-injection event is skipped if its marker is no longer current.
@@ -88,7 +122,7 @@ test('a natural hostname suffix survives before and after content-script injecti
 
 test('page additions around an extension-written title retain their own suffix-like text', async () => {
     const page = chromiumPage()
-    page.inject()
+    await page.inject()
     page.document.title = `(1) ${page.document.title} updated`
     assert.equal(await page.original(), '(1) Report - example.com/ updated')
 })
@@ -101,7 +135,7 @@ test('restricted pages preserve natural hostname-like titles', async () => {
 
 test('a response from a navigated document does not rewrite the old event', async () => {
     const page = chromiumPage()
-    page.inject()
+    await page.inject()
     page.location.href = 'https://example.com/new-document'
     assert.equal(await page.original(), undefined)
 })
@@ -113,7 +147,10 @@ test('a replaced title marker makes the previous snapshot stale', async () => {
     page.document.title = 'New title - example.com/'
     page.document.documentElement.setAttribute(
         'data-aw-watcher-web-title',
-        page.document.title,
+        JSON.stringify({
+            title: page.document.title,
+            suffix: ' - example.com/',
+        }),
     )
     assert.equal(await page.original(oldTitle), undefined)
     assert.equal(await page.original(), 'New title')
@@ -125,12 +162,13 @@ test('loopback ports are removed only when the document marker confirms the writ
         title: 'Project - localhost:3000/',
     })
     assert.equal(await page.original(), 'Project - localhost:3000/')
-    page.inject()
+    await page.inject()
     assert.equal(await page.original(), 'Project - localhost:3000/')
 })
 
 async function firefox({
     enabled = false,
+    domainOnly = true,
     owned = {},
     windowTitle = 'Other extension - Page',
 } = {}) {
@@ -156,14 +194,16 @@ async function firefox({
         },
     }
     const module = loadModule(
-        'src/background/hostnameInTitle.ts',
+        'src/background/urlInTitle.ts',
         {
             'webextension-polyfill': browser,
             '../storage': {
-                getHostnameInTitle: async () => enabled,
-                watchHostnameInTitle: (listener) => {
+                getUrlInTitle: async () => enabled,
+                getUrlInTitleDomainOnly: async () => domainOnly,
+                watchUrlInTitle: (listener) => {
                     onSettingChanged = listener
                 },
+                watchUrlInTitleDomainOnly: () => {},
                 getFirefoxTitlePrefaces: async () => structuredClone(persisted),
                 setFirefoxTitlePrefaces: async (value) => {
                     persisted = structuredClone(value)
@@ -172,7 +212,7 @@ async function firefox({
         },
         { __env: { VITE_TARGET_BROWSER: 'firefox' } },
     )
-    module.setupHostnameInTitle()
+    module.setupUrlInTitle()
     await flush()
     return {
         updates,
@@ -221,4 +261,66 @@ test('Firefox forgets ownership of closed windows', async () => {
     await state.browser.windows.onRemoved.emit(1)
     await flush()
     assert.deepEqual(state.owned(), {})
+})
+
+test('full-URL mode appends the whole URL and recovers the page title', async () => {
+    const page = chromiumPage({
+        url: 'https://example.com/docs?q=1#intro',
+        title: 'Docs',
+        domainOnly: false,
+    })
+    await page.inject()
+    assert.equal(
+        page.document.title,
+        'Docs - https://example.com/docs?q=1#intro',
+    )
+    assert.equal(await page.original(), 'Docs')
+})
+
+test('full-URL mode follows in-page navigation without a title change', async () => {
+    const page = chromiumPage({ title: 'App', domainOnly: false })
+    await page.inject()
+    assert.equal(page.document.title, 'App - https://example.com/')
+    await page.navigate('https://example.com/settings')
+    assert.equal(page.document.title, 'App - https://example.com/settings')
+    assert.equal(
+        await page.original(page.document.title, page.location.href),
+        'App',
+    )
+})
+
+test('switching to domain only rewrites the suffix in place', async () => {
+    const page = chromiumPage({
+        url: 'https://example.com/a/b',
+        title: 'Page',
+        domainOnly: false,
+    })
+    await page.inject()
+    assert.equal(page.document.title, 'Page - https://example.com/a/b')
+    await page.setDomainOnly(true)
+    assert.equal(page.document.title, 'Page - example.com/')
+    await page.setDomainOnly(false)
+    assert.equal(page.document.title, 'Page - https://example.com/a/b')
+    assert.equal(await page.original(), 'Page')
+})
+
+test('Firefox prepends the full URL unless domain only is set', async () => {
+    const state = await firefox({ enabled: true, domainOnly: false })
+    assert.deepEqual(state.updates, ['https://example.com/ - '])
+    assert.equal(state.owned()[1], 'https://example.com/ - ')
+})
+
+test('a title captured before a pushState rewrite is dropped, not recorded with the URL', async () => {
+    const page = chromiumPage({ title: 'App', domainOnly: false })
+    await page.inject()
+    const stale = page.document.title
+    await page.navigate('https://example.com/next')
+    assert.notEqual(page.document.title, stale)
+    // The heartbeat snapshot has the old suffix but the tab's new URL.
+    assert.equal(await page.original(stale, page.location.href), undefined)
+    // The title update that follows the rewrite resolves normally.
+    assert.equal(
+        await page.original(page.document.title, page.location.href),
+        'App',
+    )
 })

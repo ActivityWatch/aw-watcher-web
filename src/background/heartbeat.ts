@@ -12,7 +12,7 @@ import {
 } from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
-import { originalTitle } from './hostnameInTitle'
+import { originalTitle } from './urlInTitle'
 import { createHeartbeatQueue } from './heartbeatQueue'
 
 function decodeURL(url: string): string {

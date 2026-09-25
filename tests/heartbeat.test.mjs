@@ -296,3 +296,37 @@ test('an event whose original title cannot be verified is not recorded', async (
     await sendInitialHeartbeat({})
     assert.equal(sends, 0)
 })
+
+test('a stale capture is re-read instead of dropping the transition', async () => {
+    const sent = []
+    const stale = { id: 1, url: 'https://example.com/', title: 'Old' }
+    const fresh = { id: 1, url: 'https://example.com/next', title: 'Fresh' }
+    let checks = 0
+    const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
+        'webextension-polyfill': {},
+        // The first sample went stale before the page was checked.
+        './urlInTitle': {
+            originalTitle: async (_id, _url, title) =>
+                checks++ === 0 ? undefined : title,
+        },
+        './client': {
+            getBucketId: async () => 'test',
+            sendHeartbeat: async (_client, _bucket, _time, data) => {
+                sent.push(data.title)
+                return true
+            },
+        },
+        './helpers': {
+            getActiveWindowTab: async () => stale,
+            getTab: async () => fresh,
+            getTabs: async () => [fresh],
+        },
+        '../storage': {
+            getEnabled: async () => true,
+            getHeartbeatData: async () => undefined,
+            setHeartbeatData: async () => {},
+        },
+    })
+    await sendInitialHeartbeat({})
+    assert.deepEqual(sent, ['Fresh'])
+})

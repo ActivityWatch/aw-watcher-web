@@ -5,6 +5,7 @@
  */
 import {
   DOMAIN_ONLY_KEY,
+  URL_CHANGED_MESSAGE,
   titleSuffix,
   titleToken,
   WRITTEN_TITLE_ATTR,
@@ -30,6 +31,9 @@ function start(): Controller | undefined {
 
   // Undefined until read from storage; nothing is written before then.
   let domainOnly: boolean | undefined
+  // Set by stop(), so late callbacks (e.g. a storage read still in flight
+  // when the option is turned off) can't write the URL back.
+  let stopped = false
 
   const lastWritten = (): Written | null => {
     try {
@@ -73,6 +77,7 @@ function start(): Controller | undefined {
   }
 
   const apply = () => {
+    if (stopped) return
     if (isOrphaned()) {
       stopListening()
       return
@@ -101,24 +106,36 @@ function start(): Controller | undefined {
   const observer = new MutationObserver(apply)
 
   // Single-page apps change the URL (pushState, fragments) without a new
-  // document, so reapply when the current history entry changes.
+  // document, so reapply when the current history entry changes. Browsers
+  // without the Navigation API fire no event for pushState/replaceState, so
+  // the background also relays the browser's URL updates as a message.
   const navigation = (globalThis as any).navigation
   navigation?.addEventListener?.('currententrychange', apply)
   globalThis.addEventListener?.('hashchange', apply)
   globalThis.addEventListener?.('popstate', apply)
+  const onMessage = (message: unknown) => {
+    if ((message as { type?: string })?.type === URL_CHANGED_MESSAGE) apply()
+  }
+  chrome?.runtime?.onMessage?.addListener(onMessage)
 
   const onStorageChanged = (changes: Record<string, unknown>, area: string) => {
     if (area !== 'local' || !(DOMAIN_ONLY_KEY in changes)) return
     readMode()
   }
-  const readMode = () =>
+  // Only the newest read may apply, so overlapping reads can't restore an
+  // older mode.
+  let latestRead = 0
+  const readMode = () => {
+    const read = ++latestRead
     chrome?.storage?.local
       ?.get(DOMAIN_ONLY_KEY)
       .then((items: Record<string, unknown>) => {
+        if (stopped || read !== latestRead) return
         domainOnly = Boolean(items[DOMAIN_ONLY_KEY])
         apply()
       })
       .catch(() => undefined)
+  }
   chrome?.storage?.onChanged?.addListener(onStorageChanged)
 
   const stopListening = () => {
@@ -128,6 +145,7 @@ function start(): Controller | undefined {
     globalThis.removeEventListener?.('popstate', apply)
     try {
       chrome?.storage?.onChanged?.removeListener(onStorageChanged)
+      chrome?.runtime?.onMessage?.removeListener(onMessage)
     } catch {
       // Orphaned scripts can no longer reach extension APIs.
     }
@@ -139,6 +157,7 @@ function start(): Controller | undefined {
   return {
     isOrphaned,
     stop() {
+      stopped = true
       stopListening()
       const own = pageTitle()
       if (own !== document.title) document.title = own

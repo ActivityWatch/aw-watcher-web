@@ -13,6 +13,12 @@
 export const DOMAIN_ONLY_KEY = 'urlInTitleDomainOnly'
 
 /**
+ * Sent by the background to a tab's content script when the browser reports a
+ * URL change, for pages whose pushState/replaceState fires no DOM event.
+ */
+export const URL_CHANGED_MESSAGE = 'aw-watcher-web:url-in-title:url-changed'
+
+/**
  * The host shown in domain-only mode: the hostname, plus the port for loopback
  * hosts, where several local servers commonly differ only by port. Default
  * ports are never included, since URL.host already omits them.

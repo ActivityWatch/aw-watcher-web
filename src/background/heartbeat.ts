@@ -130,22 +130,37 @@ async function heartbeat(
 // transaction so each update observes the preceding update.
 const queueHeartbeat = createHeartbeatQueue()
 
+// A sample goes stale when the page changes its URL or title (or the URL in
+// title script rewrites it) between reading the tab and checking the page.
+// Re-read the tab rather than dropping the event, so the transition is still
+// recorded even if no further update arrives.
+const CAPTURE_ATTEMPTS = 3
+
 async function captureTab(
   readTab: () => Promise<browser.Tabs.Tab | undefined>,
 ): Promise<HeartbeatTab | undefined> {
   try {
-    const tab = await readTab()
-    if (!tab?.url || !tab.title) return undefined
-    const snapshot = {
-      id: tab.id,
-      url: tab.url,
-      title: tab.title,
-      audible: tab.audible,
-      incognito: tab.incognito,
+    let tab = await readTab()
+    for (let attempt = 1; ; attempt++) {
+      if (!tab?.url || !tab.title) return undefined
+      const snapshot = {
+        id: tab.id,
+        url: tab.url,
+        title: tab.title,
+        audible: tab.audible,
+        incognito: tab.incognito,
+      }
+      const title = await originalTitle(
+        snapshot.id,
+        snapshot.url,
+        snapshot.title,
+      )
+      if (title !== undefined) return { ...snapshot, title }
+      if (attempt >= CAPTURE_ATTEMPTS || snapshot.id === undefined) {
+        return undefined
+      }
+      tab = await getTab(snapshot.id)
     }
-    const title = await originalTitle(snapshot.id, snapshot.url, snapshot.title)
-    if (title === undefined) return undefined
-    return { ...snapshot, title }
   } catch (err) {
     console.debug('Unable to capture tab:', err)
     return undefined

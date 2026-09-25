@@ -8,7 +8,9 @@ const require = createRequire(import.meta.url)
 
 // Run the real TypeScript modules with browser APIs supplied by each test.
 // No bundler, browser installation, or extra test dependency is needed.
-export function loadModule(entry, mocks = {}, globals = {}) {
+// `onContext` receives the module's global object, for tests that need to
+// inspect globals a script defines.
+export function loadModule(entry, mocks = {}, globals = {}, onContext) {
     const context = vm.createContext({
         console: { info() {}, debug() {}, warn() {}, error() {} },
         URL,
@@ -50,6 +52,7 @@ export function loadModule(entry, mocks = {}, globals = {}) {
         run(localRequire, module, module.exports)
         return module.exports
     }
+    onContext?.(context)
     return load(path.resolve(entry))
 }
 

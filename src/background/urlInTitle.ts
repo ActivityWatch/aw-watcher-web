@@ -1,5 +1,10 @@
 import browser from 'webextension-polyfill'
-import { titlePreface, titleToken, WRITTEN_TITLE_ATTR } from '../urlInTitle'
+import {
+  titlePreface,
+  titleToken,
+  URL_CHANGED_MESSAGE,
+  WRITTEN_TITLE_ATTR,
+} from '../urlInTitle'
 import {
   getUrlInTitle,
   getUrlInTitleApplied,
@@ -253,6 +258,15 @@ export function setupUrlInTitle() {
     sync = syncFirefox
   } else if (usesContentScript()) {
     sync = (settings) => syncChromium(chrome, settings)
+    // Pages can change their URL without any DOM event the content script
+    // sees (pushState/replaceState without the Navigation API), but the
+    // browser still reports it here.
+    browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (!settings.enabled || changeInfo.url === undefined) return
+      browser.tabs
+        .sendMessage(tabId, { type: URL_CHANGED_MESSAGE })
+        .catch(() => undefined)
+    })
   } else {
     return
   }

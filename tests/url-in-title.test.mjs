@@ -23,11 +23,26 @@ function chromiumPage({
     const settings = { urlInTitleDomainOnly: domainOnly }
     const storageChanged = event()
     const navigation = event()
+    const messages = event()
+    // When set, storage reads wait until the test resolves them.
+    let pendingReads = null
     const chrome = {
-        runtime: { id: 'test-extension' },
+        runtime: {
+            id: 'test-extension',
+            onMessage: {
+                addListener: messages.addListener,
+                removeListener() {},
+            },
+        },
         storage: {
             local: {
-                get: async (key) => ({ [key]: settings[key] }),
+                get: (key) => {
+                    const value = { [key]: settings[key] }
+                    if (!pendingReads) return Promise.resolve(value)
+                    return new Promise((resolve) =>
+                        pendingReads.push(() => resolve(value)),
+                    )
+                },
             },
             onChanged: {
                 addListener: storageChanged.addListener,
@@ -63,7 +78,7 @@ function chromiumPage({
         },
         { chrome },
     )
-    return {
+    const page = {
         document,
         location,
         rejectInjection: () => {
@@ -91,8 +106,19 @@ function chromiumPage({
                         disconnect() {}
                     },
                 },
+                (context) => {
+                    page.context = context
+                },
             )
             await flush()
+        },
+        controller: () => page.context.__awUrlInTitle,
+        holdReads: () => {
+            pendingReads = []
+            return pendingReads
+        },
+        message: async (message) => {
+            await messages.emit(message)
         },
         navigate: async (href) => {
             location.href = href
@@ -107,6 +133,7 @@ function chromiumPage({
             await flush()
         },
     }
+    return page
 }
 
 test('a natural hostname suffix survives before and after content-script injection', async () => {
@@ -323,4 +350,39 @@ test('a title captured before a pushState rewrite is dropped, not recorded with 
         await page.original(page.document.title, page.location.href),
         'App',
     )
+})
+
+test('a storage read that finishes after stop() does not write the URL back', async () => {
+    const page = chromiumPage({ title: 'Page', domainOnly: false })
+    const reads = page.holdReads()
+    await page.inject()
+    assert.equal(page.document.title, 'Page')
+    page.controller().stop()
+    reads.forEach((resolve) => resolve())
+    await flush()
+    assert.equal(page.document.title, 'Page')
+})
+
+test('only the newest mode read applies when reads overlap', async () => {
+    const page = chromiumPage({ title: 'Page', domainOnly: false })
+    await page.inject()
+    const reads = page.holdReads()
+    await page.setDomainOnly(true)
+    await page.setDomainOnly(false)
+    // The newer read (full URL) finishes first, then the older one.
+    reads[1]()
+    await flush()
+    reads[0]()
+    await flush()
+    assert.equal(page.document.title, 'Page - https://example.com/')
+})
+
+test('a relayed URL change updates the title without any DOM event', async () => {
+    const page = chromiumPage({ title: 'App', domainOnly: false })
+    await page.inject()
+    // pushState/replaceState without the Navigation API fires nothing.
+    page.location.href = 'https://example.com/replaced'
+    assert.equal(page.document.title, 'App - https://example.com/')
+    await page.message({ type: 'aw-watcher-web:url-in-title:url-changed' })
+    assert.equal(page.document.title, 'App - https://example.com/replaced')
 })

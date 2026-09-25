@@ -136,11 +136,18 @@ const queueHeartbeat = createHeartbeatQueue()
 // recorded even if no further update arrives.
 const CAPTURE_ATTEMPTS = 3
 
+type CapturedTab = { tab: HeartbeatTab; time: Date }
+
+// Returns the tab and when that state was observed: the event time for the
+// first read, or the re-read time for a retry, so newer page state is never
+// backdated to an event that happened while the previous page was showing.
 async function captureTab(
   readTab: () => Promise<browser.Tabs.Tab | undefined>,
-): Promise<HeartbeatTab | undefined> {
+  eventTime: Date,
+): Promise<CapturedTab | undefined> {
   try {
     let tab = await readTab()
+    let time = eventTime
     for (let attempt = 1; ; attempt++) {
       if (!tab?.url || !tab.title) return undefined
       const snapshot = {
@@ -155,10 +162,11 @@ async function captureTab(
         snapshot.url,
         snapshot.title,
       )
-      if (title !== undefined) return { ...snapshot, title }
+      if (title !== undefined) return { tab: { ...snapshot, title }, time }
       if (attempt >= CAPTURE_ATTEMPTS || snapshot.id === undefined) {
         return undefined
       }
+      time = new Date()
       tab = await getTab(snapshot.id)
     }
   } catch (err) {
@@ -169,12 +177,12 @@ async function captureTab(
 
 export const sendInitialHeartbeat = async (client: AWClient) => {
   const now = new Date()
-  const capturedTab = captureTab(getActiveWindowTab)
+  const capturedTab = captureTab(getActiveWindowTab, now)
   await queueHeartbeat(async () => {
-    const activeWindowTab = await capturedTab
+    const captured = await capturedTab
     const tabs = await getTabs()
-    console.debug('Sending initial heartbeat', activeWindowTab?.url)
-    await heartbeat(client, activeWindowTab, tabs.length, now)
+    console.debug('Sending initial heartbeat', captured?.tab.url)
+    await heartbeat(client, captured?.tab, tabs.length, captured?.time ?? now)
   })
 }
 
@@ -183,13 +191,13 @@ export const heartbeatAlarmListener =
     if (alarm.name !== config.heartbeat.alarmName) return
 
     const now = new Date()
-    const capturedTab = captureTab(getActiveWindowTab)
+    const capturedTab = captureTab(getActiveWindowTab, now)
     await queueHeartbeat(async () => {
-      const activeWindowTab = await capturedTab
-      if (!activeWindowTab) return
+      const captured = await capturedTab
+      if (!captured) return
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-      await heartbeat(client, activeWindowTab, tabs.length, now)
+      console.debug('Sending heartbeat for alarm', captured.tab.url)
+      await heartbeat(client, captured.tab, tabs.length, captured.time)
     })
   }
 
@@ -197,13 +205,13 @@ export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const now = new Date()
-    const capturedTab = captureTab(() => getTab(activeInfo.tabId))
+    const capturedTab = captureTab(() => getTab(activeInfo.tabId), now)
     await queueHeartbeat(async () => {
-      const tab = await capturedTab
-      if (!tab) return
+      const captured = await capturedTab
+      if (!captured) return
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab activation', tab.url)
-      await heartbeat(client, tab, tabs.length, now)
+      console.debug('Sending heartbeat for tab activation', captured.tab.url)
+      await heartbeat(client, captured.tab, tabs.length, captured.time)
     })
   }
 
@@ -219,15 +227,15 @@ export const tabUpdatedListener =
     const now = new Date()
     // Capture provenance before network retries can hold up the send queue
     // and the document replaces its last-write marker.
-    const capturedTab = captureTab(async () => tab)
+    const capturedTab = captureTab(async () => tab, now)
     await queueHeartbeat(async () => {
-      const tabSnapshot = await capturedTab
-      if (!tabSnapshot) return
+      const captured = await capturedTab
+      if (!captured) return
       const activeWindowTab = await getActiveWindowTab()
       if (activeWindowTab?.id !== tabId) return
 
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab update', tabSnapshot.url)
-      await heartbeat(client, tabSnapshot, tabs.length, now)
+      console.debug('Sending heartbeat for tab update', captured.tab.url)
+      await heartbeat(client, captured.tab, tabs.length, captured.time)
     })
   }

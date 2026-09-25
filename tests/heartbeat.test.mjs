@@ -297,11 +297,12 @@ test('an event whose original title cannot be verified is not recorded', async (
     assert.equal(sends, 0)
 })
 
-test('a stale capture is re-read instead of dropping the transition', async () => {
+test('a stale capture is re-read and timed at the re-read, not the earlier event', async () => {
     const sent = []
-    const stale = { id: 1, url: 'https://example.com/', title: 'Old' }
-    const fresh = { id: 1, url: 'https://example.com/next', title: 'Fresh' }
+    const stale = { id: 1, url: 'https://example.com/a', title: 'Old' }
+    const fresh = { id: 1, url: 'https://example.com/b', title: 'Fresh' }
     let checks = 0
+    let rereadAt
     const { sendInitialHeartbeat } = loadModule('src/background/heartbeat.ts', {
         'webextension-polyfill': {},
         // The first sample went stale before the page was checked.
@@ -311,14 +312,21 @@ test('a stale capture is re-read instead of dropping the transition', async () =
         },
         './client': {
             getBucketId: async () => 'test',
-            sendHeartbeat: async (_client, _bucket, _time, data) => {
-                sent.push(data.title)
+            sendHeartbeat: async (_client, _bucket, time, data) => {
+                sent.push({ title: data.title, time: time.getTime() })
                 return true
             },
         },
         './helpers': {
-            getActiveWindowTab: async () => stale,
-            getTab: async () => fresh,
+            getActiveWindowTab: async () => {
+                // The page moves on to /b while the first sample is checked.
+                await new Promise((resolve) => setTimeout(resolve, 20))
+                return stale
+            },
+            getTab: async () => {
+                rereadAt = Date.now()
+                return fresh
+            },
             getTabs: async () => [fresh],
         },
         '../storage': {
@@ -327,6 +335,13 @@ test('a stale capture is re-read instead of dropping the transition', async () =
             setHeartbeatData: async () => {},
         },
     })
+    const eventAt = Date.now()
     await sendInitialHeartbeat({})
-    assert.deepEqual(sent, ['Fresh'])
+    assert.deepEqual(
+        sent.map(({ title }) => title),
+        ['Fresh'],
+    )
+    // Stamped when /b was observed, not when the event for /a fired.
+    assert.ok(sent[0].time >= rereadAt - 1)
+    assert.ok(sent[0].time > eventAt + 10)
 })

@@ -152,3 +152,13 @@ export const getHostnameInTitleApplied = (): Promise<boolean> =>
     .then((_) => Boolean(_.hostnameInTitleApplied))
 export const setHostnameInTitleApplied = (hostnameInTitleApplied: boolean) =>
   browser.storage.local.set({ hostnameInTitleApplied })
+
+// Persist ownership across extension reloads so disabling can clean up only
+// Firefox prefixes that this extension actually wrote.
+export const getFirefoxTitlePrefaces = (): Promise<Record<string, string>> =>
+  browser.storage.local
+    .get('firefoxTitlePrefaces')
+    .then((_) => (_.firefoxTitlePrefaces as Record<string, string>) ?? {})
+export const setFirefoxTitlePrefaces = (
+  firefoxTitlePrefaces: Record<string, string>,
+) => browser.storage.local.set({ firefoxTitlePrefaces })

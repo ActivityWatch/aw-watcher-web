@@ -10,6 +10,8 @@ import {
   getHostnameInTitleApplied,
   setHostnameInTitleApplied,
   watchHostnameInTitle,
+  getFirefoxTitlePrefaces,
+  setFirefoxTitlePrefaces,
 } from '../storage'
 
 const CONTENT_SCRIPT_ID = 'hostname-in-title'
@@ -121,9 +123,22 @@ function updateFirefoxPreface(windowId: number) {
         tab !== undefined &&
         !tab.incognito &&
         isWebPage(tab.url)
-      await browser.windows.update(windowId, {
-        titlePreface: show ? titlePreface(titleHost(new URL(tab.url!))) : '',
-      })
+      const owned = await getFirefoxTitlePrefaces()
+      if (show) {
+        const preface = titlePreface(titleHost(new URL(tab.url!)))
+        await browser.windows.update(windowId, { titlePreface: preface })
+        owned[windowId] = preface
+      } else {
+        const preface = owned[windowId]
+        if (!preface) return
+        const window = await browser.windows.get(windowId)
+        // Another extension may have replaced our prefix in the meantime.
+        if (window.title?.startsWith(preface)) {
+          await browser.windows.update(windowId, { titlePreface: '' })
+        }
+        delete owned[windowId]
+      }
+      await setFirefoxTitlePrefaces(owned)
     })
     .catch((err) => console.error('Failed to update title preface:', err))
   return firefoxQueue
@@ -138,6 +153,15 @@ async function syncFirefox(enabled: boolean) {
 }
 
 function listenFirefox() {
+  browser.windows.onRemoved.addListener((windowId) => {
+    firefoxQueue = firefoxQueue
+      .then(async () => {
+        const owned = await getFirefoxTitlePrefaces()
+        delete owned[windowId]
+        await setFirefoxTitlePrefaces(owned)
+      })
+      .catch((err) => console.error('Failed to forget title preface:', err))
+  })
   browser.tabs.onActivated.addListener(({ windowId }) => {
     if (firefoxEnabled) updateFirefoxPreface(windowId)
   })
@@ -159,6 +183,45 @@ const usesContentScript = () =>
 export const pageTitlesHaveHostname = async () =>
   usesContentScript() &&
   ((await getHostnameInTitle()) || (await getHostnameInTitleApplied()))
+
+// Serialized into the tab: only remove text covered by this document's exact
+// last-write marker. A global setting or a matching suffix is not provenance.
+function readOriginalTitle(
+  url: string,
+  title: string,
+  writtenTitleAttr: string,
+  suffix: string,
+) {
+  if (location.href !== url) return title
+  const written = document.documentElement.getAttribute(writtenTitleAttr)
+  if (!written?.endsWith(suffix) || !title.includes(written)) return title
+  return title.replace(written, () => written.slice(0, -suffix.length))
+}
+
+export async function originalTitle(
+  tabId: number | undefined,
+  url: string,
+  title: string,
+): Promise<string> {
+  if (tabId === undefined || !(await pageTitlesHaveHostname())) return title
+  try {
+    const results = await (globalThis as any).chrome.scripting.executeScript({
+      target: { tabId },
+      func: readOriginalTitle,
+      args: [
+        url,
+        title,
+        WRITTEN_TITLE_ATTR,
+        titleSuffix(titleHost(new URL(url))),
+      ],
+    })
+    return typeof results[0]?.result === 'string' ? results[0].result : title
+  } catch {
+    // Restricted pages, closed tabs, and pages without injection permission
+    // keep their own title exactly as reported by the browser.
+    return title
+  }
+}
 
 export function setupHostnameInTitle() {
   let sync: (enabled: boolean) => Promise<void>

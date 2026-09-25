@@ -11,8 +11,8 @@ import {
 } from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
-import { stripHostnameFromTitle, titleHost } from '../hostnameInTitle'
-import { pageTitlesHaveHostname } from './hostnameInTitle'
+import { originalTitle } from './hostnameInTitle'
+import { createHeartbeatQueue } from './heartbeatQueue'
 
 function decodeURL(url: string): string {
   try {
@@ -39,17 +39,6 @@ function decodeURL(url: string): string {
   }
 }
 
-// Drop the hostname the content script may have added to the page title, so
-// the recorded title is the page's own.
-async function originalTitle(url: string, title: string): Promise<string> {
-  if (!(await pageTitlesHaveHostname())) return title
-  try {
-    return stripHostnameFromTitle(title, titleHost(new URL(url)))
-  } catch {
-    return title
-  }
-}
-
 function formatHeartbeatLogData(data: IEvent['data']) {
   return Object.entries(data)
     .map(([key, value]) => {
@@ -66,7 +55,7 @@ function formatHeartbeatLogData(data: IEvent['data']) {
 
 type HeartbeatTab = Pick<
   browser.Tabs.Tab,
-  'url' | 'title' | 'audible' | 'incognito'
+  'id' | 'url' | 'title' | 'audible' | 'incognito'
 >
 
 async function heartbeat(
@@ -98,7 +87,7 @@ async function heartbeat(
   const { url, title, audible, incognito } = tab
   const data: IEvent['data'] = {
     url: decodeURL(url),
-    title: await originalTitle(url, title),
+    title: await originalTitle(tab.id, url, title),
     audible: audible ?? false,
     incognito,
     tabCount: tabCount,
@@ -112,48 +101,39 @@ async function heartbeat(
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,
     )
-    await sendHeartbeat(
+    const sent = await sendHeartbeat(
       client,
       await getBucketId(),
       new Date(now.getTime() - 1),
       previousData,
       config.heartbeat.intervalInSeconds + 20,
     )
+    if (!sent) return
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
-  await sendHeartbeat(
+  const sent = await sendHeartbeat(
     client,
     await getBucketId(),
     now,
     data,
     config.heartbeat.intervalInSeconds + 20,
   )
-  await setHeartbeatData(data)
+  if (sent) await setHeartbeatData(data)
 }
 
 // Chrome can report URL and title changes before a preceding asynchronous
 // heartbeat finishes. Serialize the complete previousData read/send/write
 // transaction so each update observes the preceding update.
-let heartbeatQueue: Promise<void> = Promise.resolve()
+const queueHeartbeat = createHeartbeatQueue()
 
 function snapshotTab(tab: browser.Tabs.Tab): HeartbeatTab {
   return {
+    id: tab.id,
     url: tab.url,
     title: tab.title,
     audible: tab.audible,
     incognito: tab.incognito,
   }
-}
-
-// Call this before starting asynchronous work so queue order matches event
-// order.
-function queueHeartbeat(task: () => Promise<void>) {
-  const queuedHeartbeat = heartbeatQueue.then(task)
-
-  // Keep processing later heartbeats if one fails, while still returning the
-  // original rejection to the caller.
-  heartbeatQueue = queuedHeartbeat.catch(() => undefined)
-  return queuedHeartbeat
 }
 
 export const sendInitialHeartbeat = async (client: AWClient) => {

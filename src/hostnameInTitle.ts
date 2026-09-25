@@ -43,15 +43,3 @@ export const titlePreface = (host: string) => `${hostToken(host)} - `
  * our suffix apart from page-authored text.
  */
 export const WRITTEN_TITLE_ATTR = 'data-aw-watcher-web-title'
-
-/**
- * The page's own title, given a tab title while the content script is active.
- * Normally our suffix is at the end. If a page has just updated its title from
- * ours (e.g. `document.title += ' (1)'`), the suffix may briefly sit elsewhere
- * until the content script moves it back, so remove it wherever it is.
- */
-export function stripHostnameFromTitle(title: string, host: string) {
-  const suffix = titleSuffix(host)
-  if (title.endsWith(suffix)) return title.slice(0, -suffix.length)
-  return title.split(suffix).join('')
-}

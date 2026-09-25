@@ -8,6 +8,7 @@ import {
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
 import { setupHostnameInTitle } from './hostnameInTitle'
+import { getIsConsentRequired } from './consent'
 import {
   getConsentStatus,
   getHostname,
@@ -17,14 +18,6 @@ import {
   setHostname,
   waitForEnabled,
 } from '../storage'
-
-async function getIsConsentRequired() {
-  if (!config.requireConsent) return false
-  return browser.storage.managed
-    .get('consentOfflineDataCollection')
-    .then((consentOfflineDataCollection) => !consentOfflineDataCollection)
-    .catch(() => true)
-}
 
 async function autodetectHostname(client: ReturnType<typeof getClient>) {
   const hostname = await getHostname()
@@ -53,6 +46,7 @@ browser.runtime.onInstalled.addListener(async () => {
     await setEnabled(true)
   } else {
     console.info('Consent is required...opening consent tab')
+    await setEnabled(false)
     await setConsentStatus({ consent, required: true })
     await browser.tabs.create({
       active: true,

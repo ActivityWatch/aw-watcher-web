@@ -16,19 +16,19 @@ const titleSuffix = (hostname: string) => ` - ${hostnameToken(hostname)}`
 export const titlePreface = (hostname: string) =>
   `${hostnameToken(hostname)} - `
 
-/** Removes every suffix previously added by addHostnameToTitle. */
+/** Removes the suffix added by addHostnameToTitle, if present. */
 export function stripHostnameFromTitle(title: string, hostname: string) {
-  return title.split(titleSuffix(hostname)).join('')
+  const suffix = titleSuffix(hostname)
+  return title.endsWith(suffix) ? title.slice(0, -suffix.length) : title
 }
 
 /**
  * Idempotent: applying it to its own output returns the same string, so
- * multiple copies of the content script (e.g. one orphaned by an extension
- * reload) converge instead of fighting.
+ * repeated observer callbacks never stack suffixes. A page that prefixes its
+ * own title (e.g. `(3) ` + document.title) keeps our suffix at the end.
  */
 export function addHostnameToTitle(title: string, hostname: string) {
-  const base = stripHostnameFromTitle(title, hostname)
   // Chrome already falls back to showing the URL for untitled pages.
-  if (!base) return base
-  return `${base}${titleSuffix(hostname)}`
+  if (!title || title.endsWith(titleSuffix(hostname))) return title
+  return `${title}${titleSuffix(hostname)}`
 }

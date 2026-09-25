@@ -74,8 +74,8 @@ function removeHostnameFromTitle() {
     return
   }
   const suffix = ` - ${location.hostname}/`
-  if (document.title.includes(suffix)) {
-    document.title = document.title.split(suffix).join('')
+  if (document.title.endsWith(suffix)) {
+    document.title = document.title.slice(0, -suffix.length)
   }
 }
 
@@ -95,31 +95,53 @@ async function forEachWebTab(fn: (tabId: number) => Promise<unknown>) {
  * tab or its URL changes.
  */
 let firefoxEnabled = false
+let firefoxQueue = Promise.resolve()
 
-async function setFirefoxPreface(tab: browser.Tabs.Tab) {
-  if (tab.windowId === undefined) return
-  const show = firefoxEnabled && !tab.incognito && isWebPage(tab.url)
-  await browser.windows.update(tab.windowId, {
-    titlePreface: show ? titlePreface(new URL(tab.url!).hostname) : '',
-  })
+// Serialized, and reads the window's active tab when it runs rather than
+// trusting the event's tab, so rapid tab switches can't finish out of order
+// and leave a stale hostname.
+function updateFirefoxPreface(windowId: number) {
+  firefoxQueue = firefoxQueue
+    .then(async () => {
+      const [tab] = await browser.tabs.query({ windowId, active: true })
+      const show =
+        firefoxEnabled &&
+        tab !== undefined &&
+        !tab.incognito &&
+        isWebPage(tab.url)
+      await browser.windows.update(windowId, {
+        titlePreface: show ? titlePreface(new URL(tab.url!).hostname) : '',
+      })
+    })
+    .catch((err) => console.error('Failed to update title preface:', err))
+  return firefoxQueue
 }
 
 async function syncFirefox(enabled: boolean) {
   firefoxEnabled = enabled
-  const tabs = await browser.tabs.query({ active: true })
-  await Promise.all(tabs.map(setFirefoxPreface))
+  const windows = await browser.windows.getAll({ windowTypes: ['normal'] })
+  await Promise.all(
+    windows.map((w) => w.id !== undefined && updateFirefoxPreface(w.id)),
+  )
 }
 
 function listenFirefox() {
-  browser.tabs.onActivated.addListener(async ({ tabId }) => {
-    if (!firefoxEnabled) return
-    await setFirefoxPreface(await browser.tabs.get(tabId))
+  browser.tabs.onActivated.addListener(({ windowId }) => {
+    if (firefoxEnabled) updateFirefoxPreface(windowId)
   })
-  browser.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
+  browser.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
     if (!firefoxEnabled || changeInfo.url === undefined || !tab.active) return
-    await setFirefoxPreface(tab)
+    if (tab.windowId !== undefined) updateFirefoxPreface(tab.windowId)
   })
 }
+
+const usesContentScript = () =>
+  import.meta.env.VITE_TARGET_BROWSER !== 'firefox' &&
+  Boolean((globalThis as any).chrome?.scripting?.registerContentScripts)
+
+/** Whether page titles may carry the hostname suffix added by the content script. */
+export const pageTitlesHaveHostname = async () =>
+  usesContentScript() && (await getHostnameInTitle())
 
 export function setupHostnameInTitle() {
   let sync: (enabled: boolean) => Promise<void>
@@ -127,7 +149,7 @@ export function setupHostnameInTitle() {
   if (import.meta.env.VITE_TARGET_BROWSER === 'firefox') {
     listenFirefox()
     sync = syncFirefox
-  } else if (chrome?.scripting?.registerContentScripts) {
+  } else if (usesContentScript()) {
     sync = (enabled) => syncChromium(chrome, enabled)
   } else {
     return

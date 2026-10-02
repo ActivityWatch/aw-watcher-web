@@ -133,19 +133,24 @@ jobs:
           PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
           CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
           API_KEY: ${{ secrets.EDGE_API_KEY }}
+          # Override EDGE_POLL_RETRIES to tune the 10s-per-attempt polling budget.
+          # Default 60 retries = 10 minutes; validation typically finishes in 1-3 min.
+          # Expected operation response: {"id":"...","status":"InProgress"|"Succeeded"|"Failed","message":"..."}
+          EDGE_POLL_RETRIES: ${{ vars.EDGE_POLL_RETRIES || '60' }}
         # Edge Add-ons API v1.1: upload the Chrome zip as the draft package,
         # wait for validation, then publish the draft.
         run: |
           base="https://api.addons.microsoftedge.microsoft.com/v1/products/$PRODUCT_ID/submissions"
           auth=(-H "Authorization: ApiKey $API_KEY" -H "X-ClientID: $CLIENT_ID")
-          poll() {  # $1 = operation URL path; prints final status
-            for _ in $(seq 1 30); do
+          poll() {  # $1 = operation URL path; polls until status != InProgress; prints final JSON
+            retries="${EDGE_POLL_RETRIES:-60}"
+            for _ in $(seq 1 "$retries"); do
               resp=$(curl -fsS "${auth[@]}" "$1")
               status=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
               if [ "$status" != "InProgress" ]; then echo "$resp"; [ "$status" = "Succeeded" ]; return; fi
               sleep 10
             done
-            echo "::error::Timed out waiting for Edge operation"; return 1
+            echo "::error::Timed out waiting for Edge operation after $retries attempts"; return 1
           }
           op=$(curl -fsS -D - -o /dev/null -X POST "${auth[@]}" -H "Content-Type: application/zip" \
                  --data-binary @artifacts/chrome.zip "$base/draft/package" \

@@ -2,9 +2,11 @@ import browser from 'webextension-polyfill'
 import config from '../config'
 import {
   heartbeatAlarmListener,
+  refreshWindowFocus,
   sendInitialHeartbeat,
   tabActivatedListener,
   tabUpdatedListener,
+  windowFocusChangedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
 import {
@@ -79,6 +81,11 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await clientReady
   return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
+browser.windows.onFocusChanged.addListener(async (windowId) => {
+  await clientReady
+  return windowFocusChangedListener(client)(windowId)
+})
+void refreshWindowFocus()
 
 console.debug('Setting base url')
 clientReady

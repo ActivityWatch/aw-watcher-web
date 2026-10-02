@@ -121,3 +121,11 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+type PauseWhenUnfocused = boolean
+export const getPauseWhenUnfocused = (): Promise<PauseWhenUnfocused> =>
+  browser.storage.local
+    .get('pauseWhenUnfocused')
+    .then((_) => Boolean(_.pauseWhenUnfocused))
+export const setPauseWhenUnfocused = (pauseWhenUnfocused: PauseWhenUnfocused) =>
+  browser.storage.local.set({ pauseWhenUnfocused })

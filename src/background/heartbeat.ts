@@ -7,10 +7,49 @@ import {
   getEnabled,
   getHeartbeatData,
   getProfileName,
+  getPauseWhenUnfocused,
   setHeartbeatData,
 } from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
+
+// Tracks whether any normal browser window currently has OS focus. Only
+// meaningful when the "pause when unfocused" setting is on; see #140.
+// Defaults to focused so behavior is unchanged until the setting is read.
+let isWindowFocused = true
+
+// Re-derive focus from browser.windows directly. Used as a fallback on alarm
+// ticks since windows.onFocusChanged is unreliable on some Linux WMs, and as
+// the initial value at startup.
+export async function refreshWindowFocus(): Promise<boolean> {
+  try {
+    const win = await browser.windows.getLastFocused()
+    isWindowFocused = Boolean(win?.focused)
+  } catch (e) {
+    // windows API unavailable, or no normal window exists yet (e.g. right
+    // after install). Assume focused so heartbeats are never stuck paused.
+    isWindowFocused = true
+  }
+  return isWindowFocused
+}
+
+async function shouldPauseForUnfocus(): Promise<boolean> {
+  if (!(await getPauseWhenUnfocused())) return false
+  return !isWindowFocused
+}
+
+export const windowFocusChangedListener =
+  (client: AWClient) => async (windowId: number) => {
+    const wasFocused = isWindowFocused
+    isWindowFocused = windowId !== browser.windows.WINDOW_ID_NONE
+    if (!(await getPauseWhenUnfocused())) return
+    if (!wasFocused && isWindowFocused) {
+      // Refocused after a pause: send an immediate heartbeat so the gap in
+      // the timeline ends right when the user came back, not on the next
+      // alarm tick.
+      await sendInitialHeartbeat(client)
+    }
+  }
 
 function decodeURL(url: string): string {
   try {
@@ -157,6 +196,14 @@ export const heartbeatAlarmListener =
   (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
     if (alarm.name !== config.heartbeat.alarmName) return
 
+    // Fallback poll: focus-change events are unreliable on some Linux WMs,
+    // so re-derive focus from the windows API on every alarm tick.
+    await refreshWindowFocus()
+    if (await shouldPauseForUnfocus()) {
+      console.debug('Skipping heartbeat: browser is unfocused')
+      return
+    }
+
     const now = new Date()
     await queueHeartbeat(async () => {
       const activeWindowTab = await getActiveWindowTab()
@@ -170,6 +217,8 @@ export const heartbeatAlarmListener =
 export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
+    if (await shouldPauseForUnfocus()) return
+
     const now = new Date()
     await queueHeartbeat(async () => {
       const tab = await getTab(activeInfo.tabId)
@@ -187,6 +236,7 @@ export const tabUpdatedListener =
     tab: browser.Tabs.Tab,
   ) => {
     if (changeInfo.url === undefined && changeInfo.title === undefined) return
+    if (await shouldPauseForUnfocus()) return
 
     const now = new Date()
     const tabSnapshot = snapshotTab(tab)

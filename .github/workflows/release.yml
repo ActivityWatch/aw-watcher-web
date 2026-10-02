@@ -140,6 +140,9 @@ jobs:
         # Edge Add-ons API v1.1: upload the Chrome zip as the draft package,
         # wait for validation, then publish the draft.
         run: |
+          case "$EDGE_POLL_RETRIES" in
+            ''|*[!0-9]*|0) echo "::error::EDGE_POLL_RETRIES must be a positive integer (got: '$EDGE_POLL_RETRIES')"; exit 1 ;;
+          esac
           base="https://api.addons.microsoftedge.microsoft.com/v1/products/$PRODUCT_ID/submissions"
           auth=(-H "Authorization: ApiKey $API_KEY" -H "X-ClientID: $CLIENT_ID")
           poll() {  # $1 = operation URL path; polls until status != InProgress; prints final JSON

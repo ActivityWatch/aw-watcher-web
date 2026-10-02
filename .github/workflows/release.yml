@@ -8,6 +8,8 @@ name: Release
 #     CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN
 #   Mozilla Add-ons (https://addons.mozilla.org/en-US/developers/addon/api/key/):
 #     AMO_JWT_ISSUER, AMO_JWT_SECRET
+#   Microsoft Edge Add-ons (Partner Center > Edge > Publish API):
+#     EDGE_PRODUCT_ID, EDGE_CLIENT_ID, EDGE_API_KEY
 # Missing credentials skip the corresponding publish step with a warning, so
 # the GitHub release still gets created and the zips can be uploaded manually.
 
@@ -72,6 +74,9 @@ jobs:
           CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
         run: |
           cws=false
           if [ -n "$CWS_CLIENT_ID" ] && [ -n "$CWS_CLIENT_SECRET" ] && [ -n "$CWS_REFRESH_TOKEN" ]; then
@@ -87,7 +92,15 @@ jobs:
             echo "::error::Partial Mozilla Add-ons credentials: both AMO_JWT_ISSUER and AMO_JWT_SECRET must be set"
             exit 1
           fi
+          edge=false
+          if [ -n "$EDGE_PRODUCT_ID" ] && [ -n "$EDGE_CLIENT_ID" ] && [ -n "$EDGE_API_KEY" ]; then
+            edge=true
+          elif [ -n "$EDGE_PRODUCT_ID$EDGE_CLIENT_ID$EDGE_API_KEY" ]; then
+            echo "::error::Partial Edge Add-ons credentials: all of EDGE_PRODUCT_ID, EDGE_CLIENT_ID and EDGE_API_KEY must be set"
+            exit 1
+          fi
           echo "cws=$cws" >> "$GITHUB_OUTPUT"
+          echo "edge=$edge" >> "$GITHUB_OUTPUT"
           echo "amo=$amo" >> "$GITHUB_OUTPUT"
 
       - name: Publish to Chrome Web Store
@@ -114,8 +127,40 @@ jobs:
             --upload-source-code artifacts/src.zip \
             --approval-timeout 0
 
+      - name: Publish to Microsoft Edge Add-ons
+        if: steps.creds.outputs.edge == 'true'
+        env:
+          PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          API_KEY: ${{ secrets.EDGE_API_KEY }}
+        # Edge Add-ons API v1.1: upload the Chrome zip as the draft package,
+        # wait for validation, then publish the draft.
+        run: |
+          base="https://api.addons.microsoftedge.microsoft.com/v1/products/$PRODUCT_ID/submissions"
+          auth=(-H "Authorization: ApiKey $API_KEY" -H "X-ClientID: $CLIENT_ID")
+          poll() {  # $1 = operation URL path; prints final status
+            for _ in $(seq 1 30); do
+              resp=$(curl -fsS "${auth[@]}" "$1")
+              status=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))")
+              if [ "$status" != "InProgress" ]; then echo "$resp"; [ "$status" = "Succeeded" ]; return; fi
+              sleep 10
+            done
+            echo "::error::Timed out waiting for Edge operation"; return 1
+          }
+          op=$(curl -fsS -D - -o /dev/null -X POST "${auth[@]}" -H "Content-Type: application/zip" \
+                 --data-binary @artifacts/chrome.zip "$base/draft/package" \
+               | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')
+          [ -n "$op" ] || { echo "::error::Edge upload returned no operation id"; exit 1; }
+          poll "$base/draft/package/operations/$op"
+          op=$(curl -fsS -D - -o /dev/null -X POST "${auth[@]}" -H "Content-Type: application/json" \
+                 -d '{"notes":"Automated release ${{ github.ref_name }}"}' "$base" \
+               | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')
+          [ -n "$op" ] || { echo "::error::Edge publish returned no operation id"; exit 1; }
+          poll "$base/operations/$op"
+
       - name: Warn about skipped publishes
-        if: steps.creds.outputs.cws != 'true' || steps.creds.outputs.amo != 'true'
+        if: steps.creds.outputs.cws != 'true' || steps.creds.outputs.amo != 'true' || steps.creds.outputs.edge != 'true'
         run: |
           [ "${{ steps.creds.outputs.cws }}" = "true" ] || echo "::warning::CWS credentials missing - chrome.zip was not uploaded to the Chrome Web Store"
           [ "${{ steps.creds.outputs.amo }}" = "true" ] || echo "::warning::AMO credentials missing - firefox.zip was not submitted to Mozilla Add-ons"
+          [ "${{ steps.creds.outputs.edge }}" = "true" ] || echo "::warning::Edge credentials missing - chrome.zip was not uploaded to the Microsoft Edge Add-ons store"

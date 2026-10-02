@@ -214,7 +214,24 @@ export const heartbeatAlarmListener =
 
     // Fallback poll: focus-change events are unreliable on some Linux WMs,
     // so re-derive focus from the windows API on every alarm tick.
+    const wasFocused = isWindowFocused
     await refreshWindowFocus()
+
+    // If the poll detected a focus-loss that a missed event didn't catch,
+    // apply the same gap-preservation logic as windowFocusChangedListener:
+    // close the AW event at the current time and clear stored data so the
+    // next refocus heartbeat starts fresh instead of merging the gap.
+    if (wasFocused && !isWindowFocused && (await getPauseWhenUnfocused())) {
+      const now = new Date()
+      await queueHeartbeat(async () => {
+        const activeWindowTab = await getActiveWindowTab()
+        const tabs = await getTabs()
+        await heartbeat(client, activeWindowTab, tabs.length, now)
+        await clearHeartbeatData()
+      })
+      return
+    }
+
     if (await shouldPauseForUnfocus()) {
       console.debug('Skipping heartbeat: browser is unfocused')
       return

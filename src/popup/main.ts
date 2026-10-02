@@ -125,7 +125,7 @@ function domListeners() {
     throw Error('Settings button is not a link')
   settingsButton.addEventListener('click', (event) => {
     event.preventDefault()
-    void openSettings()
+    openSettings().catch(console.error)
   })
 }
 

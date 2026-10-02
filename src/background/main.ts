@@ -94,6 +94,10 @@ clientReady
     console.debug('Waiting for enable before sending initial heartbeat'),
   )
   .then(waitForEnabled)
+  // Re-check focus immediately before the startup heartbeat so the pause
+  // setting is evaluated against the real focus state, not the startup
+  // default of isWindowFocused=true.
+  .then(() => refreshWindowFocus())
   .then(() => sendInitialHeartbeat(client))
   .then(() => console.info('Started successfully'))
   .catch((err) => console.error('Failed to initialize extension:', err))

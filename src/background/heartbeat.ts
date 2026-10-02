@@ -4,6 +4,7 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  clearHeartbeatData,
   getEnabled,
   getHeartbeatData,
   getProfileName,
@@ -43,11 +44,24 @@ export const windowFocusChangedListener =
     const wasFocused = isWindowFocused
     isWindowFocused = windowId !== browser.windows.WINDOW_ID_NONE
     if (!(await getPauseWhenUnfocused())) return
+    if (wasFocused && !isWindowFocused) {
+      // Focus lost: close the current AW event with a standard-pulsetime
+      // heartbeat so the timeline ends at exactly the focus-loss time.
+      // Then clear the stored data so the refocus heartbeat starts fresh.
+      const now = new Date()
+      await queueHeartbeat(async () => {
+        const activeWindowTab = await getActiveWindowTab()
+        const tabs = await getTabs()
+        await heartbeat(client, activeWindowTab, tabs.length, now)
+        await clearHeartbeatData()
+      })
+    }
     if (!wasFocused && isWindowFocused) {
-      // Refocused after a pause: send an immediate heartbeat so the gap in
-      // the timeline ends right when the user came back, not on the next
-      // alarm tick.
-      await sendInitialHeartbeat(client)
+      // Refocused after a pause: send a zero-pulsetime heartbeat so AW
+      // creates a new event starting at the exact refocus time.
+      // pulsetime=0 prevents merging with the pre-pause event regardless
+      // of how short the unfocused interval was.
+      await sendInitialHeartbeat(client, 0)
     }
   }
 
@@ -100,6 +114,7 @@ async function heartbeat(
   tab: HeartbeatTab | undefined,
   tabCount: number,
   now: Date,
+  pulsetime: number = config.heartbeat.intervalInSeconds + 20,
 ) {
   const enabled = await getEnabled()
   if (!enabled) {
@@ -143,17 +158,11 @@ async function heartbeat(
       await getBucketId(),
       new Date(now.getTime() - 1),
       previousData,
-      config.heartbeat.intervalInSeconds + 20,
+      pulsetime,
     )
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
-  await sendHeartbeat(
-    client,
-    await getBucketId(),
-    now,
-    data,
-    config.heartbeat.intervalInSeconds + 20,
-  )
+  await sendHeartbeat(client, await getBucketId(), now, data, pulsetime)
   await setHeartbeatData(data)
 }
 
@@ -182,13 +191,20 @@ function queueHeartbeat(task: () => Promise<void>) {
   return queuedHeartbeat
 }
 
-export const sendInitialHeartbeat = async (client: AWClient) => {
+export const sendInitialHeartbeat = async (
+  client: AWClient,
+  pulsetime?: number,
+) => {
+  if (await shouldPauseForUnfocus()) {
+    console.debug('Skipping initial heartbeat: browser is unfocused')
+    return
+  }
   const now = new Date()
   await queueHeartbeat(async () => {
     const activeWindowTab = await getActiveWindowTab()
     const tabs = await getTabs()
     console.debug('Sending initial heartbeat', activeWindowTab?.url)
-    await heartbeat(client, activeWindowTab, tabs.length, now)
+    await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
   })
 }
 

@@ -85,7 +85,9 @@ export async function sendHeartbeat(
     {
       retries: 3,
       onFailedAttempt: () =>
-        ensureBucket(client, bucketId, hostname).catch(() => {}),
+        ensureBucket(client, bucketId, hostname)
+          .then(() => {})
+          .catch(() => {}),
     },
   )
     .then(() => {

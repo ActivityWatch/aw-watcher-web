@@ -6,6 +6,8 @@ import {
   getHostname,
   setHostname,
   setApiKey,
+  getProfileName,
+  setProfileName,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -42,6 +44,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
   const apiKey = apiKeyInput?.value?.trim() ?? ''
 
+  const profileNameInput =
+    document.querySelector<HTMLInputElement>('#profileName')
+  const profileName = profileNameInput?.value ?? ''
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -52,6 +58,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   try {
     await setBrowserName(selectedBrowser)
     await setHostname(hostname)
+    await setProfileName(profileName)
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -105,6 +112,13 @@ async function restoreOptions(): Promise<void> {
     const hostnameInput = document.querySelector<HTMLInputElement>('#hostname')
     if (hostnameInput && hostname !== undefined) {
       hostnameInput.value = hostname
+    }
+
+    const profileName = await getProfileName()
+    const profileNameInput =
+      document.querySelector<HTMLInputElement>('#profileName')
+    if (profileNameInput && profileName !== undefined) {
+      profileNameInput.value = profileName
     }
 
     const apiKey = await getApiKey()

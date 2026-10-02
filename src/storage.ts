@@ -109,3 +109,15 @@ export const getApiKey = (): Promise<ApiKey | undefined> =>
     .then((data: StorageData) => data.apiKey as string | undefined)
 export const setApiKey = (apiKey: ApiKey) =>
   browser.storage.local.set({ apiKey })
+
+type ProfileName = string
+export const getProfileName = (): Promise<ProfileName | undefined> =>
+  browser.storage.local
+    .get('profileName')
+    .then((data: StorageData) => data.profileName as string | undefined)
+export const setProfileName = (profileName: ProfileName) => {
+  const trimmed = profileName.trim()
+  // An empty name means "default profile": drop the key so heartbeats stay unchanged
+  if (trimmed === '') return browser.storage.local.remove('profileName')
+  return browser.storage.local.set({ profileName: trimmed })
+}

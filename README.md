@@ -12,6 +12,49 @@ see the browser window title from desktop window watchers.
 **Learn more:** [Watchers][docs-watchers] • [Architecture][docs-architecture] •
 [Buckets and events][docs-buckets-and-events]
 
+## Background media capture (experimental, opt-in)
+
+In extension settings, enable **Track audible background tabs** to record the
+URLs and titles of audible non-incognito tabs outside the captured foreground
+tab. This is off by default and records metadata, not audio content. Selected
+tabs in other windows are included even if the browser calls them `active`.
+
+The separate `aw-watcher-web-media-{browser}_{hostname}` bucket (hostname suffix
+omitted when unknown) has type `web.tab.audible`. Each event contains one set:
+
+```json
+{
+    "tabs": [
+        { "tabId": 18, "url": "https://example.org/video", "title": "Video" },
+        {
+            "tabId": 42,
+            "url": "https://example.org/podcast",
+            "title": "Podcast"
+        }
+    ]
+}
+```
+
+Records are sorted by numeric `tabId`, so simultaneous playback is one state,
+not alternating per-tab heartbeats. IDs are local to a browser session, not
+stable across restarts/devices. Incognito tabs and tabs missing URL/title are
+excluded. An empty set is `{"tabs": []}`. Foreground event data is unchanged.
+
+Capture uses the existing initial/minute alarm cadence and 80-second pulsetime.
+Unchanged consecutive sets extend duration; a changed/empty set starts a new
+state at its observation timestamp. There is no backfilled previous-state pulse.
+Starts/stops may be noticed up to one sampling interval late; browser alarm
+scheduling can delay samples further, and short playback between samples can be
+missed. Muted/video-only playback and OS audio are not detected. Turning this off
+(or disabling capture) attempts one empty state after an acknowledged nonempty
+set; unavailable servers do not trigger endless retries. If clearing fails or
+the worker has restarted, old duration remains bounded by the last successful
+sample. Restart queries fresh state rather than replaying tab metadata.
+
+This proposed event type is **not yet integrated with ActivityWatch queries or
+the dashboard** and does not override AFK/idle detection. Audio is not proof of
+attention. A store release and downstream integration are separate work.
+
 ## Installation
 
 ### Official Releases

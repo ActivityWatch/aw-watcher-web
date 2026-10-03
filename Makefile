@@ -6,6 +6,9 @@ install:
 compile:
 	npx tsc --noEmit
 
+test:
+	npx vitest run
+
 clean:
 	rm -rf node_modules build
 

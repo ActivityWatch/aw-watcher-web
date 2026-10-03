@@ -116,3 +116,6 @@ jobs:
 
       - name: Typecheck TypeScript
         run: make compile
+
+      - name: Test capture contracts
+        run: make test

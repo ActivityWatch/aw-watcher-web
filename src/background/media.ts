@@ -89,16 +89,26 @@ export function createMediaCapture(client: AWClient) {
     if (bucketId) await send(bucketId, [], now)
   }
 
-  function sample(now = new Date()) {
+  function sample(nowOverride?: Date) {
     const expectedGeneration = generation
     return enqueue(async () => {
       if (expectedGeneration !== generation) return
       if (!(await enabled())) {
-        await clear(now)
+        await clear(nowOverride ?? new Date())
         return
       }
-      const foreground = await getActiveWindowTab()
+      // Read the foreground tab on both sides of the audible query. If the user
+      // switches to an audible tab while we are reading, filtering against a
+      // single foreground id would exclude the old foreground and include the
+      // new one — recording the current foreground as background media. Skip
+      // that inconsistent sample instead; the next alarm observes a stable state.
+      const foregroundBefore = await getActiveWindowTab()
       const audible = await browser.tabs.query({ audible: true })
+      const foreground = await getActiveWindowTab()
+      if (foregroundBefore?.id !== foreground?.id) return
+      // Timestamp the observation, not the queue time: a sample delayed behind
+      // an earlier heartbeat must not be backdated to when it was enqueued.
+      const observedAt = nowOverride ?? new Date()
       const tabs: AudibleTab[] = audible
         .filter(
           (tab) =>
@@ -120,7 +130,12 @@ export function createMediaCapture(client: AWClient) {
       }`
       // A delayed query must not publish metadata after a control change.
       if (expectedGeneration !== generation || !(await enabled())) return
-      await send(bucketId, tabs, now)
+      // A new hostname/browser name moves samples to a new bucket. Close the
+      // old one so its last audible set does not extend without a closing event.
+      if (recordedBucket && recordedBucket !== bucketId) {
+        await send(recordedBucket, [], observedAt)
+      }
+      await send(bucketId, tabs, observedAt)
     })
   }
 

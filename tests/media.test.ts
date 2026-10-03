@@ -214,4 +214,49 @@ describe('audible set capture', () => {
     await createMediaCapture(client as any).sample()
     expect(client.heartbeat).toHaveBeenCalledTimes(2)
   })
+
+  it('timestamps a delayed sample at observation time, not queue time', async () => {
+    const media = createMediaCapture(client as any)
+    let release!: () => void
+    client.heartbeat.mockImplementationOnce(
+      () =>
+        new Promise<void>((r) => {
+          release = r
+        }),
+    )
+    const first = media.sample()
+    await vi.waitFor(() => expect(client.heartbeat).toHaveBeenCalledTimes(1))
+    const queuedAt = Date.now()
+    // Queued behind the blocked first sample for longer than the margin below.
+    const second = media.sample()
+    await new Promise((r) => setTimeout(r, 60))
+    release()
+    await Promise.all([first, second])
+    const timestamp = client.heartbeat.mock.calls[1][2].timestamp as Date
+    expect(timestamp.getTime()).toBeGreaterThanOrEqual(queuedAt + 50)
+  })
+
+  it('skips a sample when the foreground switches during the audible query', async () => {
+    const media = createMediaCapture(client as any)
+    mocks.active.mockResolvedValueOnce(tab(1)).mockResolvedValueOnce(tab(42))
+    await media.sample()
+    expect(client.heartbeat).not.toHaveBeenCalled()
+  })
+
+  it('closes the previous bucket when the hostname changes', async () => {
+    const media = createMediaCapture(client as any)
+    await media.sample()
+    expect(client.heartbeat.mock.calls[0][0]).toBe(
+      'aw-watcher-web-media-firefox_host',
+    )
+    mocks.hostname.mockResolvedValue('other')
+    await media.sample()
+    expect(client.heartbeat.mock.calls[1][0]).toBe(
+      'aw-watcher-web-media-firefox_host',
+    )
+    expect(client.heartbeat.mock.calls[1][2].data).toEqual({ tabs: [] })
+    expect(client.heartbeat.mock.calls[2][0]).toBe(
+      'aw-watcher-web-media-firefox_other',
+    )
+  })
 })

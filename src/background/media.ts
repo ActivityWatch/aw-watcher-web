@@ -40,6 +40,15 @@ export function createMediaCapture(client: AWClient) {
     now: Date,
     expectedGeneration = generation,
   ) {
+    // Never publish tab metadata after a control change. A sample can await an
+    // earlier heartbeat (e.g. closing a stale bucket) before reaching here, so
+    // re-check right before transmission. Empty snapshots are always allowed:
+    // they close an open bucket and carry no metadata.
+    if (
+      tabs.length &&
+      (expectedGeneration !== generation || !(await enabled()))
+    )
+      return
     // aw-client's public EventData type allows scalars only, but both server
     // APIs accept JSON objects/arrays. Keep the schema typed here and limit
     // the compatibility cast to this transport boundary.
@@ -135,7 +144,7 @@ export function createMediaCapture(client: AWClient) {
       if (recordedBucket && recordedBucket !== bucketId) {
         await send(recordedBucket, [], observedAt)
       }
-      await send(bucketId, tabs, observedAt)
+      await send(bucketId, tabs, observedAt, expectedGeneration)
     })
   }
 

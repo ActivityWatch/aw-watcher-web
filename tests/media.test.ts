@@ -259,4 +259,30 @@ describe('audible set capture', () => {
       'aw-watcher-web-media-firefox_other',
     )
   })
+
+  it('does not send new-bucket metadata when opt-out lands while closing the old bucket', async () => {
+    const media = createMediaCapture(client as any)
+    await media.sample()
+    mocks.hostname.mockResolvedValue('other')
+    let releaseClose!: () => void
+    client.heartbeat.mockImplementationOnce(
+      () =>
+        new Promise<void>((r) => {
+          releaseClose = r
+        }),
+    )
+    const sample = media.sample()
+    // The second heartbeat is the old bucket's closing snapshot, now blocked.
+    await vi.waitFor(() => expect(client.heartbeat).toHaveBeenCalledTimes(2))
+    settings.trackBackgroundMedia = false
+    const control = media.settingsChanged()
+    releaseClose()
+    await Promise.all([sample, control])
+    // Only the first sample and the old-bucket close ran: no metadata for the
+    // new bucket was published after opt-out.
+    expect(client.heartbeat).toHaveBeenCalledTimes(2)
+    expect(client.heartbeat.mock.calls.map((c) => c[0])).not.toContain(
+      'aw-watcher-web-media-firefox_other',
+    )
+  })
 })

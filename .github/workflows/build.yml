@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [master]
 
+# One run per workflow and ref. On PRs a new push cancels the superseded run.
+# On master the running build finishes, and queued intermediates collapse to
+# the newest commit, so a burst of merges doesn't queue a full build each.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest

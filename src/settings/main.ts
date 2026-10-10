@@ -56,6 +56,14 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   button.classList.remove('accept')
 
   try {
+    const mediaCheckbox = document.querySelector<HTMLInputElement>(
+      '#trackBackgroundMedia',
+    )
+    // Clear using the old client/bucket before changing identity or reloading.
+    await browser.runtime.sendMessage({
+      type: 'SET_MEDIA_CAPTURE',
+      enabled: mediaCheckbox?.checked ?? false,
+    })
     await setBrowserName(selectedBrowser)
     await setHostname(hostname)
     await setProfileName(profileName)
@@ -120,6 +128,14 @@ async function restoreOptions(): Promise<void> {
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
     }
+
+    const { trackBackgroundMedia } = await browser.storage.local.get(
+      'trackBackgroundMedia',
+    )
+    const mediaCheckbox = document.querySelector<HTMLInputElement>(
+      '#trackBackgroundMedia',
+    )
+    if (mediaCheckbox) mediaCheckbox.checked = trackBackgroundMedia === true
 
     const apiKey = await getApiKey()
     const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')

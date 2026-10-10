@@ -87,6 +87,18 @@
       </div>
 
       <div>
+        <label for="trackBackgroundMedia">
+          <input type="checkbox" id="trackBackgroundMedia" />
+          Track audible background tabs (off by default)
+        </label>
+        <small>
+          Records URLs and titles of non-incognito tabs playing audio in a
+          separate local media bucket, sampled once per minute. This does not
+          override idle detection or add media to the ActivityWatch dashboard.
+        </small>
+      </div>
+
+      <div>
         <button type="submit">Save</button>
       </div>
     </form>

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   listener: vi.fn(),
   browser: vi.fn(),
   hostname: vi.fn(),
+  profile: vi.fn(),
 }))
 vi.mock('webextension-polyfill', () => ({
   default: {
@@ -20,7 +21,10 @@ vi.mock('../src/background/helpers', () => ({
   getActiveWindowTab: mocks.active,
   getBrowser: mocks.browser,
 }))
-vi.mock('../src/storage', () => ({ getHostname: mocks.hostname }))
+vi.mock('../src/storage', () => ({
+  getHostname: mocks.hostname,
+  getProfileName: mocks.profile,
+}))
 vi.mock('../src/background/url', () => ({ decodeURL: (url: string) => url }))
 
 import { createMediaCapture } from '../src/background/media'
@@ -76,6 +80,19 @@ describe('audible set capture', () => {
         },
       },
     ])
+  })
+
+  it('tags snapshots with a named profile, like foreground heartbeats', async () => {
+    mocks.profile.mockResolvedValue('work')
+    const media = createMediaCapture(client as any)
+    await media.sample(new Date('2026-10-03T09:00:00Z'))
+    expect(client.heartbeat.mock.calls[0][2].data).toEqual({
+      tabs: [
+        { tabId: 18, url: 'https://example.org/18', title: 'Tab 18' },
+        { tabId: 42, url: 'https://example.org/42', title: 'Tab 42' },
+      ],
+      profile: 'work',
+    })
   })
 
   it('is default-off and does not query tabs while disabled', async () => {

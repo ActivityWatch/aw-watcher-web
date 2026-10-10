@@ -216,24 +216,31 @@ export const heartbeatAlarmListener =
     // so re-derive focus from the windows API on every alarm tick.
     const wasFocused = isWindowFocused
     await refreshWindowFocus()
+    const pauseWhenUnfocused = await getPauseWhenUnfocused()
 
-    // If the poll detected a focus-loss that a missed event didn't catch,
-    // apply the same gap-preservation logic as windowFocusChangedListener:
-    // close the AW event at the current time and clear stored data so the
-    // next refocus heartbeat starts fresh instead of merging the gap.
-    if (wasFocused && !isWindowFocused && (await getPauseWhenUnfocused())) {
-      const now = new Date()
+    // Missed focus-loss: do not send a closing heartbeat at poll time.
+    // The actual T_loss is unknown; stamping `now` would extend the previous
+    // AW event through time spent in another app (heartbeat at 12:00, focus
+    // lost at 12:00:05, poll at 12:01 → 55s of away-time counted as browsing).
+    // Leave the event at the last known heartbeat and clear stored data so
+    // the next focused heartbeat starts a new event.
+    if (pauseWhenUnfocused && wasFocused && !isWindowFocused) {
       await queueHeartbeat(async () => {
-        const activeWindowTab = await getActiveWindowTab()
-        const tabs = await getTabs()
-        await heartbeat(client, activeWindowTab, tabs.length, now)
         await clearHeartbeatData()
       })
       return
     }
 
-    if (await shouldPauseForUnfocus()) {
+    if (pauseWhenUnfocused && !isWindowFocused) {
       console.debug('Skipping heartbeat: browser is unfocused')
+      return
+    }
+
+    // Missed focus-gain: same hole as missed loss. A normal-pulsetime
+    // heartbeat here would merge a short unfocused gap into the previous
+    // event. Force pulsetime=0 so AW starts a fresh event at poll time.
+    if (pauseWhenUnfocused && !wasFocused && isWindowFocused) {
+      await sendInitialHeartbeat(client, 0)
       return
     }
 

@@ -21,6 +21,17 @@ Install from official stores:
 - [Chrome Web Store][chrome]
 - [Firefox Add-ons][firefox]
 
+#### Firefox for Android
+
+Firefox for Android 120 and newer is supported. When using the extension with
+ActivityWatch for Android, copy the key from **Misc > API Authentication** into
+the extension settings. Events are then written to the on-device ActivityWatch
+server at `127.0.0.1:5600`.
+
+The Android extension records browser tab activity. Desktop-only signals such
+as application focus and system AFK state come from separate ActivityWatch
+watchers and are not available from the browser extension.
+
 ### Development Build
 
 Download the latest development build from our [GitHub Actions][gh-actions]:

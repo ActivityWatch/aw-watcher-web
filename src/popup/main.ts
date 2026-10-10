@@ -29,6 +29,19 @@ function setSyncDate(date: string | undefined) {
   statusLastSync.innerHTML = lastSyncString
 }
 
+async function openSettings() {
+  const platform = await browser.runtime.getPlatformInfo()
+  if (platform.os === 'android') {
+    await browser.tabs.create({
+      active: true,
+      url: browser.runtime.getURL('src/settings/index.html'),
+    })
+    return
+  }
+
+  await browser.runtime.openOptionsPage()
+}
+
 async function renderStatus() {
   const baseUrl = await getBaseUrl()
   const enabled = await getEnabled()
@@ -118,8 +131,9 @@ function domListeners() {
   const settingsButton = document.getElementById('settings-btn')
   if (!(settingsButton instanceof HTMLAnchorElement))
     throw Error('Settings button is not a link')
-  settingsButton.addEventListener('click', () => {
-    browser.runtime.openOptionsPage()
+  settingsButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    openSettings().catch(console.error)
   })
 }
 

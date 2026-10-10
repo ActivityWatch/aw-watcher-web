@@ -37,3 +37,10 @@ form {
 label {
   font-weight: bold;
 }
+
+#status-profile {
+  max-width: 14em;
+  overflow-wrap: break-word;
+  display: inline-block;
+  vertical-align: top;
+}

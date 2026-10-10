@@ -3,7 +3,12 @@ import { getActiveWindowTab, getTab, getTabs } from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
-import { getEnabled, getHeartbeatData, setHeartbeatData } from '../storage'
+import {
+  getEnabled,
+  getHeartbeatData,
+  getProfileName,
+  setHeartbeatData,
+} from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
 
@@ -85,6 +90,10 @@ async function heartbeat(
     incognito,
     tabCount: tabCount,
   }
+  // Only set for users who named their profile, so the default case adds
+  // nothing to event size.
+  const profile = await getProfileName()
+  if (profile) data.profile = profile
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(

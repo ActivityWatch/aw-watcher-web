@@ -2,7 +2,7 @@ import browser from 'webextension-polyfill'
 import type { AWClient, IEvent } from 'aw-client'
 import config from '../config'
 import { getActiveWindowTab, getBrowser } from './helpers'
-import { getHostname } from '../storage'
+import { getHostname, getProfileName } from '../storage'
 import { decodeURL } from './url'
 
 interface AudibleTab {
@@ -40,6 +40,11 @@ export function createMediaCapture(client: AWClient) {
     now: Date,
     expectedGeneration = generation,
   ) {
+    // Like foreground heartbeats, only named profiles add the field. Read it
+    // before the control re-check so no await separates that check from send.
+    const data: Record<string, unknown> = { tabs }
+    const profile = await getProfileName()
+    if (profile) data.profile = profile
     // Never publish tab metadata after a control change. A sample can await an
     // earlier heartbeat (e.g. closing a stale bucket) before reaching here, so
     // re-check right before transmission. Empty snapshots are always allowed:
@@ -55,7 +60,7 @@ export function createMediaCapture(client: AWClient) {
     const event: IEvent = {
       timestamp: now,
       duration: 0,
-      data: { tabs } as unknown as IEvent['data'],
+      data: data as unknown as IEvent['data'],
     }
     try {
       await client.heartbeat(

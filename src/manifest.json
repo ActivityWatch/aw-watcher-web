@@ -63,7 +63,10 @@
 
     "{{firefox}}.browser_specific_settings": {
         "gecko": {
-            "id": "{ef87d84c-2127-493f-b952-5b4e744245bc}"
+            "id": "aw-watcher-web-configurable@local",
+            "data_collection_permissions": {
+                "required": ["browsingActivity"]
+            }
         }
     }
 }

@@ -6,14 +6,23 @@ import { getBrowserName, setBrowserName } from '../storage'
 // extensions unchanged), so UA-based detection cannot distinguish them.
 // browser.runtime.getBrowserInfo() is a Firefox-only API that returns
 // {name, vendor, version, buildID} and is overridden by most forks to
-// reflect their own brand. We use it to refine 'firefox' into a specific
-// fork name when aw-webui's queries.ts has a dedicated entry for it
-// (browser_appnames + browser_appname_regex). Forks not listed below
-// (librewolf, waterfox, …) fall through and keep using the firefox bucket,
-// which already covers them via the firefox regex.
+// reflect their own brand (e.g. Floorp reports name: "Floorp"). Notably,
+// Zen keeps name: "Firefox" for web compatibility and instead exposes a
+// separate `zen` info field, so we check that field first. We use it to
+// refine 'firefox' into a specific fork name when aw-webui's queries.ts
+// has a dedicated entry for it (browser_appnames +
+// browser_appname_regex). Forks not listed below (librewolf, waterfox, …)
+// fall through and keep using the firefox bucket, which already covers
+// them via the firefox regex.
 const FIREFOX_FORK_BUCKETS: Record<string, string> = {
   zen: 'zen',
   floorp: 'floorp',
+}
+
+// Zen deliberately reports name: "Firefox" (see comment above) and adds a
+// `zen` field instead; check it before the generic name matching.
+function zenVersionFromInfo(info: any): string | undefined {
+  return typeof info?.zen?.version === 'string' ? info.zen.version : undefined
 }
 
 async function refineFirefoxFork(): Promise<string> {
@@ -22,6 +31,8 @@ async function refineFirefoxFork(): Promise<string> {
   if (typeof getBrowserInfo !== 'function') return 'firefox'
   try {
     const info = await getBrowserInfo.call(browser.runtime)
+    const zenVersion = zenVersionFromInfo(info)
+    if (zenVersion) return 'zen'
     const name = (info?.name || '').toLowerCase()
     for (const key of Object.keys(FIREFOX_FORK_BUCKETS)) {
       if (name.includes(key)) return FIREFOX_FORK_BUCKETS[key]

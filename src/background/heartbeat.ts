@@ -88,7 +88,18 @@ async function heartbeat(
     (await getTrackOnlyWhenFocused()) &&
     !(focused ?? (await isBrowserFocused()))
   ) {
-    console.debug('Ignoring heartbeat because browser is not focused')
+    // Draft-PR diagnostics (remove before merge): log what the browser
+    // reports about its windows, to compare against aw-watcher-window.
+    const windows = await browser.windows
+      .getAll({ windowTypes: ['normal', 'popup', 'panel', 'app', 'devtools'] })
+      .catch(() => browser.windows.getAll())
+      .catch(() => [])
+    console.debug(
+      `[${new Date().toISOString()}] Ignoring heartbeat because browser is not focused; windows:`,
+      windows
+        .map((w) => `${w.id}:${w.type}:${w.state}:focused=${w.focused}`)
+        .join(' '),
+    )
     return
   }
 
@@ -188,7 +199,10 @@ export const heartbeatAlarmListener =
       const activeWindowTab = await getActiveWindowTab()
       if (!activeWindowTab) return
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+      console.debug(
+        `[${new Date().toISOString()}] Sending heartbeat for alarm`,
+        activeWindowTab.url,
+      )
       await heartbeat(client, activeWindowTab, tabs.length, now)
     })
   }
@@ -228,6 +242,7 @@ export const tabUpdatedListener =
 
 export const windowFocusChangedListener =
   (client: AWClient) => async (windowId: number) => {
+    console.debug(`[${new Date().toISOString()}] Focus changed: ${windowId}`)
     const now = new Date()
     await queueHeartbeat(async () => {
       if (!(await getTrackOnlyWhenFocused())) return
@@ -243,7 +258,10 @@ export const windowFocusChangedListener =
           await clearHeartbeatData()
           return
         }
-        console.debug('Sending heartbeat for focus loss', previousData.url)
+        console.debug(
+          `[${new Date().toISOString()}] Sending heartbeat for focus loss`,
+          previousData.url,
+        )
         await sendHeartbeat(
           client,
           await getBucketId(),
@@ -257,7 +275,10 @@ export const windowFocusChangedListener =
 
       const activeWindowTab = await getActiveWindowTab()
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for focus gain', activeWindowTab?.url)
+      console.debug(
+        `[${new Date().toISOString()}] Sending heartbeat for focus gain`,
+        activeWindowTab?.url,
+      )
       await heartbeat(client, activeWindowTab, tabs.length, now, {
         focused: true,
       })

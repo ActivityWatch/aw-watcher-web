@@ -4,9 +4,11 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  clearHeartbeatData,
   getEnabled,
   getHeartbeatData,
   getProfileName,
+  getTrackOnlyWhenFocused,
   setHeartbeatData,
 } from '../storage'
 import deepEqual from 'deep-equal'
@@ -51,6 +53,16 @@ function formatHeartbeatLogData(data: IEvent['data']) {
     .join(', ')
 }
 
+async function isBrowserFocused(): Promise<boolean> {
+  try {
+    const window = await browser.windows.getLastFocused()
+    return window.focused
+  } catch {
+    // No browser windows (e.g. all closed on macOS)
+    return false
+  }
+}
+
 type HeartbeatTab = Pick<
   browser.Tabs.Tab,
   'url' | 'title' | 'audible' | 'incognito'
@@ -61,10 +73,22 @@ async function heartbeat(
   tab: HeartbeatTab | undefined,
   tabCount: number,
   now: Date,
+  // Focus state at the time of the triggering event, when known. Heartbeats
+  // can wait in the queue (e.g. during server retries), by which time the
+  // browser may have lost focus again.
+  { focused }: { focused?: boolean } = {},
 ) {
   const enabled = await getEnabled()
   if (!enabled) {
     console.warn('Ignoring heartbeat because client has not been enabled')
+    return
+  }
+
+  if (
+    (await getTrackOnlyWhenFocused()) &&
+    !(focused ?? (await isBrowserFocused()))
+  ) {
+    console.debug('Ignoring heartbeat because browser is not focused')
     return
   }
 
@@ -113,7 +137,9 @@ async function heartbeat(
     await getBucketId(),
     now,
     data,
-    config.heartbeat.intervalInSeconds + 20,
+    // Without previous data (cleared when the browser lost focus), start a
+    // new event rather than merging into the one that ended at focus loss.
+    previousData ? config.heartbeat.intervalInSeconds + 20 : 0,
   )
   await setHeartbeatData(data)
 }
@@ -197,5 +223,43 @@ export const tabUpdatedListener =
       const tabs = await getTabs()
       console.debug('Sending heartbeat for tab update', tabSnapshot.url)
       await heartbeat(client, tabSnapshot, tabs.length, now)
+    })
+  }
+
+export const windowFocusChangedListener =
+  (client: AWClient) => async (windowId: number) => {
+    const now = new Date()
+    await queueHeartbeat(async () => {
+      if (!(await getTrackOnlyWhenFocused())) return
+
+      if (windowId === browser.windows.WINDOW_ID_NONE) {
+        // Extend the current event up to the moment focus was lost, then
+        // forget it so the next heartbeat starts a new event instead of
+        // extending this one across the unfocused gap.
+        const previousData = await getHeartbeatData()
+        if (!previousData) return
+        if (!(await getEnabled())) {
+          // Tracking was paused after the last heartbeat; don't extend it
+          await clearHeartbeatData()
+          return
+        }
+        console.debug('Sending heartbeat for focus loss', previousData.url)
+        await sendHeartbeat(
+          client,
+          await getBucketId(),
+          now,
+          previousData,
+          config.heartbeat.intervalInSeconds + 20,
+        )
+        await clearHeartbeatData()
+        return
+      }
+
+      const activeWindowTab = await getActiveWindowTab()
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for focus gain', activeWindowTab?.url)
+      await heartbeat(client, activeWindowTab, tabs.length, now, {
+        focused: true,
+      })
     })
   }

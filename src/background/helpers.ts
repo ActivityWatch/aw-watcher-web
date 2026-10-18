@@ -65,6 +65,13 @@ export const detectBrowser = () => {
     return 'opera'
   } else if (navigator.userAgent.includes('Firefox')) {
     return 'firefox'
+  } else if (
+    // Edge UA includes 'Chrome', so check for Edge-specific tokens first.
+    // Desktop Edge reports 'Edg/', Android Edge reports 'EdgA/'.
+    navigator.userAgent.includes('Edg/') ||
+    navigator.userAgent.includes('EdgA/')
+  ) {
+    return 'edge'
   } else if (navigator.userAgent.includes('Chrome')) {
     return 'chrome'
   } else if (navigator.userAgent.includes('Safari')) {

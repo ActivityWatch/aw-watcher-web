@@ -69,6 +69,13 @@ export const getEnabled = (): Promise<Enabled> =>
 export const setEnabled = (enabled: Enabled) =>
   browser.storage.local.set({ enabled })
 
+export const getShowDomainTime = (): Promise<boolean> =>
+  browser.storage.local
+    .get('showDomainTime')
+    .then((data) => data.showDomainTime === true)
+export const setShowDomainTime = (showDomainTime: boolean) =>
+  browser.storage.local.set({ showDomainTime })
+
 type BaseUrl = string
 export const getBaseUrl = (): Promise<BaseUrl | undefined> =>
   browser.storage.local

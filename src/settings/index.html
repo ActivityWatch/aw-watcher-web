@@ -87,6 +87,21 @@
       </div>
 
       <div>
+        <label for="showDomainTime">
+          <input type="checkbox" id="showDomainTime" name="showDomainTime" />
+          Show time on the current site today in the popup
+        </label>
+        <small>
+          Queries this browser's recorded time since local midnight when the
+          popup opens. Includes all profiles sharing this browser and hostname;
+          does not subtract AFK time. Off by default. Firefox servers may deny
+          queries from extension origins: the server owner must explicitly allow
+          this extension's origin (see the README). Enabling this option does
+          not grant server access.
+        </small>
+      </div>
+
+      <div>
         <button type="submit">Save</button>
       </div>
     </form>

@@ -9,6 +9,8 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getShowDomainTime,
+  setShowDomainTime,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -63,6 +65,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    await setShowDomainTime(
+      document.querySelector<HTMLInputElement>('#showDomainTime')!.checked,
+    )
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -124,6 +129,10 @@ async function restoreOptions(): Promise<void> {
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
     }
+
+    const showDomainTime =
+      document.querySelector<HTMLInputElement>('#showDomainTime')
+    if (showDomainTime) showDomainTime.checked = await getShowDomainTime()
 
     const apiKey = await getApiKey()
     const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')

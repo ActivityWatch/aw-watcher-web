@@ -84,6 +84,8 @@ export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
     .then((_) => _.heartbeatData as HeartbeatData | undefined)
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
   browser.storage.local.set({ heartbeatData })
+export const clearHeartbeatData = () =>
+  browser.storage.local.remove('heartbeatData')
 
 type BrowserName = string
 type StorageData = { [key: string]: any }
@@ -121,3 +123,12 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+type TrackOnlyWhenFocused = boolean
+export const getTrackOnlyWhenFocused = (): Promise<TrackOnlyWhenFocused> =>
+  browser.storage.local
+    .get('trackOnlyWhenFocused')
+    .then((data: StorageData) => Boolean(data.trackOnlyWhenFocused))
+export const setTrackOnlyWhenFocused = (
+  trackOnlyWhenFocused: TrackOnlyWhenFocused,
+) => browser.storage.local.set({ trackOnlyWhenFocused })

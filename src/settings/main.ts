@@ -8,6 +8,8 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getTrackOnlyWhenFocused,
+  setTrackOnlyWhenFocused,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -47,6 +49,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   const profileNameInput =
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
+  const trackOnlyWhenFocusedInput = document.querySelector<HTMLInputElement>(
+    '#trackOnlyWhenFocused',
+  )
+  const trackOnlyWhenFocused = trackOnlyWhenFocusedInput?.checked ?? false
 
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
@@ -64,6 +70,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     } else {
       await browser.storage.local.remove('apiKey')
     }
+    await setTrackOnlyWhenFocused(trackOnlyWhenFocused)
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -125,6 +132,13 @@ async function restoreOptions(): Promise<void> {
     const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
     if (apiKeyInput && apiKey !== undefined) {
       apiKeyInput.value = apiKey
+    }
+
+    const trackOnlyWhenFocusedInput = document.querySelector<HTMLInputElement>(
+      '#trackOnlyWhenFocused',
+    )
+    if (trackOnlyWhenFocusedInput) {
+      trackOnlyWhenFocusedInput.checked = await getTrackOnlyWhenFocused()
     }
   } catch (error) {
     console.error('Failed to restore options:', error)

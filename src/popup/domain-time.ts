@@ -1,3 +1,5 @@
+import * as punycode from 'punycode.js'
+
 // Keep query construction separate from browser APIs so it can be tested directly.
 export function buildDomainTimeQuery(
   bucketId: string,
@@ -17,10 +19,18 @@ export function buildDomainTimeQuery(
   if (!/^[a-zA-Z0-9_.-]+$/.test(bucketId)) return undefined
   const hostname = parsed.hostname
   if (!/^[a-z0-9._:[\]-]+$/i.test(hostname)) return undefined
-  const escapedHost = hostname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Heartbeats decode IDNs to Unicode. Match both stored and ASCII URL forms.
+  const hosts = [...new Set([hostname, punycode.toUnicode(hostname)])]
+  const escapedHost = hosts
+    .map((host) =>
+      host
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`),
+    )
+    .join('|')
   // Exact hostname, any port. Do not count subdomains, suffix lookalikes or
   // occurrences of the hostname in credentials, paths or query strings.
-  const pattern = `^[hH][tT][tT][pP][sS]?://(?:[^/?#@]*@)?${escapedHost.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`)}(?::[0-9]+)?(?:[/?#]|$)`
+  const pattern = `^[hH][tT][tT][pP][sS]?://(?:[^/?#@]*@)?(?:${escapedHost})(?::[0-9]+)?(?:[/?#]|$)`
   const start = new Date(now)
   start.setHours(0, 0, 0, 0)
   return {

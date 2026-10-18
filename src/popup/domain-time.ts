@@ -17,7 +17,7 @@ export function buildDomainTimeQuery(
   if (!/^[a-zA-Z0-9_.-]+$/.test(bucketId)) return undefined
   const hostname = parsed.hostname
   if (!/^[a-z0-9._:[\]-]+$/i.test(hostname)) return undefined
-  const escapedHost = hostname.replace(/[.\[\]]/g, '\\$&')
+  const escapedHost = hostname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   // Exact hostname, any port. Do not count subdomains, suffix lookalikes or
   // occurrences of the hostname in credentials, paths or query strings.
   const pattern = `^[hH][tT][tT][pP][sS]?://(?:[^/?#@]*@)?${escapedHost.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`)}(?::[0-9]+)?(?:[/?#]|$)`

@@ -64,6 +64,9 @@
     "{{firefox}}.browser_specific_settings": {
         "gecko": {
             "id": "{ef87d84c-2127-493f-b952-5b4e744245bc}"
+        },
+        "gecko_android": {
+            "strict_min_version": "120.0"
         }
     }
 }

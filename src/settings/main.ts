@@ -3,6 +3,7 @@ import {
   getApiKey,
   getBrowserName,
   setBrowserName,
+  setBrowserNameUserSelected,
   getHostname,
   setHostname,
   setApiKey,
@@ -57,6 +58,9 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
 
   try {
     await setBrowserName(selectedBrowser)
+    // Mark the name as explicitly chosen so the background repair in
+    // getBrowser() never overrides it.
+    await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
     if (apiKey) {

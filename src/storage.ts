@@ -94,6 +94,17 @@ export const getBrowserName = (): Promise<BrowserName | undefined> =>
 export const setBrowserName = (browserName: BrowserName) =>
   browser.storage.local.set({ browserName })
 
+// Whether the stored browser name was explicitly chosen in the settings page.
+// Missing (legacy installs) means the name came from auto-detection, which
+// lets getBrowser() repair the pre-fix Edge misdetection without ever
+// overriding a user's explicit choice.
+export const getBrowserNameUserSelected = (): Promise<boolean> =>
+  browser.storage.local
+    .get('browserNameUserSelected')
+    .then((data: StorageData) => Boolean(data.browserNameUserSelected))
+export const setBrowserNameUserSelected = (userSelected: boolean) =>
+  browser.storage.local.set({ browserNameUserSelected: userSelected })
+
 type Hostname = string
 export const getHostname = (): Promise<Hostname | undefined> =>
   browser.storage.local

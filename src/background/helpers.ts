@@ -1,6 +1,10 @@
 import browser from 'webextension-polyfill'
 import { FetchError } from 'aw-client'
-import { getBrowserName, setBrowserName } from '../storage'
+import {
+  getBrowserName,
+  getBrowserNameUserSelected,
+  setBrowserName,
+} from '../storage'
 
 export const getTab = (id: number) => browser.tabs.get(id)
 export const getTabs = (query: browser.Tabs.QueryQueryInfoType = {}) =>
@@ -45,6 +49,19 @@ export function emitNotification(title: string, message: string) {
 export const getBrowser = async (): Promise<string> => {
   const storedName = await getBrowserName()
   if (storedName) {
+    const detectedName = detectBrowser()
+    // Before the Edge check above, Edge's UA (which contains 'Chrome') was
+    // auto-detected as 'chrome' and persisted, so existing Edge installs keep
+    // writing to the Chrome bucket. Repair that stale automatic choice, but
+    // never override a name the user picked explicitly in the settings page.
+    if (
+      storedName === 'chrome' &&
+      detectedName === 'edge' &&
+      !(await getBrowserNameUserSelected())
+    ) {
+      await setBrowserName(detectedName)
+      return detectedName
+    }
     return storedName
   }
 

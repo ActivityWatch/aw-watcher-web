@@ -2,13 +2,28 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import ts from 'typescript'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 
 const source = readFileSync(
     new URL('../src/popup/domain-time.ts', import.meta.url),
     'utf8',
 )
-const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext },
+const resolvedSource = source.replace(
+    "'punycode.js'",
+    JSON.stringify(
+        pathToFileURL(
+            createRequire(import.meta.url).resolve(
+                'punycode.js/punycode.es6.js',
+            ),
+        ).href,
+    ),
+)
+const { outputText } = ts.transpileModule(resolvedSource, {
+    compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ESNext,
+    },
 })
 const { buildDomainTimeQuery, formatDuration } = await import(
     `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`
@@ -85,4 +100,15 @@ test('durations show zero, sub-minute, minutes and hours without rounding up', (
     assert.equal(formatDuration(60), '1m')
     assert.equal(formatDuration(4319), '1h 11m')
     assert.equal(formatDuration(7200), '2h 0m')
+})
+
+test('IDN hostname matches Unicode stored heartbeats and ASCII URL forms', () => {
+    const { query } = buildDomainTimeQuery(
+        'bucket',
+        'https://xn--bcher-kva.example/',
+    )
+    const regex = new RegExp(query[1].match(/"url", "(.*)"\);$/)[1])
+    assert.ok(regex.test('https://bücher.example/path'))
+    assert.ok(regex.test('https://xn--bcher-kva.example/path'))
+    assert.equal(regex.test('https://sub.bücher.example/'), false)
 })

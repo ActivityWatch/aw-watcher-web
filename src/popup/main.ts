@@ -1,5 +1,8 @@
 import browser from 'webextension-polyfill'
 import config from '../config'
+import { AWClient, FetchError } from 'aw-client'
+import { getBucketId } from '../background/client'
+import { buildDomainTimeQuery, formatDuration } from './domain-time'
 import {
   getBaseUrl,
   getConsentStatus,
@@ -11,6 +14,8 @@ import {
   getBrowserName,
   getHostname,
   getProfileName,
+  getApiKey,
+  getShowDomainTime,
 } from '../storage'
 
 function setConnected(connected: boolean | undefined) {
@@ -98,6 +103,46 @@ async function renderStatus() {
   profileElement.innerText = profileName ?? 'default'
 }
 
+async function renderDomainTime() {
+  const line = document.getElementById('domain-time')!
+  try {
+    if (!(await getShowDomainTime())) return
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    })
+    const request = buildDomainTimeQuery(await getBucketId(), tab?.url)
+    if (!request) return
+
+    line.hidden = false
+    line.textContent = `Today on ${request.hostname}: loading…`
+    line.title =
+      'Recorded time in this browser bucket across profiles, without AFK filtering. Updated when the popup opens.'
+    const client = new AWClient('aw-popup', {
+      testing: config.isDevelopment,
+      baseURL: await getBaseUrl(),
+      token: await getApiKey(),
+      timeout: 5000,
+    })
+    const [seconds] = await client.query(request.timeperiods, request.query)
+    if (
+      typeof seconds !== 'number' ||
+      !Number.isFinite(seconds) ||
+      seconds < 0
+    ) {
+      throw Error('Invalid duration returned by server')
+    }
+    line.textContent = `Today on ${request.hostname}: ${formatDuration(seconds)}`
+  } catch (error) {
+    if (!line.hidden)
+      line.textContent =
+        error instanceof FetchError && error.response.status === 403
+          ? 'Time today unavailable — server denied query access (see settings).'
+          : 'Time today unavailable — check the ActivityWatch server.'
+    console.warn('Unable to load time on current site:', error)
+  }
+}
+
 function domListeners() {
   const enabledCheckbox = document.getElementById('status-enabled-checkbox')
   if (!(enabledCheckbox instanceof HTMLInputElement))
@@ -153,3 +198,4 @@ async function initSupportNudge() {
 renderStatus()
 domListeners()
 initSupportNudge()
+void renderDomainTime()

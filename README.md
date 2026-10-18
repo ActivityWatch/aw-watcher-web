@@ -12,6 +12,31 @@ see the browser window title from desktop window watchers.
 **Learn more:** [Watchers][docs-watchers] • [Architecture][docs-architecture] •
 [Buckets and events][docs-buckets-and-events]
 
+## Time on the current site
+
+Enable **Show time on the current site today in the popup** in the extension's
+settings to see recorded time for the active tab's exact hostname since local
+midnight. The option is off by default. It makes one server query when the popup
+opens, not a background polling loop.
+
+The total uses this browser's bucket across profiles, includes all ports on the
+hostname, and keeps subdomains separate. It does not subtract AFK time or include
+other browsers. Internal pages and non-HTTP(S) URLs do not show a total. If the
+server or bucket is unavailable, the popup shows an unavailable message rather
+than a misleading zero.
+
+**Firefox query access:** recent aw-server releases intentionally restrict the
+built-in `moz-extension://*` allowance to watcher writes and server info. The
+popup cannot query through that allowance. With the Python aw-server, find this
+extension's **Internal UUID** in `about:debugging#/runtime/this-firefox`, then add
+only its exact `moz-extension://<UUID>` origin to `[server] cors_origins` in
+`aw-server.toml` and restart the server. This explicitly trusts that extension
+with the server API, not just this query. Do not broadly allow all extension
+origins. Other server implementations may use different origin configuration.
+The extension does not change server permissions automatically.
+
+Developer checks: `make test-fast` and `make typecheck`.
+
 ## Installation
 
 ### Official Releases

@@ -7,6 +7,8 @@ import {
   tabUpdatedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
+import { setupUrlInTitle } from './urlInTitle'
+import { getIsConsentRequired } from './consent'
 import {
   getConsentStatus,
   getHostname,
@@ -16,14 +18,6 @@ import {
   setHostname,
   waitForEnabled,
 } from '../storage'
-
-async function getIsConsentRequired() {
-  if (!config.requireConsent) return false
-  return browser.storage.managed
-    .get('consentOfflineDataCollection')
-    .then((consentOfflineDataCollection) => !consentOfflineDataCollection)
-    .catch(() => true)
-}
 
 async function autodetectHostname(client: ReturnType<typeof getClient>) {
   const hostname = await getHostname()
@@ -52,6 +46,7 @@ browser.runtime.onInstalled.addListener(async () => {
     await setEnabled(true)
   } else {
     console.info('Consent is required...opening consent tab')
+    await setEnabled(false)
     await setConsentStatus({ consent, required: true })
     await browser.tabs.create({
       active: true,
@@ -79,6 +74,9 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await clientReady
   return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
+
+console.debug('Setting up URL in window title')
+setupUrlInTitle()
 
 console.debug('Setting base url')
 clientReady

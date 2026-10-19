@@ -9,6 +9,10 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getUrlInTitle,
+  setUrlInTitle,
+  getUrlInTitleDomainOnly,
+  setUrlInTitleDomainOnly,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -49,6 +53,12 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
 
+  const urlInTitle =
+    document.querySelector<HTMLInputElement>('#urlInTitle')?.checked ?? false
+  const urlInTitleDomainOnly =
+    document.querySelector<HTMLInputElement>('#urlInTitleDomainOnly')
+      ?.checked ?? false
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -68,6 +78,8 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     } else {
       await browser.storage.local.remove('apiKey')
     }
+    await setUrlInTitleDomainOnly(urlInTitleDomainOnly)
+    await setUrlInTitle(urlInTitle)
     await reloadExtension()
     button.textContent = 'Save'
     button.classList.add('accept')
@@ -130,6 +142,19 @@ async function restoreOptions(): Promise<void> {
     if (apiKeyInput && apiKey !== undefined) {
       apiKeyInput.value = apiKey
     }
+
+    const urlInTitleInput =
+      document.querySelector<HTMLInputElement>('#urlInTitle')
+    if (urlInTitleInput) {
+      urlInTitleInput.checked = await getUrlInTitle()
+    }
+    const domainOnlyInput = document.querySelector<HTMLInputElement>(
+      '#urlInTitleDomainOnly',
+    )
+    if (domainOnlyInput) {
+      domainOnlyInput.checked = await getUrlInTitleDomainOnly()
+    }
+    toggleDomainOnlyInput()
   } catch (error) {
     console.error('Failed to restore options:', error)
     throw error
@@ -155,7 +180,28 @@ async function initializeOptions(): Promise<void> {
   }
 }
 
+// Domain only applies only while the URL is shown.
+function toggleDomainOnlyInput(): void {
+  const urlInTitleInput =
+    document.querySelector<HTMLInputElement>('#urlInTitle')
+  const domainOnlyInput = document.querySelector<HTMLInputElement>(
+    '#urlInTitleDomainOnly',
+  )
+  if (urlInTitleInput && domainOnlyInput) {
+    domainOnlyInput.disabled = !urlInTitleInput.checked
+  }
+}
+
+// On macOS the window watcher already reads Safari's URL via Apple Events.
+function hideUnsupportedOptions(): void {
+  if (import.meta.env.VITE_TARGET_BROWSER !== 'safari') return
+  document
+    .querySelectorAll<HTMLElement>('.url-in-title-option')
+    .forEach((option) => (option.style.display = 'none'))
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  hideUnsupportedOptions()
   void initializeOptions()
   toggleCustomBrowserInput()
 })
@@ -163,6 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
 document
   .querySelector('#browser')
   ?.addEventListener('change', toggleCustomBrowserInput)
+document
+  .querySelector('#urlInTitle')
+  ?.addEventListener('change', toggleDomainOnlyInput)
 const form = document.querySelector('form')
 if (form) {
   form.addEventListener('submit', (e: Event) => {

@@ -163,6 +163,7 @@ test('failed sends do not overwrite the last successfully recorded heartbeat', a
         },
         '../storage': {
             getEnabled: async () => true,
+            getProfileName: async () => undefined,
             getHeartbeatData: async () => undefined,
             setHeartbeatData: async () => writes++,
         },
@@ -194,6 +195,7 @@ test('a successful close followed by a failed new heartbeat does not extend the 
         },
         '../storage': {
             getEnabled: async () => true,
+            getProfileName: async () => undefined,
             getHeartbeatData: async () => previous,
             clearHeartbeatData: async () => {
                 previous = undefined
@@ -248,6 +250,7 @@ test('queued events capture original titles before waiting for network delivery'
         },
         '../storage': {
             getEnabled: async () => true,
+            getProfileName: async () => undefined,
             getHeartbeatData: async () => previous,
             clearHeartbeatData: async () => {
                 previous = undefined
@@ -291,7 +294,10 @@ test('an event whose original title cannot be verified is not recorded', async (
             getActiveWindowTab: async () => tab,
             getTabs: async () => [tab],
         },
-        '../storage': { getEnabled: async () => true },
+        '../storage': {
+            getEnabled: async () => true,
+            getProfileName: async () => undefined,
+        },
     })
     await sendInitialHeartbeat({})
     assert.equal(sends, 0)
@@ -320,6 +326,7 @@ function heartbeatModule({ activeTab, originalTitle }) {
         },
         '../storage': {
             getEnabled: async () => true,
+            getProfileName: async () => undefined,
             getHeartbeatData: async () => stored,
             setHeartbeatData: async (data) => {
                 stored = data
@@ -430,6 +437,7 @@ test('a failing retry rejects the event handler instead of going unhandled', asy
         },
         '../storage': {
             getEnabled: async () => true,
+            getProfileName: async () => undefined,
             getHeartbeatData: async () => undefined,
             setHeartbeatData: async () => {},
             clearHeartbeatData: async () => {},

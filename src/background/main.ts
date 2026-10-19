@@ -7,6 +7,7 @@ import {
   tabUpdatedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
+import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
   getHostname,
@@ -17,12 +18,10 @@ import {
   waitForEnabled,
 } from '../storage'
 
-async function getIsConsentRequired() {
-  if (!config.requireConsent) return false
-  return browser.storage.managed
-    .get('consentOfflineDataCollection')
-    .then((consentOfflineDataCollection) => !consentOfflineDataCollection)
-    .catch(() => true)
+function getConsentRequired() {
+  return getIsConsentRequired(config.requireConsent, () =>
+    browser.storage.managed.get('consentOfflineDataCollection'),
+  )
 }
 
 async function autodetectHostname(client: ReturnType<typeof getClient>) {
@@ -44,8 +43,8 @@ const clientReady = loadApiKey(client)
 
 browser.runtime.onInstalled.addListener(async () => {
   const { consent } = await getConsentStatus()
-  const isConsentRequired = await getIsConsentRequired()
-  if (!isConsentRequired || consent) {
+  const isConsentRequired = await getConsentRequired()
+  if (installAction(isConsentRequired, consent) === 'enable') {
     if (!isConsentRequired) console.info('Consent is not required')
     else if (consent) console.info('Consent required but already accepted')
     console.debug('Enabling the extension')

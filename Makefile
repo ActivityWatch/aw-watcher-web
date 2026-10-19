@@ -1,4 +1,4 @@
-.PHONY: build install clean
+.PHONY: build install clean test
 
 install:
 	npm ci
@@ -11,6 +11,9 @@ clean:
 
 format:
 	npx prettier --write .
+
+test:
+	node --test tests/*.test.ts
 
 #---------
 ## Building

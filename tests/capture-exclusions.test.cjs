@@ -195,3 +195,15 @@ test('new punycode prefix excludes decoded remembered payload', async () => {
     assert.equal(h.sent[1].pulsetime, 0)
     assert.ok(!h.logs.join('\n').includes('bücher'))
 })
+
+test('excluded URL with empty title still clears the remembered event', async () => {
+    const h = harness({ hostnames: ['private.example'], urlPrefixes: [] })
+    await h.tick()
+    h.setTab('https://private.example/', '')
+    await h.tick()
+    assert.equal(h.previous, null)
+    h.setTab('https://allowed.example/page', 'Allowed')
+    await h.tick()
+    assert.equal(h.sent.length, 2)
+    assert.equal(h.sent[1].pulsetime, 0)
+})

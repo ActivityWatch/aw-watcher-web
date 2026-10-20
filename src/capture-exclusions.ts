@@ -21,9 +21,22 @@ export function isCaptureExcluded(
   }
   try {
     const hostname = new URL(url).hostname.toLowerCase()
-    return rules.hostnames.some(
-      (host) => host.trim().toLowerCase() === hostname,
-    )
+    return rules.hostnames.some((host) => {
+      try {
+        const parsed = new URL(`https://${host.trim()}`)
+        return (
+          parsed.host === parsed.hostname &&
+          parsed.pathname === '/' &&
+          !parsed.username &&
+          !parsed.password &&
+          !parsed.search &&
+          !parsed.hash &&
+          parsed.hostname.toLowerCase() === hostname
+        )
+      } catch {
+        return false
+      }
+    })
   } catch {
     return false
   }

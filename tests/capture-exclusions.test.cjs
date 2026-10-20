@@ -175,3 +175,23 @@ test('queued exclusion transition retains ordering', async () => {
     assert.equal(h.sent[1].pulsetime, 0)
     assert.ok(!h.logs.join('\n').includes('private.example'))
 })
+
+test('Unicode hostname rules match browser punycode hosts', async () => {
+    const h = harness({ hostnames: ['bücher.example'], urlPrefixes: [] })
+    h.setTab('https://xn--bcher-kva.example/secret')
+    await h.tick()
+    assert.equal(h.sent.length, 0)
+})
+
+test('new punycode prefix excludes decoded remembered payload', async () => {
+    const h = harness()
+    h.setTab('https://xn--bcher-kva.example/secret')
+    await h.tick()
+    h.logs.length = 0
+    h.rules.urlPrefixes.push('https://xn--bcher-kva.example/secret')
+    h.setTab('https://allowed.example/', 'Allowed')
+    await h.tick()
+    assert.equal(h.sent.length, 2)
+    assert.equal(h.sent[1].pulsetime, 0)
+    assert.ok(!h.logs.join('\n').includes('bücher'))
+})

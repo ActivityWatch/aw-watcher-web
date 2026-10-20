@@ -9,8 +9,11 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getCaptureExclusions,
+  setCaptureExclusions,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
+import { parseExclusionLines } from '../capture-exclusions'
 
 let optionsReady = false
 
@@ -57,6 +60,16 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   button.classList.remove('accept')
 
   try {
+    await setCaptureExclusions({
+      hostnames: parseExclusionLines(
+        document.querySelector<HTMLTextAreaElement>('#excludedHostnames')
+          ?.value ?? '',
+      ),
+      urlPrefixes: parseExclusionLines(
+        document.querySelector<HTMLTextAreaElement>('#excludedUrlPrefixes')
+          ?.value ?? '',
+      ),
+    })
     await setBrowserName(selectedBrowser)
     // Mark the name as explicitly chosen so the background repair in
     // getBrowser() never overrides it.
@@ -124,6 +137,15 @@ async function restoreOptions(): Promise<void> {
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
     }
+
+    const exclusions = await getCaptureExclusions()
+    const hosts =
+      document.querySelector<HTMLTextAreaElement>('#excludedHostnames')
+    const prefixes = document.querySelector<HTMLTextAreaElement>(
+      '#excludedUrlPrefixes',
+    )
+    if (hosts) hosts.value = exclusions.hostnames.join('\n')
+    if (prefixes) prefixes.value = exclusions.urlPrefixes.join('\n')
 
     const apiKey = await getApiKey()
     const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')

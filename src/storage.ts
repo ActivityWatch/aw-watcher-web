@@ -1,5 +1,6 @@
 import { IEvent } from 'aw-client'
 import browser from 'webextension-polyfill'
+import type { CaptureExclusions } from './capture-exclusions'
 
 function watchKey<T>(key: string, cb: (value: T) => void | Promise<void>) {
   const listener = (
@@ -77,12 +78,32 @@ export const getBaseUrl = (): Promise<BaseUrl | undefined> =>
 export const setBaseUrl = (baseUrl: BaseUrl) =>
   browser.storage.local.set({ baseUrl })
 
+export const getCaptureExclusions = async (): Promise<CaptureExclusions> => {
+  const stored = await browser.storage.local.get('captureExclusions')
+  const captureExclusions = stored.captureExclusions as
+    | Partial<CaptureExclusions>
+    | undefined
+  const strings = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter(
+          (item): item is string =>
+            typeof item === 'string' && item.trim() !== '',
+        )
+      : []
+  return {
+    hostnames: strings(captureExclusions?.hostnames),
+    urlPrefixes: strings(captureExclusions?.urlPrefixes),
+  }
+}
+export const setCaptureExclusions = (captureExclusions: CaptureExclusions) =>
+  browser.storage.local.set({ captureExclusions })
+
 type HeartbeatData = IEvent['data']
-export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
+export const getHeartbeatData = (): Promise<HeartbeatData | null | undefined> =>
   browser.storage.local
     .get('heartbeatData')
-    .then((_) => _.heartbeatData as HeartbeatData | undefined)
-export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
+    .then((_) => _.heartbeatData as HeartbeatData | null | undefined)
+export const setHeartbeatData = (heartbeatData: HeartbeatData | null) =>
   browser.storage.local.set({ heartbeatData })
 
 type BrowserName = string

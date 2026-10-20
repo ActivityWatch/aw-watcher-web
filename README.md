@@ -9,6 +9,15 @@ It enables detailed browser tracking by recording the active tab's title, URL,
 audible state, and incognito state. Without it, ActivityWatch can usually only
 see the browser window title from desktop window watchers.
 
+On Chromium browsers, grouped tabs also include optional `tab_group` (the group
+name, including an empty name) and `tab_group_color` fields. This uses the
+`tabGroups` permission. Ungrouped tabs and browsers without that API omit both
+fields. Group names and colors are sampled with each heartbeat, so renaming a
+group appears by the next normal heartbeat; moving a tab between groups also
+triggers an update. As with tab titles and URLs, group names may contain sensitive
+information and are recorded in your local ActivityWatch data. These fields capture
+context only: they do not automatically create categories or task reports.
+
 **Learn more:** [Watchers][docs-watchers] • [Architecture][docs-architecture] •
 [Buckets and events][docs-buckets-and-events]
 

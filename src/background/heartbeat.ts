@@ -4,12 +4,14 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  getCaptureExclusions,
   getEnabled,
   getHeartbeatData,
   getProfileName,
   setHeartbeatData,
 } from '../storage'
 import deepEqual from 'deep-equal'
+import { isCaptureExcluded } from '../capture-exclusions'
 import * as punycode from 'punycode.js'
 
 function decodeURL(url: string): string {
@@ -78,6 +80,14 @@ async function heartbeat(
     return
   }
 
+  const exclusions = await getCaptureExclusions()
+  if (isCaptureExcluded(tab.url, exclusions)) {
+    // null is a persisted gap marker: even returning to the same URL must
+    // start a fresh pulse, not extend the event across excluded time.
+    await setHeartbeatData(null)
+    return
+  }
+
   // Extract only the fields we need so we don't retain references to the
   // full Tab object (which includes favIconUrl — a potentially large base64
   // data URI).  Over thousands of heartbeats the retained Tab references
@@ -95,7 +105,11 @@ async function heartbeat(
   const profile = await getProfileName()
   if (profile) data.profile = profile
   const previousData = await getHeartbeatData()
-  if (previousData && !deepEqual(previousData, data)) {
+  const previousExcluded =
+    previousData &&
+    typeof previousData.url === 'string' &&
+    isCaptureExcluded(previousData.url, exclusions)
+  if (previousData && !previousExcluded && !deepEqual(previousData, data)) {
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,
     )
@@ -113,7 +127,9 @@ async function heartbeat(
     await getBucketId(),
     now,
     data,
-    config.heartbeat.intervalInSeconds + 20,
+    previousData === null || previousExcluded
+      ? 0
+      : config.heartbeat.intervalInSeconds + 20,
   )
   await setHeartbeatData(data)
 }
@@ -148,7 +164,7 @@ export const sendInitialHeartbeat = async (client: AWClient) => {
   await queueHeartbeat(async () => {
     const activeWindowTab = await getActiveWindowTab()
     const tabs = await getTabs()
-    console.debug('Sending initial heartbeat', activeWindowTab?.url)
+    console.debug('Sending initial heartbeat')
     await heartbeat(client, activeWindowTab, tabs.length, now)
   })
 }
@@ -162,7 +178,7 @@ export const heartbeatAlarmListener =
       const activeWindowTab = await getActiveWindowTab()
       if (!activeWindowTab) return
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+      console.debug('Sending heartbeat for alarm')
       await heartbeat(client, activeWindowTab, tabs.length, now)
     })
   }
@@ -174,7 +190,7 @@ export const tabActivatedListener =
     await queueHeartbeat(async () => {
       const tab = await getTab(activeInfo.tabId)
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab activation', tab.url)
+      console.debug('Sending heartbeat for tab activation')
       await heartbeat(client, tab, tabs.length, now)
     })
   }
@@ -195,7 +211,7 @@ export const tabUpdatedListener =
       if (activeWindowTab?.id !== tabId) return
 
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab update', tabSnapshot.url)
+      console.debug('Sending heartbeat for tab update')
       await heartbeat(client, tabSnapshot, tabs.length, now)
     })
   }

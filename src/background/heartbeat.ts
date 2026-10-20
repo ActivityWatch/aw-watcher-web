@@ -105,10 +105,22 @@ async function heartbeat(
   const profile = await getProfileName()
   if (profile) data.profile = profile
   const previousData = await getHeartbeatData()
-  const previousExcluded =
-    previousData &&
-    typeof previousData.url === 'string' &&
-    isCaptureExcluded(previousData.url, exclusions)
+  // Stored URLs use Unicode hosts for display. Also re-check the browser's
+  // ASCII-host representation so newly added punycode prefixes stop replay.
+  let previousExcluded = false
+  if (previousData && typeof previousData.url === 'string') {
+    previousExcluded = isCaptureExcluded(previousData.url, exclusions)
+    if (!previousExcluded) {
+      try {
+        previousExcluded = isCaptureExcluded(
+          new URL(previousData.url).href,
+          exclusions,
+        )
+      } catch {
+        // Malformed historical URLs have no canonical representation.
+      }
+    }
+  }
   if (previousData && !previousExcluded && !deepEqual(previousData, data)) {
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,

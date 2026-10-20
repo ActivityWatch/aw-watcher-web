@@ -55,6 +55,19 @@ Due to the above issue, a privacy notice must be displayed to comply with the Mo
 }
 ```
 
+## Capture exclusions
+
+In the extension settings, optionally list exact hostnames (one per line) or
+literal, case-sensitive URL prefixes. For example, `private.example` excludes
+that hostname but not its subdomains; `chrome://newtab/` excludes Chrome's new-tab
+page. Blank lists preserve normal tracking. These rules apply before this
+extension logs or sends a matching tab's URL and title.
+
+Existing history is not deleted, desktop window watchers may still record the
+browser window title, and a previously recorded permitted event can retain its
+normal heartbeat tail (up to 80 seconds). Returning from an excluded tab starts
+a fresh heartbeat rather than extending the previous event across that gap.
+
 ## Building from Source
 
 ### Prerequisites

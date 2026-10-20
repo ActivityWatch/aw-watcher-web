@@ -86,6 +86,37 @@
         >
       </div>
 
+      <fieldset>
+        <legend>Capture exclusions (optional)</legend>
+        <p>
+          Matching tabs are not recorded by this extension. Leave both lists
+          empty to track all tabs.
+        </p>
+        <p>
+          Existing history is not deleted. Desktop window watchers may still
+          record the browser window title. A previously recorded event may
+          retain its normal heartbeat tail (up to 80 seconds).
+        </p>
+        <label for="excludedHostnames"
+          >Exact hostnames, one per line (subdomains must be listed
+          separately):</label
+        >
+        <textarea
+          id="excludedHostnames"
+          rows="3"
+          placeholder="private.example&#10;accounts.private.example"
+        ></textarea>
+        <label for="excludedUrlPrefixes"
+          >URL prefixes, one per line (literal and case-sensitive, not
+          patterns):</label
+        >
+        <textarea
+          id="excludedUrlPrefixes"
+          rows="3"
+          placeholder="chrome://newtab/&#10;https://example.com/private/"
+        ></textarea>
+      </fieldset>
+
       <div>
         <button type="submit">Save</button>
       </div>

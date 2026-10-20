@@ -75,8 +75,8 @@ async function heartbeat(
     return
   }
 
-  if (!tab.url || !tab.title) {
-    console.warn('Ignoring heartbeat because tab is missing URL or title')
+  if (!tab.url) {
+    console.warn('Ignoring heartbeat because tab is missing URL')
     return
   }
 
@@ -85,6 +85,11 @@ async function heartbeat(
     // null is a persisted gap marker: even returning to the same URL must
     // start a fresh pulse, not extend the event across excluded time.
     await setHeartbeatData(null)
+    return
+  }
+
+  if (!tab.title) {
+    console.warn('Ignoring heartbeat because tab is missing title')
     return
   }
 

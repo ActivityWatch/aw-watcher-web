@@ -269,10 +269,9 @@ export const heartbeatAlarmListener =
 export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    if (await shouldPauseForUnfocus()) return
-
     const now = new Date()
     await queueHeartbeat(async () => {
+      if (await shouldPauseForUnfocus()) return
       const tab = await getTab(activeInfo.tabId)
       const tabs = await getTabs()
       console.debug('Sending heartbeat for tab activation', tab.url)
@@ -294,11 +293,10 @@ export const tabUpdatedListener =
     ) {
       return
     }
-    if (await shouldPauseForUnfocus()) return
-
     const now = new Date()
     const tabSnapshot = snapshotTab(tab)
     await queueHeartbeat(async () => {
+      if (await shouldPauseForUnfocus()) return
       const activeWindowTab = await getActiveWindowTab()
       if (activeWindowTab?.id !== tabId) return
 

@@ -112,10 +112,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Use Node.js 23.x
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v4
         with:
-          node-version: 23.x
+          node-version: 24.x
           cache: npm
 
       - name: Install dependencies
@@ -124,5 +124,5 @@ jobs:
       - name: Typecheck TypeScript
         run: make compile
 
-      - name: Test tab-group heartbeat capture
-        run: node --test tests/tab-groups.test.mjs
+      - name: Test capture contracts
+        run: make test

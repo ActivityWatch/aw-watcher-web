@@ -8,6 +8,7 @@ import {
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
 import { getIsConsentRequired, installAction } from './consent'
+import { createMediaCapture } from './media'
 import {
   getConsentStatus,
   getHostname,
@@ -40,6 +41,14 @@ console.info('Starting...')
 console.debug('Creating client')
 const client = getClient()
 const clientReady = loadApiKey(client)
+const media = createMediaCapture(client)
+
+// Register synchronously so service-worker wakeups deliver control changes.
+browser.storage.local.onChanged.addListener((changes) => {
+  if ('enabled' in changes || 'trackBackgroundMedia' in changes) {
+    void media.settingsChanged()
+  }
+})
 
 browser.runtime.onInstalled.addListener(async () => {
   const { consent } = await getConsentStatus()
@@ -68,7 +77,10 @@ browser.alarms.create(config.heartbeat.alarmName, {
 })
 browser.alarms.onAlarm.addListener(async (alarm) => {
   await clientReady
-  return heartbeatAlarmListener(client)(alarm)
+  await Promise.all([
+    heartbeatAlarmListener(client)(alarm),
+    alarm.name === config.heartbeat.alarmName ? media.sample() : undefined,
+  ])
 })
 browser.tabs.onActivated.addListener(async (activeInfo) => {
   await clientReady
@@ -86,7 +98,7 @@ clientReady
     console.debug('Waiting for enable before sending initial heartbeat'),
   )
   .then(waitForEnabled)
-  .then(() => sendInitialHeartbeat(client))
+  .then(() => Promise.all([sendInitialHeartbeat(client), media.sample()]))
   .then(() => console.info('Started successfully'))
   .catch((err) => console.error('Failed to initialize extension:', err))
 
@@ -111,6 +123,20 @@ async function setupOffscreen() {
 }
 
 browser.runtime.onMessage.addListener((message: any) => {
+  if (
+    message.type === 'SET_MEDIA_CAPTURE' &&
+    typeof message.enabled === 'boolean'
+  ) {
+    // Settings waits for this acknowledgement before reload, so opt-out can
+    // clear the old bucket even when browser/hostname settings also change.
+    return clientReady.then(async () => {
+      await browser.storage.local.set({
+        trackBackgroundMedia: message.enabled,
+      })
+      await media.settingsChanged()
+      return { status: 'ok' }
+    })
+  }
   if (message.type === 'KEEP_ALIVE') {
     return Promise.resolve({ status: 'ok' })
   }

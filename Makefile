@@ -13,7 +13,8 @@ format:
 	npx prettier --write .
 
 test:
-	node --test tests/*.test.ts
+	node --test tests/consent.test.ts tests/tab-groups.test.mjs
+	npx vitest run
 
 #---------
 ## Building

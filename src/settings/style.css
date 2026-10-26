@@ -4,9 +4,14 @@ body {
 
 form div {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   margin: 0.5em;
+}
+
+form div small {
+  flex-basis: 100%;
 }
 
 input:invalid {

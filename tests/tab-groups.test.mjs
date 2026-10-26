@@ -17,8 +17,12 @@ const SRC_DIR = fileURLToPath(new URL('../src/background/', import.meta.url))
 const require = createRequire(import.meta.url)
 
 const STUB_BROWSER = `
-export const state = { tabs: [], activeTabId: undefined }
+export const state = { tabs: [], activeTabId: undefined, focused: true }
 const browser = {
+  windows: {
+    WINDOW_ID_NONE: -1,
+    getLastFocused: async () => ({ focused: state.focused }),
+  },
   tabs: {
     get: async (id) => {
       const tab = state.tabs.find((t) => t.id === id)
@@ -39,12 +43,15 @@ export default browser
 const STUB_STORAGE = `
 export const state = {
   enabled: true,
+  pauseWhenUnfocused: false,
   profile: undefined,
   heartbeatData: undefined,
   browserName: 'chrome',
   browserNameUserSelected: false,
 }
 export const getEnabled = async () => state.enabled
+export const getPauseWhenUnfocused = async () => state.pauseWhenUnfocused
+export const clearHeartbeatData = async () => { state.heartbeatData = undefined }
 export const getProfileName = async () => state.profile
 export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
@@ -197,18 +204,21 @@ function installChromeTabGroups(get) {
     }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
     mock.method(console, 'debug', () => {})
     mock.method(console, 'warn', () => {})
     mock.method(console, 'error', () => {})
     client.sent.length = 0
     Object.assign(storage.state, {
         enabled: true,
+        pauseWhenUnfocused: false,
         profile: undefined,
         heartbeatData: undefined,
     })
     browser.state.tabs = []
     browser.state.activeTabId = undefined
+    browser.state.focused = true
+    await heartbeat.refreshWindowFocus()
     groups = new Map([
         [7, { id: 7, title: 'Work', color: 'blue' }],
         [8, { id: 8, title: 'Second', color: 'red' }],
@@ -437,4 +447,63 @@ test('slow group lookups keep overlapping updates in event order', async () => {
         tab_group: 'Second',
         tab_group_color: 'red',
     })
+})
+
+// Focus gating must compose with group-only updates and the serialized queue.
+test('unfocused opt-in suppresses group updates and activation heartbeats', async () => {
+    storage.state.pauseWhenUnfocused = true
+    browser.state.focused = false
+    await heartbeat.refreshWindowFocus()
+    const tab = useTab(makeTab({ groupId: 7 }))
+
+    await heartbeat.tabUpdatedListener(CLIENT)(tab.id, { groupId: 7 }, tab)
+    await heartbeat.tabActivatedListener(CLIENT)({ tabId: tab.id })
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    assert.deepEqual(client.sent, [])
+    assert.deepEqual(groupCalls, [])
+})
+
+test('pause remains opt-in for group-only updates in an unfocused browser', async () => {
+    browser.state.focused = false
+    await heartbeat.refreshWindowFocus()
+    const tab = useTab(makeTab({ groupId: 7 }))
+
+    await heartbeat.tabUpdatedListener(CLIENT)(tab.id, { groupId: 7 }, tab)
+    assert.deepEqual(sentData(), [{ ...BASE, ...WORK }])
+})
+
+test('polled focus loss does not extend activity and polled gain starts a fresh event', async () => {
+    storage.state.pauseWhenUnfocused = true
+    useTab(makeTab({ groupId: 7 }))
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    browser.state.focused = false
+
+    await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    assert.equal(client.sent.length, 1)
+    assert.equal(storage.state.heartbeatData, undefined)
+    await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    assert.equal(client.sent.length, 1)
+
+    browser.state.focused = true
+    await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    assert.equal(client.sent.length, 2)
+    assert.equal(client.sent.at(-1).pulsetime, 0)
+    assert.deepEqual(sentData(), [
+        { ...BASE, ...WORK },
+        { ...BASE, ...WORK },
+    ])
+})
+
+test('focus events close activity then resume with zero pulsetime', async () => {
+    storage.state.pauseWhenUnfocused = true
+    useTab(makeTab({ groupId: 7 }))
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+
+    await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    assert.equal(client.sent.length, 2)
+    assert.equal(client.sent.at(-1).pulsetime, 80)
+    assert.equal(storage.state.heartbeatData, undefined)
+    await heartbeat.windowFocusChangedListener(CLIENT)(1)
+    assert.equal(client.sent.length, 3)
+    assert.equal(client.sent.at(-1).pulsetime, 0)
 })

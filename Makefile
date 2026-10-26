@@ -6,9 +6,6 @@ install:
 compile:
 	npx tsc --noEmit
 
-test:
-	npx vitest run
-
 clean:
 	rm -rf node_modules build
 
@@ -16,7 +13,8 @@ format:
 	npx prettier --write .
 
 test:
-	node --test tests/*.test.ts
+	node --test tests/consent.test.ts tests/tab-groups.test.mjs
+	npx vitest run
 
 #---------
 ## Building

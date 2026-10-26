@@ -16,3 +16,19 @@ input:invalid {
 #customBrowser {
   display: none;
 }
+
+fieldset {
+  margin: 1em 0.5em;
+  max-width: 44em;
+}
+
+fieldset label,
+fieldset textarea {
+  display: block;
+  margin: 0.5em 0;
+}
+
+fieldset textarea {
+  box-sizing: border-box;
+  width: 100%;
+}

@@ -6,6 +6,11 @@ install:
 compile:
 	npx tsc --noEmit
 
+test-fast:
+	node --test tests/*.test.mjs
+
+typecheck: compile
+
 clean:
 	rm -rf node_modules build
 

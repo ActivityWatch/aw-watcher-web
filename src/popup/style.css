@@ -44,3 +44,8 @@ label {
   display: inline-block;
   vertical-align: top;
 }
+
+#domain-time {
+  margin: 0.75em 0.5em;
+  overflow-wrap: anywhere;
+}

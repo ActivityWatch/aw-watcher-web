@@ -45,6 +45,7 @@
     ],
     "{{chrome}}.permissions": [
         "tabs",
+        "tabGroups",
         "alarms",
         "notifications",
         "activeTab",

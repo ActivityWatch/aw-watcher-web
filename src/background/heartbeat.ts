@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill'
-import { getActiveWindowTab, getTab, getTabs } from './helpers'
+import { getActiveWindowTab, getTab, getTabGroup, getTabs } from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
@@ -51,10 +51,14 @@ function formatHeartbeatLogData(data: IEvent['data']) {
     .join(', ')
 }
 
+// Chromium adds groupId to Tab objects, but webextension-polyfill's types omit it.
+type TabWithGroup = browser.Tabs.Tab & { groupId?: number }
+
+// Chromium tab group id; -1 or undefined when the tab is not in a group.
 type HeartbeatTab = Pick<
   browser.Tabs.Tab,
   'url' | 'title' | 'audible' | 'incognito'
->
+> & { groupId?: number }
 
 async function heartbeat(
   client: AWClient,
@@ -82,7 +86,7 @@ async function heartbeat(
   // full Tab object (which includes favIconUrl — a potentially large base64
   // data URI).  Over thousands of heartbeats the retained Tab references
   // cause unbounded memory growth (see #222).
-  const { url, title, audible, incognito } = tab
+  const { url, title, audible, incognito, groupId } = tab
   const data: IEvent['data'] = {
     url: decodeURL(url),
     title,
@@ -94,6 +98,13 @@ async function heartbeat(
   // nothing to event size.
   const profile = await getProfileName()
   if (profile) data.profile = profile
+  // Likewise only set when the tab is in a Chromium tab group. Runs inside the
+  // heartbeat queue, so the lookup cannot reorder sends.
+  const group = await getTabGroup(groupId)
+  if (group) {
+    data.tab_group = group.title
+    data.tab_group_color = group.color
+  }
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(
@@ -123,12 +134,13 @@ async function heartbeat(
 // transaction so each update observes the preceding update.
 let heartbeatQueue: Promise<void> = Promise.resolve()
 
-function snapshotTab(tab: browser.Tabs.Tab): HeartbeatTab {
+function snapshotTab(tab: TabWithGroup): HeartbeatTab {
   return {
     url: tab.url,
     title: tab.title,
     audible: tab.audible,
     incognito: tab.incognito,
+    groupId: tab.groupId,
   }
 }
 
@@ -183,10 +195,16 @@ export const tabUpdatedListener =
   (client: AWClient) =>
   async (
     tabId: number,
-    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType & { groupId?: number },
     tab: browser.Tabs.Tab,
   ) => {
-    if (changeInfo.url === undefined && changeInfo.title === undefined) return
+    if (
+      changeInfo.url === undefined &&
+      changeInfo.title === undefined &&
+      changeInfo.groupId === undefined
+    ) {
+      return
+    }
 
     const now = new Date()
     const tabSnapshot = snapshotTab(tab)

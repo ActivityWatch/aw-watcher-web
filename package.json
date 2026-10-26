@@ -30,6 +30,6 @@
         "singleQuote": true
     },
     "scripts": {
-        "test": "node --test tests/*.test.ts"
+        "test": "make test"
     }
 }

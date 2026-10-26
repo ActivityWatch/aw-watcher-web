@@ -82,6 +82,7 @@ const MODULE_MAP = {
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
     './browserFork': './browserFork.mjs',
+    './url': './url.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     'punycode.js': pathToFileURL(require.resolve('punycode.js')).href,
 }
@@ -123,7 +124,7 @@ async function loadFixture() {
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)
         }
-        for (const name of ['browserFork', 'helpers', 'heartbeat']) {
+        for (const name of ['browserFork', 'helpers', 'heartbeat', 'url']) {
             const source = await readFile(join(SRC_DIR, `${name}.ts`), 'utf8')
             const js = rewriteImports(transpile(source, `${name}.ts`))
             await writeFile(join(dir, `${name}.mjs`), js)

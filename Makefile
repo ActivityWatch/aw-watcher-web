@@ -1,4 +1,4 @@
-.PHONY: build install clean test
+.PHONY: build install clean test test-fast typecheck
 
 install:
 	npm ci
@@ -12,8 +12,12 @@ clean:
 format:
 	npx prettier --write .
 
-test:
-	node --test tests/*.test.ts
+test: test-fast
+
+test-fast:
+	node --test tests/*.test.ts tests/*.test.mjs
+
+typecheck: compile
 
 #---------
 ## Building

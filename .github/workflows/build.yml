@@ -126,3 +126,6 @@ jobs:
 
       - name: Test tab-group heartbeat capture
         run: node --test tests/tab-groups.test.mjs
+
+      - name: Run regression tests
+        run: npm test

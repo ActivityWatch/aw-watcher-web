@@ -7,6 +7,7 @@ import {
   tabUpdatedListener,
 } from './heartbeat'
 import { getClient, detectHostname, loadApiKey } from './client'
+import { setupUrlInTitle } from './urlInTitle'
 import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
@@ -78,6 +79,9 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   await clientReady
   return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
+
+console.debug('Setting up URL in window title')
+setupUrlInTitle()
 
 console.debug('Setting base url')
 clientReady

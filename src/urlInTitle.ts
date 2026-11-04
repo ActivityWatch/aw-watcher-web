@@ -13,6 +13,12 @@
 export const DOMAIN_ONLY_KEY = 'urlInTitleDomainOnly'
 
 /**
+ * Storage key for the enabled setting, shared with the content script so a
+ * page restored from the back/forward cache can notice it was turned off.
+ */
+export const URL_IN_TITLE_KEY = 'urlInTitle'
+
+/**
  * Sent by the background to a tab's content script when the browser reports a
  * URL change, for pages whose pushState/replaceState fires no DOM event.
  */

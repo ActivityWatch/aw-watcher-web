@@ -24,6 +24,7 @@ function chromiumPage({
     const storageChanged = event()
     const navigation = event()
     const messages = event()
+    const pageShows = event()
     // When set, storage reads wait until the test resolves them.
     let pendingReads = null
     const chrome = {
@@ -101,6 +102,10 @@ function chromiumPage({
                             navigation.addListener(listener),
                         removeEventListener() {},
                     },
+                    addEventListener: (type, listener) => {
+                        if (type === 'pageshow') pageShows.addListener(listener)
+                    },
+                    removeEventListener() {},
                     MutationObserver: class {
                         observe() {}
                         disconnect() {}
@@ -123,6 +128,15 @@ function chromiumPage({
         navigate: async (href) => {
             location.href = href
             await navigation.emit()
+        },
+        // The content script re-reads the enabled flag when a cached page
+        // returns, because the background's disable cleanup cannot reach it.
+        setEnabled: (value) => {
+            settings.urlInTitle = value
+        },
+        pageShow: async (persisted = true) => {
+            await pageShows.emit({ persisted })
+            await flush()
         },
         setDomainOnly: async (value) => {
             settings.urlInTitleDomainOnly = value
@@ -451,4 +465,30 @@ test('the background relays browser URL changes to the tab while enabled', async
     await background.toggle(false)
     await background.update(5, { url: 'https://example.com/later' })
     assert.equal(background.sentMessages.length, 1)
+})
+
+test('a page restored from the back/forward cache drops its suffix when the option is off', async () => {
+    const page = chromiumPage({ title: 'Report', domainOnly: true })
+    await page.inject()
+    assert.equal(page.document.title, 'Report - example.com/')
+
+    // The background's disable cleanup cannot reach a cached document, so the
+    // content script has to notice on its own when the page comes back.
+    page.setEnabled(false)
+    await page.pageShow()
+    assert.equal(page.document.title, 'Report')
+
+    // And it must stay stopped: a later URL change must not re-add the suffix.
+    await page.navigate('https://example.com/other')
+    assert.equal(page.document.title, 'Report')
+})
+
+test('a page restored from the back/forward cache keeps its suffix while the option is on', async () => {
+    const page = chromiumPage({ title: 'Report', domainOnly: true })
+    await page.inject()
+    assert.equal(page.document.title, 'Report - example.com/')
+
+    page.setEnabled(true)
+    await page.pageShow()
+    assert.equal(page.document.title, 'Report - example.com/')
 })

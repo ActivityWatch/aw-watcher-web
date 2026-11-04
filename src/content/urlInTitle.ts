@@ -6,6 +6,7 @@
 import {
   DOMAIN_ONLY_KEY,
   URL_CHANGED_MESSAGE,
+  URL_IN_TITLE_KEY,
   titleSuffix,
   titleToken,
   WRITTEN_TITLE_ATTR,
@@ -109,10 +110,25 @@ function start(): Controller | undefined {
   // document, so reapply when the current history entry changes. Browsers
   // without the Navigation API fire no event for pushState/replaceState, so
   // the background also relays the browser's URL updates as a message.
+  // A page kept in the back/forward cache is not reachable by the background's
+  // disable cleanup, so it can return still carrying our suffix. Re-read the
+  // setting when it does and undo the write if the option has been turned off.
+  const onPageShow = (pageEvent: PageTransitionEvent) => {
+    if (!pageEvent?.persisted) return
+    chrome?.storage?.local
+      ?.get(URL_IN_TITLE_KEY)
+      .then((items: Record<string, unknown>) => {
+        if (stopped || items?.[URL_IN_TITLE_KEY]) return
+        stop()
+      })
+      .catch(() => undefined)
+  }
+
   const navigation = (globalThis as any).navigation
   navigation?.addEventListener?.('currententrychange', apply)
   globalThis.addEventListener?.('hashchange', apply)
   globalThis.addEventListener?.('popstate', apply)
+  globalThis.addEventListener?.('pageshow', onPageShow)
   const onMessage = (message: unknown) => {
     if ((message as { type?: string })?.type === URL_CHANGED_MESSAGE) apply()
   }
@@ -143,6 +159,7 @@ function start(): Controller | undefined {
     navigation?.removeEventListener?.('currententrychange', apply)
     globalThis.removeEventListener?.('hashchange', apply)
     globalThis.removeEventListener?.('popstate', apply)
+    globalThis.removeEventListener?.('pageshow', onPageShow)
     try {
       chrome?.storage?.onChanged?.removeListener(onStorageChanged)
       chrome?.runtime?.onMessage?.removeListener(onMessage)
@@ -151,20 +168,19 @@ function start(): Controller | undefined {
     }
   }
 
+  const stop = () => {
+    stopped = true
+    stopListening()
+    const own = pageTitle()
+    if (own !== document.title) document.title = own
+    root.removeAttribute(WRITTEN_TITLE_ATTR)
+    delete globals.__awUrlInTitle
+  }
+
   observe()
   readMode()
 
-  return {
-    isOrphaned,
-    stop() {
-      stopped = true
-      stopListening()
-      const own = pageTitle()
-      if (own !== document.title) document.title = own
-      root.removeAttribute(WRITTEN_TITLE_ATTR)
-      delete globals.__awUrlInTitle
-    },
-  }
+  return { isOrphaned, stop }
 }
 
 // Scripts injected into already-open tabs may share this isolated world with

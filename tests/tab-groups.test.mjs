@@ -71,6 +71,7 @@ const STUB_CLIENT = `
 export const sent = []
 export const getBucketId = async () => 'bucket'
 export const sendHeartbeat = async (client, bucketId, timestamp, data, pulsetime) => {
+  if (client.send) await client.send()
   sent.push({ timestamp, data: structuredClone(data), pulsetime })
 }
 `
@@ -623,4 +624,79 @@ test('a stale focus query cannot overwrite a newer loss event', async () => {
         tab,
     )
     assert.equal(client.sent.length, count)
+})
+
+for (const pauseWhenUnfocused of [false, true]) {
+    test(`stale alarm still reports when switching focused windows (pause=${pauseWhenUnfocused})`, async () => {
+        storage.state.pauseWhenUnfocused = pauseWhenUnfocused
+        useTab(makeTab())
+        await heartbeat.sendInitialHeartbeat(CLIENT)
+        const gate = deferred()
+        mock.method(
+            browser.default.windows,
+            'getLastFocused',
+            () => gate.promise,
+        )
+        const poll = heartbeat.heartbeatAlarmListener(CLIENT)({
+            name: 'heartbeat',
+        })
+        await heartbeat.windowFocusChangedListener(CLIENT)(2)
+        gate.resolve({ focused: false })
+        await poll
+        assert.equal(client.sent.length, 2)
+        assert.equal(client.sent.at(-1).pulsetime, 80)
+    })
+}
+
+for (const observation of ['event', 'poll']) {
+    for (const missing of ['title', 'tab']) {
+        test(`${observation} resume preserves boundary after missing ${missing}`, async () => {
+            storage.state.pauseWhenUnfocused = true
+            const tab = useTab(makeTab())
+            await heartbeat.sendInitialHeartbeat(CLIENT)
+            await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+            if (missing === 'title') tab.title = ''
+            else browser.state.activeTabId = undefined
+            if (observation === 'event') {
+                await heartbeat.windowFocusChangedListener(CLIENT)(1)
+            } else {
+                await heartbeat.heartbeatAlarmListener(CLIENT)({
+                    name: 'heartbeat',
+                })
+            }
+            assert.equal(client.sent.length, 2)
+            tab.title = 'Example'
+            browser.state.activeTabId = tab.id
+            await heartbeat.tabUpdatedListener(CLIENT)(
+                tab.id,
+                { title: tab.title },
+                tab,
+            )
+            assert.equal(client.sent.at(-1).pulsetime, 0)
+            await heartbeat.tabActivatedListener(CLIENT)({ tabId: tab.id })
+            assert.equal(client.sent.at(-1).pulsetime, 80)
+        })
+    }
+}
+
+test('failed resume send preserves boundary until a successful retry', async () => {
+    storage.state.pauseWhenUnfocused = true
+    useTab(makeTab())
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    CLIENT.send = () => {
+        throw new Error('offline')
+    }
+    try {
+        await assert.rejects(
+            heartbeat.windowFocusChangedListener(CLIENT)(1),
+            /offline/,
+        )
+    } finally {
+        delete CLIENT.send
+    }
+    await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    assert.equal(client.sent.at(-1).pulsetime, 0)
+    await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    assert.equal(client.sent.at(-1).pulsetime, 80)
 })

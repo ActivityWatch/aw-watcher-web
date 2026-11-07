@@ -19,6 +19,8 @@ import * as punycode from 'punycode.js'
 // Defaults to focused so behavior is unchanged until the setting is read.
 let isWindowFocused = true
 let focusRevision = 0
+// Owned by heartbeatQueue. A skipped or failed resume must not consume this.
+let resumeBoundaryPending = false
 
 // Re-derive focus from browser.windows directly. Used as a fallback on alarm
 // ticks since windows.onFocusChanged is unreliable on some Linux WMs, and as
@@ -37,7 +39,12 @@ export async function refreshWindowFocus(
     focused = true
   }
   // A newer event or poll owns focus now; never publish this stale result.
-  if (revision !== focusRevision) return isWindowFocused
+  if (revision !== focusRevision) {
+    // Reject the stale observation, not the caller's scheduled heartbeat.
+    // The newer event already reserved any transition boundary in the queue.
+    onObserved?.(isWindowFocused, isWindowFocused)
+    return isWindowFocused
+  }
   const wasFocused = isWindowFocused
   isWindowFocused = focused
   // Reserve any heartbeat boundary in the same turn that publishes focus.
@@ -62,6 +69,7 @@ export const windowFocusChangedListener =
     // tab events must not change this transition or overtake its boundary.
     await queueHeartbeat(async () => {
       if (!(await getPauseWhenUnfocused())) return
+      if (focused) resumeBoundaryPending = true
       const activeWindowTab = await getActiveWindowTab()
       const tabs = await getTabs()
       if (!focused) {
@@ -170,6 +178,9 @@ async function heartbeat(
     data.tab_group = group.title
     data.tab_group_color = group.color
   }
+  // Keep the boundary until the current-data send succeeds, including when
+  // metadata is missing or the server rejects an earlier resume attempt.
+  if (resumeBoundaryPending) pulsetime = 0
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(
@@ -185,6 +196,7 @@ async function heartbeat(
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   await sendHeartbeat(client, await getBucketId(), now, data, pulsetime)
+  resumeBoundaryPending = false
   await setHeartbeatData(data)
 }
 
@@ -249,6 +261,7 @@ export const heartbeatAlarmListener =
           if (wasFocused) await clearHeartbeatData()
           return
         }
+        if (pauseWhenUnfocused && !wasFocused) resumeBoundaryPending = true
         const activeWindowTab = await getActiveWindowTab()
         if (!activeWindowTab) return
         const tabs = await getTabs()

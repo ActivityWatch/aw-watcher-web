@@ -833,3 +833,65 @@ test('startup missed gain reserves a resume boundary before sending', async () =
         await startup.cleanup()
     }
 })
+
+test('failed current send does not extend already closed previous activity on retry', async () => {
+    const real = await loadFixture({ productionClient: true })
+    try {
+        const sent = []
+        let failB = true
+        const aw = {
+            ensureBucket: async () => {},
+            heartbeat: async (_bucket, pulsetime, event) => {
+                if (event.data.title === 'B' && failB)
+                    throw new Error('offline B')
+                sent.push({ pulsetime, ...event })
+            },
+        }
+        const tab = makeTab({ title: 'A' })
+        real.browser.state.tabs = [tab]
+        real.browser.state.activeTabId = 1
+        mock.timers.enable({ apis: ['Date'], now: 0 })
+        await real.heartbeat.sendInitialHeartbeat(aw)
+        mock.timers.tick(10000)
+        tab.title = 'B'
+        await real.heartbeat.tabUpdatedListener(aw)(1, { title: 'B' }, tab)
+        mock.timers.tick(10000)
+        failB = false
+        await real.heartbeat.sendInitialHeartbeat(aw)
+        assert.deepEqual(
+            sent
+                .filter((e) => e.data.title === 'A')
+                .map((e) => e.timestamp.getTime()),
+            [0, 9999],
+        )
+        assert.equal(sent.at(-1).data.title, 'B')
+    } finally {
+        await real.cleanup()
+    }
+})
+
+test('queued refocus reports its captured tab, not a later unfocused navigation', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const gate = deferred()
+    const entered = deferred()
+    installChromeTabGroups(async (id) => {
+        entered.resolve()
+        await gate.promise
+        return groups.get(id)
+    })
+    const tab = useTab(makeTab({ title: 'A', groupId: 7 }))
+    const first = heartbeat.sendInitialHeartbeat(CLIENT)
+    await entered.promise
+    const loss = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    const gain = heartbeat.windowFocusChangedListener(CLIENT)(1)
+    await new Promise((resolve) => setImmediate(resolve))
+    const lossAgain = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    tab.title = 'B'
+    const update = heartbeat.tabUpdatedListener(CLIENT)(1, { title: 'B' }, tab)
+    gate.resolve()
+    await Promise.all([first, loss, gain, lossAgain, update])
+    assert.deepEqual(
+        sentData().map((data) => data.title),
+        ['A', 'A', 'A', 'A'],
+    )
+})

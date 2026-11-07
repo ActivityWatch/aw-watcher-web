@@ -65,6 +65,17 @@ export const windowFocusChangedListener =
     isWindowFocused = focused
     if (wasFocused === focused) return
     const now = new Date()
+    // Start the lookup at observation time, not after earlier network sends.
+    // Snapshot on resolution so later navigation cannot mutate the result.
+    const gainedTab = focused
+      ? getActiveWindowTab().then(
+          (tab) => tab && snapshotTab(tab),
+          (error) => {
+            console.warn('Could not capture refocused tab', error)
+            return undefined
+          },
+        )
+      : undefined
     // Reserve the transition's place before reading settings. Later focus or
     // tab events must not change this transition or overtake its boundary.
     await queueHeartbeat(async () => {
@@ -85,7 +96,7 @@ export const windowFocusChangedListener =
         await clearHeartbeatData()
       } else {
         resumeBoundaryPending = true
-        const activeWindowTab = await getActiveWindowTab()
+        const activeWindowTab = await gainedTab
         const tabs = await getTabs()
         // Run directly in this task: queueing another task here would deadlock.
         await heartbeat(client, activeWindowTab, tabs.length, now, 0)
@@ -202,6 +213,9 @@ async function heartbeat(
       previousData,
       pulsetime,
     )
+    // This activity ended at this observation, even if the new send fails.
+    // Never re-close it at a later retry timestamp.
+    await clearHeartbeatData()
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   const sent = await sendHeartbeat(

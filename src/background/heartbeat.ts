@@ -69,15 +69,24 @@ export const windowFocusChangedListener =
     // tab events must not change this transition or overtake its boundary.
     await queueHeartbeat(async () => {
       if (!(await getPauseWhenUnfocused())) return
-      if (focused) resumeBoundaryPending = true
-      const activeWindowTab = await getActiveWindowTab()
-      const tabs = await getTabs()
       if (!focused) {
-        // Close at the observed loss time, then forget the previous data so
-        // refocus cannot bridge the pause with a previous-data heartbeat.
-        await heartbeat(client, activeWindowTab, tabs.length, now)
+        // Close the last reported activity, not possibly incomplete metadata
+        // from a navigation in progress. No tab lookup is needed for a loss.
+        const previousData = await getHeartbeatData()
+        if (previousData && (await getEnabled())) {
+          await sendHeartbeat(
+            client,
+            await getBucketId(),
+            now,
+            previousData,
+            resumeBoundaryPending ? 0 : config.heartbeat.intervalInSeconds + 20,
+          )
+        }
         await clearHeartbeatData()
       } else {
+        resumeBoundaryPending = true
+        const activeWindowTab = await getActiveWindowTab()
+        const tabs = await getTabs()
         // Run directly in this task: queueing another task here would deadlock.
         await heartbeat(client, activeWindowTab, tabs.length, now, 0)
       }
@@ -195,9 +204,17 @@ async function heartbeat(
     )
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
-  await sendHeartbeat(client, await getBucketId(), now, data, pulsetime)
-  resumeBoundaryPending = false
-  await setHeartbeatData(data)
+  const sent = await sendHeartbeat(
+    client,
+    await getBucketId(),
+    now,
+    data,
+    pulsetime,
+  )
+  if (sent) {
+    resumeBoundaryPending = false
+    await setHeartbeatData(data)
+  }
 }
 
 // Chrome can report URL and title changes before a preceding asynchronous
@@ -244,34 +261,38 @@ export const sendInitialHeartbeat = async (
   })
 }
 
+// Startup and alarms must publish focus and reserve the heartbeat together.
+export const refreshAndSendHeartbeat = async (client: AWClient) => {
+  // Fallback poll: focus-change events are unreliable on some Linux WMs,
+  // so re-derive focus from the windows API on every alarm tick.
+  let queued: Promise<void> | undefined
+  await refreshWindowFocus((wasFocused, focused) => {
+    const now = new Date()
+    queued = queueHeartbeat(async () => {
+      const pauseWhenUnfocused = await getPauseWhenUnfocused()
+      if (pauseWhenUnfocused && !focused) {
+        // Missed loss: T_loss is unknown. Do not extend activity to poll
+        // time; leave it at the last known heartbeat and forget its data.
+        if (wasFocused) await clearHeartbeatData()
+        return
+      }
+      if (pauseWhenUnfocused && !wasFocused) resumeBoundaryPending = true
+      const activeWindowTab = await getActiveWindowTab()
+      if (!activeWindowTab) return
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+      // Missed gain must start fresh, not bridge a short pause.
+      const pulsetime = pauseWhenUnfocused && !wasFocused ? 0 : undefined
+      await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
+    })
+  })
+  await queued
+}
+
 export const heartbeatAlarmListener =
   (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
     if (alarm.name !== config.heartbeat.alarmName) return
-
-    // Fallback poll: focus-change events are unreliable on some Linux WMs,
-    // so re-derive focus from the windows API on every alarm tick.
-    let queued: Promise<void> | undefined
-    await refreshWindowFocus((wasFocused, focused) => {
-      const now = new Date()
-      queued = queueHeartbeat(async () => {
-        const pauseWhenUnfocused = await getPauseWhenUnfocused()
-        if (pauseWhenUnfocused && !focused) {
-          // Missed loss: T_loss is unknown. Do not extend activity to poll
-          // time; leave it at the last known heartbeat and forget its data.
-          if (wasFocused) await clearHeartbeatData()
-          return
-        }
-        if (pauseWhenUnfocused && !wasFocused) resumeBoundaryPending = true
-        const activeWindowTab = await getActiveWindowTab()
-        if (!activeWindowTab) return
-        const tabs = await getTabs()
-        console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-        // Missed gain must start fresh, not bridge a short pause.
-        const pulsetime = pauseWhenUnfocused && !wasFocused ? 0 : undefined
-        await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
-      })
-    })
-    await queued
+    await refreshAndSendHeartbeat(client)
   }
 
 export const tabActivatedListener =

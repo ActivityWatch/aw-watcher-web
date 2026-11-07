@@ -3,7 +3,7 @@ import config from '../config'
 import {
   heartbeatAlarmListener,
   refreshWindowFocus,
-  sendInitialHeartbeat,
+  refreshAndSendHeartbeat,
   tabActivatedListener,
   tabUpdatedListener,
   windowFocusChangedListener,
@@ -96,8 +96,7 @@ clientReady
   // Re-check focus immediately before the startup heartbeat so the pause
   // setting is evaluated against the real focus state, not the startup
   // default of isWindowFocused=true.
-  .then(() => refreshWindowFocus())
-  .then(() => sendInitialHeartbeat(client))
+  .then(() => refreshAndSendHeartbeat(client))
   .then(() => console.info('Started successfully'))
   .catch((err) => console.error('Failed to initialize extension:', err))
 

@@ -20,10 +20,14 @@ const STUB_BROWSER = `
 export const state = { tabs: [], activeTabId: undefined, focused: true }
 const browser = {
   windows: {
+    onFocusChanged: { addListener: () => {} },
     WINDOW_ID_NONE: -1,
     getLastFocused: async () => ({ focused: state.focused }),
   },
+  alarms: { create: () => {}, onAlarm: { addListener: () => {} } },
   tabs: {
+    onActivated: { addListener: () => {} },
+    onUpdated: { addListener: () => {} },
     get: async (id) => {
       const tab = state.tabs.find((t) => t.id === id)
       if (!tab) throw new Error('No tab with id ' + id)
@@ -34,7 +38,12 @@ const browser = {
         ? state.tabs.filter((t) => t.id === state.activeTabId)
         : [...state.tabs],
   },
-  runtime: { getURL: (path) => path },
+  runtime: {
+    getURL: (path) => path,
+    onInstalled: { addListener: () => {} },
+    onStartup: { addListener: () => {} },
+    onMessage: { addListener: () => {} },
+  },
   notifications: { create: () => {} },
 }
 export default browser
@@ -49,6 +58,16 @@ export const state = {
   browserName: 'chrome',
   browserNameUserSelected: false,
 }
+export const getConsentStatus = async () => ({ consent: true })
+export const setConsentStatus = async () => {}
+export const setEnabled = async () => {}
+export const setHostname = async () => {}
+export const setBaseUrl = async () => {}
+export const waitForEnabled = async () => { if (state.enableGate) await state.enableGate }
+export const getApiKey = async () => undefined
+export const getHostname = async () => 'test-host'
+export const getSyncStatus = async () => ({ success: true })
+export const setSyncStatus = async () => {}
 export const getEnabled = async () => state.enabled
 export const getPauseWhenUnfocused = async () => {
   if (state.pauseReadGate) await state.pauseReadGate
@@ -69,10 +88,14 @@ export const setBrowserName = async (name) => {
 
 const STUB_CLIENT = `
 export const sent = []
+export const getClient = () => ({})
+export const loadApiKey = async () => {}
+export const detectHostname = async () => 'host'
 export const getBucketId = async () => 'bucket'
 export const sendHeartbeat = async (client, bucketId, timestamp, data, pulsetime) => {
   if (client.send) await client.send()
   sent.push({ timestamp, data: structuredClone(data), pulsetime })
+  return true
 }
 `
 
@@ -82,6 +105,7 @@ export default { heartbeat: { alarmName: 'heartbeat', intervalInSeconds: 60 } }
 
 const STUB_AW_CLIENT = `
 export class FetchError extends Error {}
+export class AWClient {}
 `
 
 // Production import specifier -> specifier to use in the transpiled fixture.
@@ -92,6 +116,9 @@ const MODULE_MAP = {
     './client': './stub-client.mjs',
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
+    './heartbeat': './heartbeat.mjs',
+    './consent': './stub-consent.mjs',
+    'p-retry': './fast-retry.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     'punycode.js': pathToFileURL(require.resolve('punycode.js')).href,
 }
@@ -119,11 +146,13 @@ function rewriteImports(js) {
     )
 }
 
-async function loadFixture() {
+async function loadFixture({ productionClient = false } = {}) {
     const dir = await mkdtemp(join(tmpdir(), 'aw-tab-groups-'))
     const cleanup = () => rm(dir, { recursive: true, force: true })
     try {
         const stubs = {
+            'stub-consent.mjs':
+                'export const getIsConsentRequired = () => false; export const installAction = () => "enable"',
             'stub-browser.mjs': STUB_BROWSER,
             'stub-storage.mjs': STUB_STORAGE,
             'stub-client.mjs': STUB_CLIENT,
@@ -133,19 +162,40 @@ async function loadFixture() {
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)
         }
-        for (const name of ['helpers', 'heartbeat']) {
+        // Keep real retry/failure behavior, but do not sleep in offline tests.
+        await writeFile(
+            join(dir, 'fast-retry.mjs'),
+            `
+import retry from ${JSON.stringify(pathToFileURL(require.resolve('p-retry')).href)}
+export default (fn, options) => retry(fn, { ...options, minTimeout: 0, maxTimeout: 0 })
+`,
+        )
+        for (const name of [
+            'helpers',
+            'heartbeat',
+            'main',
+            ...(productionClient ? ['client'] : []),
+        ]) {
             const source = await readFile(join(SRC_DIR, `${name}.ts`), 'utf8')
-            const js = rewriteImports(transpile(source, `${name}.ts`))
+            const js = rewriteImports(
+                transpile(source, `${name}.ts`),
+            ).replaceAll(
+                './stub-client.mjs',
+                productionClient ? './client.mjs' : './stub-client.mjs',
+            )
             await writeFile(join(dir, `${name}.mjs`), js)
         }
         const load = (name) => import(pathToFileURL(join(dir, name)).href)
         return {
             cleanup,
+            start: () => load('main.mjs'),
             heartbeat: await load('heartbeat.mjs'),
             helpers: await load('helpers.mjs'),
             browser: await load('stub-browser.mjs'),
             storage: await load('stub-storage.mjs'),
-            client: await load('stub-client.mjs'),
+            client: await load(
+                productionClient ? 'client.mjs' : 'stub-client.mjs',
+            ),
         }
     } catch (error) {
         await cleanup()
@@ -238,6 +288,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+    mock.timers.reset()
     mock.restoreAll()
     delete globalThis.chrome
 })
@@ -699,4 +750,86 @@ test('failed resume send preserves boundary until a successful retry', async () 
     assert.equal(client.sent.at(-1).pulsetime, 0)
     await heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
     assert.equal(client.sent.at(-1).pulsetime, 80)
+})
+
+// Unlike the lightweight client stub, this runs production sendHeartbeat and
+// real p-retry so an exhausted retry cannot masquerade as a successful send.
+test('production sender retains failed resume boundary through exhausted retries', async () => {
+    const real = await loadFixture({ productionClient: true })
+    try {
+        real.storage.state.pauseWhenUnfocused = true
+        real.browser.state.tabs = [makeTab()]
+        real.browser.state.activeTabId = 1
+        const sent = []
+        let offline = false
+        let failures = 0
+        const aw = {
+            ensureBucket: async () => {},
+            heartbeat: async (_bucket, pulsetime, event) => {
+                if (offline) {
+                    failures++
+                    throw new Error('offline')
+                }
+                sent.push({ pulsetime, ...event })
+            },
+        }
+        await real.heartbeat.sendInitialHeartbeat(aw)
+        await real.heartbeat.windowFocusChangedListener(aw)(-1)
+        offline = true
+        await real.heartbeat.windowFocusChangedListener(aw)(1)
+        assert.equal(failures, 4)
+        offline = false
+        await real.heartbeat.heartbeatAlarmListener(aw)({ name: 'heartbeat' })
+        assert.equal(sent.at(-1).pulsetime, 0)
+        await real.heartbeat.heartbeatAlarmListener(aw)({ name: 'heartbeat' })
+        assert.equal(sent.at(-1).pulsetime, 80)
+    } finally {
+        await real.cleanup()
+    }
+})
+
+for (const missing of ['title', 'url', 'tab']) {
+    test(`focus loss closes last reportable data with missing ${missing}`, async () => {
+        storage.state.pauseWhenUnfocused = true
+        const tab = useTab(makeTab({ groupId: 7 }))
+        await heartbeat.sendInitialHeartbeat(CLIENT)
+        if (missing === 'tab') browser.state.activeTabId = undefined
+        else tab[missing] = ''
+        mock.timers.enable({ apis: ['Date'], now: 30000 })
+        await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+        assert.equal(client.sent.length, 2)
+        assert.deepEqual(client.sent.at(-1).data, { ...BASE, ...WORK })
+        assert.equal(client.sent.at(-1).timestamp.getTime(), 30000)
+        assert.equal(storage.state.heartbeatData, undefined)
+        useTab(makeTab({ groupId: 7 }))
+        await heartbeat.windowFocusChangedListener(CLIENT)(1)
+        assert.equal(client.sent.at(-1).pulsetime, 0)
+    })
+}
+
+test('startup missed gain reserves a resume boundary before sending', async () => {
+    const startup = await loadFixture()
+    const gate = deferred()
+    try {
+        startup.storage.state.pauseWhenUnfocused = true
+        startup.storage.state.enableGate = gate.promise
+        startup.browser.state.focused = false
+        startup.browser.state.tabs = [makeTab()]
+        startup.browser.state.activeTabId = 1
+        await startup.start()
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(startup.client.sent.length, 0)
+        startup.browser.state.focused = true
+        gate.resolve()
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(startup.client.sent.length, 1)
+        assert.equal(startup.client.sent[0].pulsetime, 0)
+        await startup.heartbeat.heartbeatAlarmListener(CLIENT)({
+            name: 'heartbeat',
+        })
+        assert.equal(startup.client.sent.at(-1).pulsetime, 80)
+    } finally {
+        gate.resolve()
+        await startup.cleanup()
+    }
 })

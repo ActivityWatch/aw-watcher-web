@@ -587,3 +587,40 @@ test('quick loss and gain retain both transition timestamps while settings wait'
         ],
     )
 })
+
+test('polled refocus reserves the resume before activation while settings wait', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const tab = useTab(makeTab())
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    const gate = deferred()
+    storage.state.pauseReadGate = gate.promise
+    const poll = heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    await new Promise((resolve) => setImmediate(resolve))
+    const activated = heartbeat.tabActivatedListener(CLIENT)({ tabId: tab.id })
+    gate.resolve()
+    await Promise.all([poll, activated])
+    assert.deepEqual(
+        client.sent.map((entry) => entry.pulsetime),
+        [80, 80, 0, 80],
+    )
+})
+
+test('a stale focus query cannot overwrite a newer loss event', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const tab = useTab(makeTab())
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    const gate = deferred()
+    mock.method(browser.default.windows, 'getLastFocused', () => gate.promise)
+    const poll = heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' })
+    const lost = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    gate.resolve({ focused: true })
+    await Promise.all([poll, lost])
+    const count = client.sent.length
+    await heartbeat.tabUpdatedListener(CLIENT)(
+        tab.id,
+        { title: tab.title },
+        tab,
+    )
+    assert.equal(client.sent.length, count)
+})

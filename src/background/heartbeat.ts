@@ -18,20 +18,31 @@ import * as punycode from 'punycode.js'
 // meaningful when the "pause when unfocused" setting is on; see #140.
 // Defaults to focused so behavior is unchanged until the setting is read.
 let isWindowFocused = true
+let focusRevision = 0
 
 // Re-derive focus from browser.windows directly. Used as a fallback on alarm
 // ticks since windows.onFocusChanged is unreliable on some Linux WMs, and as
 // the initial value at startup.
-export async function refreshWindowFocus(): Promise<boolean> {
+export async function refreshWindowFocus(
+  onObserved?: (wasFocused: boolean, focused: boolean) => void,
+): Promise<boolean> {
+  const revision = ++focusRevision
+  let focused: boolean
   try {
     const win = await browser.windows.getLastFocused()
-    isWindowFocused = Boolean(win?.focused)
+    focused = Boolean(win?.focused)
   } catch (e) {
     // windows API unavailable, or no normal window exists yet (e.g. right
     // after install). Assume focused so heartbeats are never stuck paused.
-    isWindowFocused = true
+    focused = true
   }
-  return isWindowFocused
+  // A newer event or poll owns focus now; never publish this stale result.
+  if (revision !== focusRevision) return isWindowFocused
+  const wasFocused = isWindowFocused
+  isWindowFocused = focused
+  // Reserve any heartbeat boundary in the same turn that publishes focus.
+  onObserved?.(wasFocused, focused)
+  return focused
 }
 
 async function shouldPauseForUnfocus(focused: boolean): Promise<boolean> {
@@ -41,6 +52,7 @@ async function shouldPauseForUnfocus(focused: boolean): Promise<boolean> {
 
 export const windowFocusChangedListener =
   (client: AWClient) => async (windowId: number) => {
+    ++focusRevision
     const wasFocused = isWindowFocused
     const focused = windowId !== browser.windows.WINDOW_ID_NONE
     isWindowFocused = focused
@@ -226,44 +238,27 @@ export const heartbeatAlarmListener =
 
     // Fallback poll: focus-change events are unreliable on some Linux WMs,
     // so re-derive focus from the windows API on every alarm tick.
-    const wasFocused = isWindowFocused
-    await refreshWindowFocus()
-    const pauseWhenUnfocused = await getPauseWhenUnfocused()
-
-    // Missed focus-loss: do not send a closing heartbeat at poll time.
-    // The actual T_loss is unknown; stamping `now` would extend the previous
-    // AW event through time spent in another app (heartbeat at 12:00, focus
-    // lost at 12:00:05, poll at 12:01 → 55s of away-time counted as browsing).
-    // Leave the event at the last known heartbeat and clear stored data so
-    // the next focused heartbeat starts a new event.
-    if (pauseWhenUnfocused && wasFocused && !isWindowFocused) {
-      await queueHeartbeat(async () => {
-        await clearHeartbeatData()
+    let queued: Promise<void> | undefined
+    await refreshWindowFocus((wasFocused, focused) => {
+      const now = new Date()
+      queued = queueHeartbeat(async () => {
+        const pauseWhenUnfocused = await getPauseWhenUnfocused()
+        if (pauseWhenUnfocused && !focused) {
+          // Missed loss: T_loss is unknown. Do not extend activity to poll
+          // time; leave it at the last known heartbeat and forget its data.
+          if (wasFocused) await clearHeartbeatData()
+          return
+        }
+        const activeWindowTab = await getActiveWindowTab()
+        if (!activeWindowTab) return
+        const tabs = await getTabs()
+        console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+        // Missed gain must start fresh, not bridge a short pause.
+        const pulsetime = pauseWhenUnfocused && !wasFocused ? 0 : undefined
+        await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
       })
-      return
-    }
-
-    if (pauseWhenUnfocused && !isWindowFocused) {
-      console.debug('Skipping heartbeat: browser is unfocused')
-      return
-    }
-
-    // Missed focus-gain: same hole as missed loss. A normal-pulsetime
-    // heartbeat here would merge a short unfocused gap into the previous
-    // event. Force pulsetime=0 so AW starts a fresh event at poll time.
-    if (pauseWhenUnfocused && !wasFocused && isWindowFocused) {
-      await sendInitialHeartbeat(client, 0)
-      return
-    }
-
-    const now = new Date()
-    await queueHeartbeat(async () => {
-      const activeWindowTab = await getActiveWindowTab()
-      if (!activeWindowTab) return
-      const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-      await heartbeat(client, activeWindowTab, tabs.length, now)
     })
+    await queued
   }
 
 export const tabActivatedListener =

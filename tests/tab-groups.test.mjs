@@ -50,7 +50,10 @@ export const state = {
   browserNameUserSelected: false,
 }
 export const getEnabled = async () => state.enabled
-export const getPauseWhenUnfocused = async () => state.pauseWhenUnfocused
+export const getPauseWhenUnfocused = async () => {
+  if (state.pauseReadGate) await state.pauseReadGate
+  return state.pauseWhenUnfocused
+}
 export const clearHeartbeatData = async () => { state.heartbeatData = undefined }
 export const getProfileName = async () => state.profile
 export const getHeartbeatData = async () => state.heartbeatData
@@ -212,6 +215,7 @@ beforeEach(async () => {
     Object.assign(storage.state, {
         enabled: true,
         pauseWhenUnfocused: false,
+        pauseReadGate: undefined,
         profile: undefined,
         heartbeatData: undefined,
     })
@@ -506,4 +510,80 @@ test('focus events close activity then resume with zero pulsetime', async () => 
     await heartbeat.windowFocusChangedListener(CLIENT)(1)
     assert.equal(client.sent.length, 3)
     assert.equal(client.sent.at(-1).pulsetime, 0)
+})
+
+for (const event of ['update', 'activation']) {
+    test(`queued ${event} received while paused stays suppressed after refocus`, async () => {
+        storage.state.pauseWhenUnfocused = true
+        const gate = deferred()
+        const entered = deferred()
+        installChromeTabGroups(async (id) => {
+            entered.resolve()
+            await gate.promise
+            return groups.get(id)
+        })
+        const tab = useTab(makeTab({ groupId: 7 }))
+        const first = heartbeat.sendInitialHeartbeat(CLIENT)
+        await entered.promise
+        const lost = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+        // Let the old implementation enqueue its loss task, isolating the
+        // event-time focus bug from the settings/transition ordering bug.
+        await new Promise((resolve) => setImmediate(resolve))
+        const paused =
+            event === 'update'
+                ? heartbeat.tabUpdatedListener(CLIENT)(
+                      tab.id,
+                      { title: tab.title },
+                      tab,
+                  )
+                : heartbeat.tabActivatedListener(CLIENT)({ tabId: tab.id })
+        const gained = heartbeat.windowFocusChangedListener(CLIENT)(1)
+        gate.resolve()
+        await Promise.all([first, lost, paused, gained])
+        assert.deepEqual(
+            client.sent.map((entry) => entry.pulsetime),
+            [80, 80, 0],
+        )
+    })
+}
+
+test('refocus reserves its queue position before a delayed settings read', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const tab = useTab(makeTab())
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    await heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    const gate = deferred()
+    storage.state.pauseReadGate = gate.promise
+    const gained = heartbeat.windowFocusChangedListener(CLIENT)(1)
+    const activated = heartbeat.tabActivatedListener(CLIENT)({ tabId: tab.id })
+    gate.resolve()
+    await Promise.all([gained, activated])
+    assert.deepEqual(
+        client.sent.map((entry) => entry.pulsetime),
+        [80, 80, 0, 80],
+    )
+})
+
+test('quick loss and gain retain both transition timestamps while settings wait', async () => {
+    storage.state.pauseWhenUnfocused = true
+    useTab(makeTab())
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    const gate = deferred()
+    storage.state.pauseReadGate = gate.promise
+    mock.timers.enable({ apis: ['Date'], now: 10000 })
+    const lost = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    mock.timers.tick(5000)
+    const gained = heartbeat.windowFocusChangedListener(CLIENT)(1)
+    mock.timers.tick(5000)
+    gate.resolve()
+    await Promise.all([lost, gained])
+    assert.deepEqual(
+        client.sent
+            .slice(1)
+            .map((entry) => [entry.timestamp.getTime(), entry.pulsetime]),
+        [
+            [10000, 80],
+            [15000, 0],
+        ],
+    )
 })

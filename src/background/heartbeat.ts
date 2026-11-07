@@ -34,35 +34,34 @@ export async function refreshWindowFocus(): Promise<boolean> {
   return isWindowFocused
 }
 
-async function shouldPauseForUnfocus(): Promise<boolean> {
+async function shouldPauseForUnfocus(focused: boolean): Promise<boolean> {
   if (!(await getPauseWhenUnfocused())) return false
-  return !isWindowFocused
+  return !focused
 }
 
 export const windowFocusChangedListener =
   (client: AWClient) => async (windowId: number) => {
     const wasFocused = isWindowFocused
-    isWindowFocused = windowId !== browser.windows.WINDOW_ID_NONE
-    if (!(await getPauseWhenUnfocused())) return
-    if (wasFocused && !isWindowFocused) {
-      // Focus lost: close the current AW event with a standard-pulsetime
-      // heartbeat so the timeline ends at exactly the focus-loss time.
-      // Then clear the stored data so the refocus heartbeat starts fresh.
-      const now = new Date()
-      await queueHeartbeat(async () => {
-        const activeWindowTab = await getActiveWindowTab()
-        const tabs = await getTabs()
+    const focused = windowId !== browser.windows.WINDOW_ID_NONE
+    isWindowFocused = focused
+    if (wasFocused === focused) return
+    const now = new Date()
+    // Reserve the transition's place before reading settings. Later focus or
+    // tab events must not change this transition or overtake its boundary.
+    await queueHeartbeat(async () => {
+      if (!(await getPauseWhenUnfocused())) return
+      const activeWindowTab = await getActiveWindowTab()
+      const tabs = await getTabs()
+      if (!focused) {
+        // Close at the observed loss time, then forget the previous data so
+        // refocus cannot bridge the pause with a previous-data heartbeat.
         await heartbeat(client, activeWindowTab, tabs.length, now)
         await clearHeartbeatData()
-      })
-    }
-    if (!wasFocused && isWindowFocused) {
-      // Refocused after a pause: send a zero-pulsetime heartbeat so AW
-      // creates a new event starting at the exact refocus time.
-      // pulsetime=0 prevents merging with the pre-pause event regardless
-      // of how short the unfocused interval was.
-      await sendInitialHeartbeat(client, 0)
-    }
+      } else {
+        // Run directly in this task: queueing another task here would deadlock.
+        await heartbeat(client, activeWindowTab, tabs.length, now, 0)
+      }
+    })
   }
 
 function decodeURL(url: string): string {
@@ -207,12 +206,13 @@ export const sendInitialHeartbeat = async (
   client: AWClient,
   pulsetime?: number,
 ) => {
-  if (await shouldPauseForUnfocus()) {
-    console.debug('Skipping initial heartbeat: browser is unfocused')
-    return
-  }
+  const focused = isWindowFocused
   const now = new Date()
   await queueHeartbeat(async () => {
+    if (await shouldPauseForUnfocus(focused)) {
+      console.debug('Skipping initial heartbeat: browser is unfocused')
+      return
+    }
     const activeWindowTab = await getActiveWindowTab()
     const tabs = await getTabs()
     console.debug('Sending initial heartbeat', activeWindowTab?.url)
@@ -270,8 +270,9 @@ export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const now = new Date()
+    const focused = isWindowFocused
     await queueHeartbeat(async () => {
-      if (await shouldPauseForUnfocus()) return
+      if (await shouldPauseForUnfocus(focused)) return
       const tab = await getTab(activeInfo.tabId)
       const tabs = await getTabs()
       console.debug('Sending heartbeat for tab activation', tab.url)
@@ -295,8 +296,9 @@ export const tabUpdatedListener =
     }
     const now = new Date()
     const tabSnapshot = snapshotTab(tab)
+    const focused = isWindowFocused
     await queueHeartbeat(async () => {
-      if (await shouldPauseForUnfocus()) return
+      if (await shouldPauseForUnfocus(focused)) return
       const activeWindowTab = await getActiveWindowTab()
       if (activeWindowTab?.id !== tabId) return
 

@@ -219,6 +219,9 @@ async function heartbeat(
     // This activity ended at this observation, even if the new send fails.
     // Never re-close it at a later retry timestamp.
     await clearHeartbeatData()
+    // Until the replacement is confirmed, returning to the old page must
+    // start fresh rather than merge across this intervening activity.
+    resumeBoundaryPending = true
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   const sent = await sendHeartbeat(
@@ -326,11 +329,18 @@ export const tabActivatedListener =
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const now = new Date()
     const focused = isWindowFocused
+    const activatedTab = getTab(activeInfo.tabId).then(
+      (tab) => snapshotTab(tab),
+      (error) => {
+        console.warn('Could not capture activated tab', error)
+        return undefined
+      },
+    )
     await queueHeartbeat(async () => {
       if (await shouldPauseForUnfocus(focused)) return
-      const tab = await getTab(activeInfo.tabId)
+      const tab = await activatedTab
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab activation', tab.url)
+      console.debug('Sending heartbeat for tab activation', tab?.url)
       await heartbeat(client, tab, tabs.length, now)
     })
   }

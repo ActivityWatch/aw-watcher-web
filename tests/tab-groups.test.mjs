@@ -968,3 +968,60 @@ test('queued polled refocus freezes tab data before earlier sends drain', async 
         [80, 80, 0, 80],
     )
 })
+
+// A failed intermediate page must not let a later return bridge its interval.
+test('failed page change retains a fresh boundary when returning to the previous page', async () => {
+    const real = await loadFixture({ productionClient: true })
+    try {
+        const sent = []
+        const aw = {
+            ensureBucket: async () => {},
+            heartbeat: async (_bucket, pulsetime, event) => {
+                if (event.data.title === 'B') throw new Error('offline B')
+                sent.push({ pulsetime, ...event })
+            },
+        }
+        const tab = makeTab({ title: 'A' })
+        real.browser.state.tabs = [tab]
+        real.browser.state.activeTabId = 1
+        mock.timers.enable({ apis: ['Date'], now: 0 })
+        await real.heartbeat.sendInitialHeartbeat(aw)
+        mock.timers.tick(10000)
+        tab.title = 'B'
+        await real.heartbeat.tabUpdatedListener(aw)(1, { title: 'B' }, tab)
+        mock.timers.tick(10000)
+        tab.title = 'A'
+        await real.heartbeat.tabUpdatedListener(aw)(1, { title: 'A' }, tab)
+        assert.equal(sent.at(-1).timestamp.getTime(), 20000)
+        assert.equal(sent.at(-1).pulsetime, 0)
+        await real.heartbeat.sendInitialHeartbeat(aw)
+        assert.equal(sent.at(-1).pulsetime, 80)
+    } finally {
+        await real.cleanup()
+    }
+})
+
+test('queued activation freezes its tab before later unfocused navigation', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const gate = deferred()
+    const entered = deferred()
+    installChromeTabGroups(async (id) => {
+        entered.resolve()
+        await gate.promise
+        return groups.get(id)
+    })
+    const tab = useTab(makeTab({ title: 'A', groupId: 7 }))
+    const first = heartbeat.sendInitialHeartbeat(CLIENT)
+    await entered.promise
+    const activated = heartbeat.tabActivatedListener(CLIENT)({ tabId: 1 })
+    await new Promise((resolve) => setImmediate(resolve))
+    const lost = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    tab.title = 'B'
+    const updated = heartbeat.tabUpdatedListener(CLIENT)(1, { title: 'B' }, tab)
+    gate.resolve()
+    await Promise.all([first, activated, lost, updated])
+    assert.deepEqual(
+        sentData().map((data) => data.title),
+        ['A', 'A', 'A'],
+    )
+})

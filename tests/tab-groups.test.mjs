@@ -895,3 +895,76 @@ test('queued refocus reports its captured tab, not a later unfocused navigation'
         ['A', 'A', 'A', 'A'],
     )
 })
+
+for (const newerFirst of [false, true]) {
+    test(`overlapping focus polls use published observations, not cached focus (newer first=${newerFirst})`, async () => {
+        storage.state.pauseWhenUnfocused = true
+        const tab = useTab(makeTab())
+        await heartbeat.sendInitialHeartbeat(CLIENT)
+        const firstQuery = deferred()
+        const secondQuery = deferred()
+        let queries = 0
+        mock.method(browser.default.windows, 'getLastFocused', () =>
+            ++queries === 1 ? firstQuery.promise : secondQuery.promise,
+        )
+        const first = heartbeat.refreshAndSendHeartbeat(CLIENT)
+        const second = heartbeat.refreshAndSendHeartbeat(CLIENT)
+        try {
+            if (newerFirst) {
+                secondQuery.resolve({ focused: false })
+                await second
+                // An older focused result must not undo the newer loss.
+                firstQuery.resolve({ focused: true })
+            } else {
+                firstQuery.resolve({ focused: false })
+                await first
+                // A newer outstanding query is not a published observation.
+                assert.equal(client.sent.length, 1)
+                secondQuery.resolve({ focused: false })
+            }
+            await Promise.all([first, second])
+            await heartbeat.tabUpdatedListener(CLIENT)(
+                1,
+                { title: tab.title },
+                tab,
+            )
+            assert.equal(client.sent.length, 1)
+            assert.equal(storage.state.heartbeatData, undefined)
+        } finally {
+            firstQuery.resolve({ focused: false })
+            secondQuery.resolve({ focused: false })
+            await Promise.all([first, second])
+        }
+    })
+}
+
+test('queued polled refocus freezes tab data before earlier sends drain', async () => {
+    storage.state.pauseWhenUnfocused = true
+    const gate = deferred()
+    const entered = deferred()
+    installChromeTabGroups(async (id) => {
+        entered.resolve()
+        await gate.promise
+        return groups.get(id)
+    })
+    const tab = useTab(makeTab({ title: 'A', groupId: 7 }))
+    const first = heartbeat.sendInitialHeartbeat(CLIENT)
+    await entered.promise
+    const loss = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    // No focus-gain event: the poll is the only observer of refocus.
+    const gain = heartbeat.refreshAndSendHeartbeat(CLIENT)
+    await new Promise((resolve) => setImmediate(resolve))
+    const lossAgain = heartbeat.windowFocusChangedListener(CLIENT)(-1)
+    tab.title = 'B'
+    const update = heartbeat.tabUpdatedListener(CLIENT)(1, { title: 'B' }, tab)
+    gate.resolve()
+    await Promise.all([first, loss, gain, lossAgain, update])
+    assert.deepEqual(
+        sentData().map((data) => data.title),
+        ['A', 'A', 'A', 'A'],
+    )
+    assert.deepEqual(
+        client.sent.map((entry) => entry.pulsetime),
+        [80, 80, 0, 80],
+    )
+})

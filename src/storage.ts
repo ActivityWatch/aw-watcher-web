@@ -82,10 +82,21 @@ export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
   browser.storage.local
     .get('heartbeatData')
     .then((_) => _.heartbeatData as HeartbeatData | undefined)
+// Commit confirmed data and consume its boundary in the same storage write.
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
-  browser.storage.local.set({ heartbeatData })
-export const clearHeartbeatData = () =>
-  browser.storage.local.remove('heartbeatData')
+  browser.storage.local.set({ heartbeatData, heartbeatBoundaryPending: false })
+export const getHeartbeatBoundaryPending = (): Promise<boolean> =>
+  browser.storage.local
+    .get('heartbeatBoundaryPending')
+    .then((_) => Boolean(_.heartbeatBoundaryPending))
+export const setHeartbeatBoundaryPending = () =>
+  browser.storage.local.set({ heartbeatBoundaryPending: true })
+export const clearHeartbeatData = async () => {
+  // Write ahead of removing data: a worker restart must not erase the evidence
+  // that the next report must start fresh, including after a failed send.
+  await setHeartbeatBoundaryPending()
+  await browser.storage.local.remove('heartbeatData')
+}
 
 type BrowserName = string
 type StorageData = { [key: string]: any }

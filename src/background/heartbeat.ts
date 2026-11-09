@@ -7,6 +7,8 @@ import {
   clearHeartbeatData,
   getEnabled,
   getHeartbeatData,
+  getHeartbeatBoundaryPending,
+  setHeartbeatBoundaryPending,
   getProfileName,
   getPauseWhenUnfocused,
   setHeartbeatData,
@@ -20,8 +22,7 @@ import * as punycode from 'punycode.js'
 let isWindowFocused = true
 let focusRevision = 0
 let publishedFocusRevision = 0
-// Owned by heartbeatQueue. A skipped or failed resume must not consume this.
-let resumeBoundaryPending = false
+// Pending boundaries live in storage so background restarts cannot consume them.
 
 // Re-derive focus from browser.windows directly. Used as a fallback on alarm
 // ticks since windows.onFocusChanged is unreliable on some Linux WMs, and as
@@ -93,12 +94,14 @@ export const windowFocusChangedListener =
             await getBucketId(),
             now,
             previousData,
-            resumeBoundaryPending ? 0 : config.heartbeat.intervalInSeconds + 20,
+            (await getHeartbeatBoundaryPending())
+              ? 0
+              : config.heartbeat.intervalInSeconds + 20,
           )
         }
         await clearHeartbeatData()
       } else {
-        resumeBoundaryPending = true
+        await setHeartbeatBoundaryPending()
         const activeWindowTab = await gainedTab
         const tabs = await getTabs()
         // Run directly in this task: queueing another task here would deadlock.
@@ -203,7 +206,7 @@ async function heartbeat(
   }
   // Keep the boundary until the current-data send succeeds, including when
   // metadata is missing or the server rejects an earlier resume attempt.
-  if (resumeBoundaryPending) pulsetime = 0
+  if (await getHeartbeatBoundaryPending()) pulsetime = 0
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(
@@ -219,9 +222,8 @@ async function heartbeat(
     // This activity ended at this observation, even if the new send fails.
     // Never re-close it at a later retry timestamp.
     await clearHeartbeatData()
-    // Until the replacement is confirmed, returning to the old page must
-    // start fresh rather than merge across this intervening activity.
-    resumeBoundaryPending = true
+    // clearHeartbeatData persists a boundary before dropping previous data.
+    // Returning to the old page must start fresh even after a worker restart.
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   const sent = await sendHeartbeat(
@@ -232,7 +234,6 @@ async function heartbeat(
     pulsetime,
   )
   if (sent) {
-    resumeBoundaryPending = false
     await setHeartbeatData(data)
   }
 }
@@ -305,7 +306,7 @@ export const refreshAndSendHeartbeat = async (client: AWClient) => {
         if (wasFocused) await clearHeartbeatData()
         return
       }
-      if (pauseWhenUnfocused && !wasFocused) resumeBoundaryPending = true
+      if (pauseWhenUnfocused && !wasFocused) await setHeartbeatBoundaryPending()
       const activeWindowTab = await observedTab
       if (!activeWindowTab) return
       const tabs = await getTabs()

@@ -1,6 +1,8 @@
 import browser from 'webextension-polyfill'
 import config from '../config'
+import { getBucketId } from '../background/client'
 import {
+  getApiKey,
   getBaseUrl,
   getConsentStatus,
   getEnabled,
@@ -135,9 +137,8 @@ async function resolveNudgeTrigger(): Promise<string> {
         (Date.now() - installDate.getTime()) / (1000 * 60 * 60 * 24)
       if (ageDays < 14) {
         const baseUrl = await getBaseUrl()
-        const hostname = await getHostname()
-        if (baseUrl && hostname) {
-          const hours = await getTrackedHoursFromAW(baseUrl, hostname)
+        if (baseUrl) {
+          const hours = await getTrackedHoursFromAW(baseUrl)
           if (hours >= 40) {
             return 'inapp-first-week'
           }
@@ -152,26 +153,26 @@ async function resolveNudgeTrigger(): Promise<string> {
 
 // Query total tracked time (seconds) from the AW web-watcher bucket for this host.
 // Best-effort: returns 0 on any network or parse failure.
-async function getTrackedHoursFromAW(
-  baseUrl: string,
-  hostname: string,
-): Promise<number> {
+async function getTrackedHoursFromAW(baseUrl: string): Promise<number> {
   try {
-    const bucketId = `aw-watcher-web-${hostname}`
+    const bucketId = await getBucketId()
+    const apiKey = await getApiKey()
     const start = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const url = `${baseUrl}/api/0/buckets/${encodeURIComponent(bucketId)}/events?limit=-1&start=${encodeURIComponent(start)}`
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 3000)
-    let resp: Response
     try {
-      resp = await fetch(url, { signal: controller.signal })
+      const resp = await fetch(url, {
+        signal: controller.signal,
+        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+      })
+      if (!resp.ok) return 0
+      const events: Array<{ duration: number }> = await resp.json()
+      const totalSeconds = events.reduce((acc, e) => acc + (e.duration ?? 0), 0)
+      return totalSeconds / 3600
     } finally {
       clearTimeout(timeout)
     }
-    if (!resp.ok) return 0
-    const events: Array<{ duration: number }> = await resp.json()
-    const totalSeconds = events.reduce((acc, e) => acc + (e.duration ?? 0), 0)
-    return totalSeconds / 3600
   } catch {
     return 0
   }

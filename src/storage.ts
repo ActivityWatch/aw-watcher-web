@@ -82,8 +82,21 @@ export const getHeartbeatData = (): Promise<HeartbeatData | undefined> =>
   browser.storage.local
     .get('heartbeatData')
     .then((_) => _.heartbeatData as HeartbeatData | undefined)
+// Commit confirmed data and consume its boundary in the same storage write.
 export const setHeartbeatData = (heartbeatData: HeartbeatData) =>
-  browser.storage.local.set({ heartbeatData })
+  browser.storage.local.set({ heartbeatData, heartbeatBoundaryPending: false })
+export const getHeartbeatBoundaryPending = (): Promise<boolean> =>
+  browser.storage.local
+    .get('heartbeatBoundaryPending')
+    .then((_) => Boolean(_.heartbeatBoundaryPending))
+export const setHeartbeatBoundaryPending = () =>
+  browser.storage.local.set({ heartbeatBoundaryPending: true })
+export const clearHeartbeatData = async () => {
+  // Write ahead of removing data: a worker restart must not erase the evidence
+  // that the next report must start fresh, including after a failed send.
+  await setHeartbeatBoundaryPending()
+  await browser.storage.local.remove('heartbeatData')
+}
 
 type BrowserName = string
 type StorageData = { [key: string]: any }
@@ -132,3 +145,11 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+type PauseWhenUnfocused = boolean
+export const getPauseWhenUnfocused = (): Promise<PauseWhenUnfocused> =>
+  browser.storage.local
+    .get('pauseWhenUnfocused')
+    .then((_) => Boolean(_.pauseWhenUnfocused))
+export const setPauseWhenUnfocused = (pauseWhenUnfocused: PauseWhenUnfocused) =>
+  browser.storage.local.set({ pauseWhenUnfocused })

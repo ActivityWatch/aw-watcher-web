@@ -72,7 +72,7 @@ export async function sendHeartbeat(
   timestamp: Date,
   data: IEvent['data'],
   pulsetime: number,
-) {
+): Promise<boolean> {
   const hostname = (await getHostname()) ?? 'unknown'
   const syncStatus = await getSyncStatus()
   return retry(
@@ -98,6 +98,7 @@ export async function sendHeartbeat(
         )
       }
       setSyncStatus(true)
+      return true
     })
     .catch((err) => {
       if (syncStatus.success) {
@@ -107,7 +108,8 @@ export async function sendHeartbeat(
         )
       }
       setSyncStatus(false)
-      return logHttpError(err)
+      logHttpError(err)
+      return false
     })
 }
 

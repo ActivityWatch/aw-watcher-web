@@ -88,18 +88,20 @@ export const windowFocusChangedListener =
         // Close the last reported activity, not possibly incomplete metadata
         // from a navigation in progress. No tab lookup is needed for a loss.
         const previousData = await getHeartbeatData()
+        const closingPulsetime = (await getHeartbeatBoundaryPending())
+          ? 0
+          : config.heartbeat.intervalInSeconds + 20
+        // Persist before any network await; the worker can stop mid-request.
+        await clearHeartbeatData()
         if (previousData && (await getEnabled())) {
           await sendHeartbeat(
             client,
             await getBucketId(),
             now,
             previousData,
-            (await getHeartbeatBoundaryPending())
-              ? 0
-              : config.heartbeat.intervalInSeconds + 20,
+            closingPulsetime,
           )
         }
-        await clearHeartbeatData()
       } else {
         await setHeartbeatBoundaryPending()
         const activeWindowTab = await gainedTab
@@ -209,6 +211,9 @@ async function heartbeat(
   if (await getHeartbeatBoundaryPending()) pulsetime = 0
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
+    // Retain closing data/pulsetime locally, but write the boundary ahead of
+    // the network request so a restart during retries cannot bridge the gap.
+    await clearHeartbeatData()
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,
     )
@@ -221,9 +226,6 @@ async function heartbeat(
     )
     // This activity ended at this observation, even if the new send fails.
     // Never re-close it at a later retry timestamp.
-    await clearHeartbeatData()
-    // clearHeartbeatData persists a boundary before dropping previous data.
-    // Returning to the old page must start fresh even after a worker restart.
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
   const sent = await sendHeartbeat(
@@ -303,7 +305,7 @@ export const refreshAndSendHeartbeat = async (client: AWClient) => {
       if (pauseWhenUnfocused && !focused) {
         // Missed loss: T_loss is unknown. Do not extend activity to poll
         // time; leave it at the last known heartbeat and forget its data.
-        if (wasFocused) await clearHeartbeatData()
+        await clearHeartbeatData()
         return
       }
       if (pauseWhenUnfocused && !wasFocused) await setHeartbeatBoundaryPending()

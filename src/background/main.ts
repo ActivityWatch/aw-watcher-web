@@ -11,10 +11,12 @@ import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
   getHostname,
+  getInstallDate,
   setBaseUrl,
   setConsentStatus,
   setEnabled,
   setHostname,
+  setInstallDate,
   waitForEnabled,
 } from '../storage'
 
@@ -42,6 +44,12 @@ const client = getClient()
 const clientReady = loadApiKey(client)
 
 browser.runtime.onInstalled.addListener(async () => {
+  // Record install date once; legacy installs that never had this key get it set now.
+  const existing = await getInstallDate()
+  if (!existing) {
+    await setInstallDate(new Date())
+  }
+
   const { consent } = await getConsentStatus()
   const isConsentRequired = await getConsentRequired()
   if (installAction(isConsentRequired, consent) === 'enable') {

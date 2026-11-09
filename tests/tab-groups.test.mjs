@@ -1117,3 +1117,76 @@ for (const transition of ['page', 'event loss', 'polled loss']) {
         }
     })
 }
+
+for (const transition of ['page', 'event loss']) {
+    test(`restart during ${transition} closing request retains a boundary`, async () => {
+        const real = await loadFixture({
+            productionClient: true,
+            productionStorage: true,
+        })
+        const gate = deferred()
+        const entered = deferred()
+        let closing
+        try {
+            await real.storage.setEnabled(true)
+            await real.storage.setPauseWhenUnfocused(
+                transition === 'event loss',
+            )
+            const tab = makeTab({ title: 'A' })
+            real.browser.state.tabs = [tab]
+            real.browser.state.activeTabId = 1
+            const sent = []
+            let block = false
+            const aw = {
+                ensureBucket: async () => {},
+                heartbeat: async (_bucket, pulsetime, event) => {
+                    if (block) {
+                        entered.resolve()
+                        await gate.promise
+                    }
+                    sent.push({ pulsetime, ...event })
+                },
+            }
+            await real.heartbeat.sendInitialHeartbeat(aw)
+            block = true
+            if (transition === 'page') {
+                tab.title = 'B'
+                closing = real.heartbeat.tabUpdatedListener(aw)(
+                    1,
+                    { title: 'B' },
+                    tab,
+                )
+            } else closing = real.heartbeat.windowFocusChangedListener(aw)(-1)
+            await entered.promise
+            const restarted = await real.restartHeartbeat()
+            tab.title = 'A'
+            block = false
+            await restarted.sendInitialHeartbeat(aw)
+            assert.equal(sent.at(-1).pulsetime, 0)
+        } finally {
+            gate.resolve()
+            await closing
+            await real.cleanup()
+        }
+    })
+}
+
+test('startup unfocused observation persists a boundary even if focus was already refreshed', async () => {
+    const real = await loadFixture({ productionStorage: true })
+    try {
+        await real.storage.setEnabled(true)
+        await real.storage.setPauseWhenUnfocused(true)
+        real.browser.state.tabs = [makeTab()]
+        real.browser.state.activeTabId = 1
+        await real.heartbeat.sendInitialHeartbeat(CLIENT)
+        real.browser.state.focused = false
+        await real.heartbeat.refreshWindowFocus()
+        await real.heartbeat.refreshAndSendHeartbeat(CLIENT)
+        const restarted = await real.restartHeartbeat()
+        real.browser.state.focused = true
+        await restarted.refreshAndSendHeartbeat(CLIENT)
+        assert.equal(real.client.sent.at(-1).pulsetime, 0)
+    } finally {
+        await real.cleanup()
+    }
+})

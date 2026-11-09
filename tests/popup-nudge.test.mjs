@@ -54,6 +54,7 @@ function fixture({
         HTMLAnchorElement: Element,
         AbortController,
         setTimeout(fn) {
+            cleared = false
             timer = fn
             return 1
         },
@@ -160,8 +161,10 @@ test('keeps the timeout active until a stalled response body aborts', async () =
     assert.equal(f.isCleared(), true)
     const pending = f.popup.resolveNudgeTrigger()
     await f.ready()
+    assert.equal(f.isCleared(), false)
     f.expire()
     assert.equal(await pending, 'inapp-tenure')
+    assert.equal(f.isCleared(), true)
 })
 
 test('falls back to tenure on HTTP and JSON failures', async () => {

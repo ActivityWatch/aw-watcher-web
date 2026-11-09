@@ -17,8 +17,15 @@ const SRC_DIR = fileURLToPath(new URL('../src/background/', import.meta.url))
 const require = createRequire(import.meta.url)
 
 const STUB_BROWSER = `
-export const state = { tabs: [], activeTabId: undefined, focused: true }
+export const state = { tabs: [], activeTabId: undefined, focused: true, local: {} }
 const browser = {
+  storage: { local: {
+    get: async (keys) => Object.fromEntries(
+      (Array.isArray(keys) ? keys : [keys]).map((key) => [key, structuredClone(state.local[key])]),
+    ),
+    set: async (values) => { Object.assign(state.local, structuredClone(values)) },
+    remove: async (key) => { delete state.local[key] },
+  } },
   windows: {
     onFocusChanged: { addListener: () => {} },
     WINDOW_ID_NONE: -1,
@@ -73,11 +80,17 @@ export const getPauseWhenUnfocused = async () => {
   if (state.pauseReadGate) await state.pauseReadGate
   return state.pauseWhenUnfocused
 }
-export const clearHeartbeatData = async () => { state.heartbeatData = undefined }
+export const getHeartbeatBoundaryPending = async () => Boolean(state.heartbeatBoundaryPending)
+export const setHeartbeatBoundaryPending = async () => { state.heartbeatBoundaryPending = true }
+export const clearHeartbeatData = async () => {
+  await setHeartbeatBoundaryPending()
+  state.heartbeatData = undefined
+}
 export const getProfileName = async () => state.profile
 export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
   state.heartbeatData = data
+  state.heartbeatBoundaryPending = false
 }
 export const getBrowserName = async () => state.browserName
 export const getBrowserNameUserSelected = async () => state.browserNameUserSelected
@@ -146,7 +159,10 @@ function rewriteImports(js) {
     )
 }
 
-async function loadFixture({ productionClient = false } = {}) {
+async function loadFixture({
+    productionClient = false,
+    productionStorage = false,
+} = {}) {
     const dir = await mkdtemp(join(tmpdir(), 'aw-tab-groups-'))
     const cleanup = () => rm(dir, { recursive: true, force: true })
     try {
@@ -185,10 +201,24 @@ export default (fn, options) => retry(fn, { ...options, minTimeout: 0, maxTimeou
             )
             await writeFile(join(dir, `${name}.mjs`), js)
         }
+        if (productionStorage) {
+            const source = await readFile(
+                join(SRC_DIR, '../storage.ts'),
+                'utf8',
+            )
+            await writeFile(
+                join(dir, 'stub-storage.mjs'),
+                rewriteImports(transpile(source, 'storage.ts')),
+            )
+        }
         const load = (name) => import(pathToFileURL(join(dir, name)).href)
         return {
             cleanup,
             start: () => load('main.mjs'),
+            restartHeartbeat: () =>
+                import(
+                    `${pathToFileURL(join(dir, 'heartbeat.mjs')).href}?restart=${Math.random()}`
+                ),
             heartbeat: await load('heartbeat.mjs'),
             helpers: await load('helpers.mjs'),
             browser: await load('stub-browser.mjs'),
@@ -269,6 +299,7 @@ beforeEach(async () => {
         pauseReadGate: undefined,
         profile: undefined,
         heartbeatData: undefined,
+        heartbeatBoundaryPending: false,
     })
     browser.state.tabs = []
     browser.state.activeTabId = undefined
@@ -1025,3 +1056,64 @@ test('queued activation freezes its tab before later unfocused navigation', asyn
         ['A', 'A', 'A'],
     )
 })
+
+// Reload only the background module; browser.storage survives as it does when
+// saving extension settings. Both storage and the retrying sender are production.
+for (const transition of ['page', 'event loss', 'polled loss']) {
+    test(`background restart retains the ${transition} boundary`, async () => {
+        const real = await loadFixture({
+            productionClient: true,
+            productionStorage: true,
+        })
+        try {
+            await real.storage.setEnabled(true)
+            await real.storage.setPauseWhenUnfocused(transition !== 'page')
+            const tab = makeTab({ title: 'A' })
+            real.browser.state.tabs = [tab]
+            real.browser.state.activeTabId = 1
+            const sent = []
+            let failures = 0
+            const aw = {
+                ensureBucket: async () => {},
+                heartbeat: async (_bucket, pulsetime, event) => {
+                    if (event.data.title === 'B') {
+                        failures++
+                        throw new Error('offline B')
+                    }
+                    sent.push({ pulsetime, ...event })
+                },
+            }
+            mock.timers.enable({ apis: ['Date'], now: 0 })
+            await real.heartbeat.sendInitialHeartbeat(aw)
+            mock.timers.tick(10000)
+            if (transition === 'page') {
+                tab.title = 'B'
+                await real.heartbeat.tabUpdatedListener(aw)(
+                    1,
+                    { title: 'B' },
+                    tab,
+                )
+                assert.equal(failures, 4)
+            } else if (transition === 'event loss') {
+                await real.heartbeat.windowFocusChangedListener(aw)(-1)
+            } else {
+                real.browser.state.focused = false
+                await real.heartbeat.refreshAndSendHeartbeat(aw)
+            }
+            assert.equal(await real.storage.getHeartbeatData(), undefined)
+            const restarted = await real.restartHeartbeat()
+            mock.timers.tick(10000)
+            tab.title = 'A'
+            real.browser.state.focused = true
+            await restarted.refreshAndSendHeartbeat(aw)
+            assert.equal(sent.at(-1).timestamp.getTime(), 20000)
+            assert.equal(sent.at(-1).pulsetime, 0)
+            // A second reload must see a confirmed send, not a stale marker.
+            const confirmed = await real.restartHeartbeat()
+            await confirmed.sendInitialHeartbeat(aw)
+            assert.equal(sent.at(-1).pulsetime, 80)
+        } finally {
+            await real.cleanup()
+        }
+    })
+}

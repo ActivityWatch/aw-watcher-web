@@ -153,3 +153,14 @@ export async function logHttpError<T extends Error>(error: T) {
     console.error('Unexpected error', error)
   }
 }
+
+export function sanitizeUrl(url: string): string {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return url
+  }
+  if (parsed.host === '') return parsed.protocol
+  return `${parsed.protocol}//${parsed.host}/`
+}

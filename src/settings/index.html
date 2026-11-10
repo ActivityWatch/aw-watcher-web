@@ -86,16 +86,20 @@
         >
       </div>
 
-      <div>
-        <label for="stripUrlPath">
-          <strong>Strip URL path:</strong>
-        </label>
-        <input type="checkbox" id="stripUrlPath" name="stripUrlPath" />
-        <small
-          >Store only <code>scheme://host:port/</code> instead of the full URL
-          (path, query and fragment are dropped).</small
-        >
-      </div>
+      <details class="section">
+        <summary><strong>Event data</strong></summary>
+
+        <div>
+          <label for="stripUrlPath">
+            <strong>Strip URL path:</strong>
+          </label>
+          <input type="checkbox" id="stripUrlPath" name="stripUrlPath" />
+          <small
+            >Store only <code>scheme://host:port/</code> instead of the full
+            URL.</small
+          >
+        </div>
+      </details>
 
       <div>
         <button type="submit">Save</button>

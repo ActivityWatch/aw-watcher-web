@@ -132,3 +132,10 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+export const getStripUrlPath = (): Promise<boolean> =>
+  browser.storage.local
+    .get('stripUrlPath')
+    .then((data: StorageData) => data.stripUrlPath === true)
+export const setStripUrlPath = (stripUrlPath: boolean) =>
+  browser.storage.local.set({ stripUrlPath })

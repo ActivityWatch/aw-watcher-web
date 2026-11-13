@@ -16,3 +16,19 @@ input:invalid {
 #customBrowser {
   display: none;
 }
+
+details.section {
+  margin: 0.5em;
+  padding: 0.25em 0.5em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+details.section summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+details.section > div {
+  margin: 0.5em 0;
+}

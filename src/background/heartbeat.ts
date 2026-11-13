@@ -1,9 +1,16 @@
 import browser from 'webextension-polyfill'
-import { getActiveWindowTab, getTab, getTabGroup, getTabs } from './helpers'
+import {
+  getActiveWindowTab,
+  getTab,
+  getTabGroup,
+  getTabs,
+  sanitizeUrl,
+} from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  getStripUrlPath,
   getEnabled,
   getHeartbeatData,
   getProfileName,
@@ -87,8 +94,9 @@ async function heartbeat(
   // data URI).  Over thousands of heartbeats the retained Tab references
   // cause unbounded memory growth (see #222).
   const { url, title, audible, incognito, groupId } = tab
+  const stripUrlPath = await getStripUrlPath()
   const data: IEvent['data'] = {
-    url: decodeURL(url),
+    url: decodeURL(stripUrlPath ? sanitizeUrl(url) : url),
     title,
     audible: audible ?? false,
     incognito,
@@ -106,6 +114,9 @@ async function heartbeat(
     data.tab_group_color = group.color
   }
   const previousData = await getHeartbeatData()
+  if (previousData && stripUrlPath) {
+    previousData.url = decodeURL(sanitizeUrl(previousData.url as string))
+  }
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,

@@ -9,6 +9,8 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getStripUrlPath,
+  setStripUrlPath,
 } from '../storage'
 import { detectBrowser } from '../background/helpers'
 
@@ -49,6 +51,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
 
+  const stripUrlPathInput =
+    document.querySelector<HTMLInputElement>('#stripUrlPath')
+  const stripUrlPath = stripUrlPathInput?.checked ?? false
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -63,6 +69,7 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    await setStripUrlPath(stripUrlPath)
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -123,6 +130,12 @@ async function restoreOptions(): Promise<void> {
       document.querySelector<HTMLInputElement>('#profileName')
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
+    }
+
+    const stripUrlPathInput =
+      document.querySelector<HTMLInputElement>('#stripUrlPath')
+    if (stripUrlPathInput) {
+      stripUrlPathInput.checked = await getStripUrlPath()
     }
 
     const apiKey = await getApiKey()

@@ -94,9 +94,9 @@ async function heartbeat(
   // data URI).  Over thousands of heartbeats the retained Tab references
   // cause unbounded memory growth (see #222).
   const { url, title, audible, incognito, groupId } = tab
-  const recordedUrl = (await getStripUrlPath()) ? sanitizeUrl(url) : url
+  const stripUrlPath = await getStripUrlPath()
   const data: IEvent['data'] = {
-    url: decodeURL(recordedUrl),
+    url: decodeURL(stripUrlPath ? sanitizeUrl(url) : url),
     title,
     audible: audible ?? false,
     incognito,
@@ -114,6 +114,9 @@ async function heartbeat(
     data.tab_group_color = group.color
   }
   const previousData = await getHeartbeatData()
+  if (previousData && stripUrlPath) {
+    previousData.url = decodeURL(sanitizeUrl(previousData.url as string))
+  }
   if (previousData && !deepEqual(previousData, data)) {
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,

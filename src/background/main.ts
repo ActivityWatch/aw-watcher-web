@@ -93,6 +93,8 @@ clientReady
 /**
  * Keep the service worker alive using Offscreen API to prevent Chrome's termination.
  */
+let creating: Promise<void> | null = null // A global promise to avoid concurrency issues
+
 async function setupOffscreen() {
   const _chrome = (globalThis as any).chrome
   if (typeof _chrome === 'undefined' || !_chrome.offscreen) return
@@ -100,12 +102,19 @@ async function setupOffscreen() {
   if (await _chrome.offscreen.hasDocument()) return
 
   try {
-    await _chrome.offscreen.createDocument({
-      url: 'src/offscreen.html',
-      reasons: ['BLOBS'],
-      justification: 'Keep service worker alive for heartbeat packets',
-    })
+    if (creating) {
+      await creating
+    } else {
+      creating = _chrome.offscreen.createDocument({
+        url: 'src/offscreen.html',
+        reasons: ['BLOBS'],
+        justification: 'Keep service worker alive for heartbeat packets',
+      })
+      await creating
+      creating = null
+    }
   } catch (e) {
+    creating = null
     console.error('Failed to create offscreen document:', e)
   }
 }

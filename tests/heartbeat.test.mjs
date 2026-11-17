@@ -158,6 +158,7 @@ test('failed sends do not overwrite the last successfully recorded heartbeat', a
             sendHeartbeat: async () => false,
         },
         './helpers': {
+            getTabGroup: async () => undefined,
             getActiveWindowTab: async () => tab,
             getTabs: async () => [tab],
         },
@@ -190,6 +191,7 @@ test('a successful close followed by a failed new heartbeat does not extend the 
             },
         },
         './helpers': {
+            getTabGroup: async () => undefined,
             getActiveWindowTab: async () => tab,
             getTabs: async () => [tab],
         },
@@ -245,6 +247,7 @@ test('queued events capture original titles before waiting for network delivery'
             },
         },
         './helpers': {
+            getTabGroup: async () => undefined,
             getActiveWindowTab: async () => tab(),
             getTabs: async () => [tab()],
         },
@@ -291,6 +294,7 @@ test('an event whose original title cannot be verified is not recorded', async (
             },
         },
         './helpers': {
+            getTabGroup: async () => undefined,
             getActiveWindowTab: async () => tab,
             getTabs: async () => [tab],
         },
@@ -306,36 +310,41 @@ test('an event whose original title cannot be verified is not recorded', async (
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // The heartbeat module with a scripted active tab and title checks.
-function heartbeatModule({ activeTab, originalTitle }) {
+function heartbeatModule({ activeTab, originalTitle, clock = Date }) {
     const sent = []
     let stored
-    const module = loadModule('src/background/heartbeat.ts', {
-        'webextension-polyfill': {},
-        './urlInTitle': { originalTitle },
-        './client': {
-            getBucketId: async () => 'test',
-            sendHeartbeat: async (_client, _bucket, time, data) => {
-                sent.push({ title: data.title, time: time.getTime() })
-                return true
+    const module = loadModule(
+        'src/background/heartbeat.ts',
+        {
+            'webextension-polyfill': {},
+            './urlInTitle': { originalTitle },
+            './client': {
+                getBucketId: async () => 'test',
+                sendHeartbeat: async (_client, _bucket, time, data) => {
+                    sent.push({ title: data.title, time: time.getTime() })
+                    return true
+                },
+            },
+            './helpers': {
+                getTabGroup: async () => undefined,
+                getActiveWindowTab: async () => activeTab(),
+                getTab: async () => activeTab(),
+                getTabs: async () => [activeTab()],
+            },
+            '../storage': {
+                getEnabled: async () => true,
+                getProfileName: async () => undefined,
+                getHeartbeatData: async () => stored,
+                setHeartbeatData: async (data) => {
+                    stored = data
+                },
+                clearHeartbeatData: async () => {
+                    stored = undefined
+                },
             },
         },
-        './helpers': {
-            getActiveWindowTab: async () => activeTab(),
-            getTab: async () => activeTab(),
-            getTabs: async () => [activeTab()],
-        },
-        '../storage': {
-            getEnabled: async () => true,
-            getProfileName: async () => undefined,
-            getHeartbeatData: async () => stored,
-            setHeartbeatData: async (data) => {
-                stored = data
-            },
-            clearHeartbeatData: async () => {
-                stored = undefined
-            },
-        },
-    })
+        { Date: clock },
+    )
     return { ...module, sent }
 }
 
@@ -367,24 +376,35 @@ test('a stale capture records the tab active when found stale, timed then', asyn
 
 test('heartbeats stay in timestamp order when a stale check finishes late', async () => {
     let active = { id: 1, url: 'https://example.com/a', title: 'A' }
+    let now = Date.now()
+    class Clock extends Date {
+        constructor(value = now) {
+            super(value)
+        }
+    }
+    let releaseStaleCheck
+    const staleCheck = new Promise((resolve) => {
+        releaseStaleCheck = resolve
+    })
     const module = heartbeatModule({
+        clock: Clock,
         activeTab: () => active,
         originalTitle: async (_id, _url, title) => {
             if (title !== 'A') return title
-            await sleep(30)
+            await staleCheck
             return undefined
         },
     })
     // Event 1 captures A, whose check goes stale only after event 2.
     const first = module.tabUpdatedListener({})(1, { title: 'A' }, active)
-    await sleep(5)
+    await flush()
     active = { id: 1, url: 'https://example.com/b', title: 'B' }
     const second = module.heartbeatAlarmListener({})({ name: 'heartbeat' })
-    await sleep(10)
-    active = { id: 1, url: 'https://example.com/c', title: 'C' }
-    await Promise.all([first, second])
-    await sleep(40)
     await flush()
+    active = { id: 1, url: 'https://example.com/c', title: 'C' }
+    now += 10
+    releaseStaleCheck()
+    await Promise.all([first, second])
     const titles = module.sent.map(({ title }) => title)
     assert.equal(titles.includes('A'), false)
     const times = module.sent.map(({ time }) => time)
@@ -425,6 +445,7 @@ test('a failing retry rejects the event handler instead of going unhandled', asy
             sendHeartbeat: async () => true,
         },
         './helpers': {
+            getTabGroup: async () => undefined,
             getActiveWindowTab: async () => {
                 if (reads++ === 1) active = { ...active, title: 'B' }
                 return active

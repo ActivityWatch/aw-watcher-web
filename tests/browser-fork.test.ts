@@ -29,6 +29,12 @@ describe('forkBucketFromBrowserInfo', () => {
     }
   })
 
+  it('falls back to firefox for inherited object property names', () => {
+    for (const name of ['Constructor Browser', '__proto__']) {
+      assert.equal(forkBucketFromBrowserInfo({ name }), 'firefox', name)
+    }
+  })
+
   it('falls back to firefox for plain Firefox, other forks and bad input', () => {
     for (const info of [
       { name: 'Firefox' },

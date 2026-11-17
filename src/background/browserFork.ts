@@ -25,5 +25,7 @@ export function forkBucketFromBrowserInfo(info: any): string {
     .trim()
     .toLowerCase()
     .split(/\s+/)[0]
-  return FIREFOX_FORK_BUCKETS[firstWord] ?? 'firefox'
+  return Object.prototype.hasOwnProperty.call(FIREFOX_FORK_BUCKETS, firstWord)
+    ? FIREFOX_FORK_BUCKETS[firstWord]
+    : 'firefox'
 }

@@ -100,6 +100,12 @@ async function install({ reason, enabled, consent, requireConsent, managed }) {
             },
         },
         './consent': loadSource('background/consent.ts', {}),
+        './media': {
+            createMediaCapture: () => ({
+                async sample() {},
+                async settingsChanged() {},
+            }),
+        },
         '../storage': storage,
     })
     for (const listener of listeners) await listener({ reason })

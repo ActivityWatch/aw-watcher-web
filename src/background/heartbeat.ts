@@ -4,13 +4,113 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
 import {
+  clearHeartbeatData,
   getEnabled,
   getHeartbeatData,
+  getHeartbeatBoundaryPending,
+  setHeartbeatBoundaryPending,
   getProfileName,
+  getPauseWhenUnfocused,
   setHeartbeatData,
 } from '../storage'
 import deepEqual from 'deep-equal'
 import * as punycode from 'punycode.js'
+
+// Tracks whether any normal browser window currently has OS focus. Only
+// meaningful when the "pause when unfocused" setting is on; see #140.
+// Defaults to focused so behavior is unchanged until the setting is read.
+let isWindowFocused = true
+let focusRevision = 0
+let publishedFocusRevision = 0
+// Pending boundaries live in storage so background restarts cannot consume them.
+
+// Re-derive focus from browser.windows directly. Used as a fallback on alarm
+// ticks since windows.onFocusChanged is unreliable on some Linux WMs, and as
+// the initial value at startup.
+export async function refreshWindowFocus(
+  onObserved?: (wasFocused: boolean, focused: boolean) => void,
+): Promise<boolean> {
+  const revision = ++focusRevision
+  let focused: boolean
+  try {
+    const win = await browser.windows.getLastFocused()
+    focused = Boolean(win?.focused)
+  } catch (e) {
+    // windows API unavailable, or no normal window exists yet (e.g. right
+    // after install). Assume focused so heartbeats are never stuck paused.
+    focused = true
+  }
+  // Only a published observation supersedes this result. Starting another
+  // query does not make the cached focus any fresher.
+  if (revision < publishedFocusRevision) {
+    // Reject the stale observation, not the caller's scheduled heartbeat.
+    // The newer observation already reserved its boundary in the queue.
+    onObserved?.(isWindowFocused, isWindowFocused)
+    return isWindowFocused
+  }
+  const wasFocused = isWindowFocused
+  publishedFocusRevision = revision
+  isWindowFocused = focused
+  // Reserve any heartbeat boundary in the same turn that publishes focus.
+  onObserved?.(wasFocused, focused)
+  return focused
+}
+
+async function shouldPauseForUnfocus(focused: boolean): Promise<boolean> {
+  if (!(await getPauseWhenUnfocused())) return false
+  return !focused
+}
+
+export const windowFocusChangedListener =
+  (client: AWClient) => async (windowId: number) => {
+    publishedFocusRevision = ++focusRevision
+    const wasFocused = isWindowFocused
+    const focused = windowId !== browser.windows.WINDOW_ID_NONE
+    isWindowFocused = focused
+    if (wasFocused === focused) return
+    const now = new Date()
+    // Start the lookup at observation time, not after earlier network sends.
+    // Snapshot on resolution so later navigation cannot mutate the result.
+    const gainedTab = focused
+      ? getActiveWindowTab().then(
+          (tab) => tab && snapshotTab(tab),
+          (error) => {
+            console.warn('Could not capture refocused tab', error)
+            return undefined
+          },
+        )
+      : undefined
+    // Reserve the transition's place before reading settings. Later focus or
+    // tab events must not change this transition or overtake its boundary.
+    await queueHeartbeat(async () => {
+      if (!(await getPauseWhenUnfocused())) return
+      if (!focused) {
+        // Close the last reported activity, not possibly incomplete metadata
+        // from a navigation in progress. No tab lookup is needed for a loss.
+        const previousData = await getHeartbeatData()
+        const closingPulsetime = (await getHeartbeatBoundaryPending())
+          ? 0
+          : config.heartbeat.intervalInSeconds + 20
+        // Persist before any network await; the worker can stop mid-request.
+        await clearHeartbeatData()
+        if (previousData && (await getEnabled())) {
+          await sendHeartbeat(
+            client,
+            await getBucketId(),
+            now,
+            previousData,
+            closingPulsetime,
+          )
+        }
+      } else {
+        await setHeartbeatBoundaryPending()
+        const activeWindowTab = await gainedTab
+        const tabs = await getTabs()
+        // Run directly in this task: queueing another task here would deadlock.
+        await heartbeat(client, activeWindowTab, tabs.length, now, 0)
+      }
+    })
+  }
 
 function decodeURL(url: string): string {
   try {
@@ -65,6 +165,7 @@ async function heartbeat(
   tab: HeartbeatTab | undefined,
   tabCount: number,
   now: Date,
+  pulsetime: number = config.heartbeat.intervalInSeconds + 20,
 ) {
   const enabled = await getEnabled()
   if (!enabled) {
@@ -105,8 +206,14 @@ async function heartbeat(
     data.tab_group = group.title
     data.tab_group_color = group.color
   }
+  // Keep the boundary until the current-data send succeeds, including when
+  // metadata is missing or the server rejects an earlier resume attempt.
+  if (await getHeartbeatBoundaryPending()) pulsetime = 0
   const previousData = await getHeartbeatData()
   if (previousData && !deepEqual(previousData, data)) {
+    // Retain closing data/pulsetime locally, but write the boundary ahead of
+    // the network request so a restart during retries cannot bridge the gap.
+    await clearHeartbeatData()
     console.debug(
       `Sending heartbeat for previous data: ${formatHeartbeatLogData(previousData)}`,
     )
@@ -115,18 +222,22 @@ async function heartbeat(
       await getBucketId(),
       new Date(now.getTime() - 1),
       previousData,
-      config.heartbeat.intervalInSeconds + 20,
+      pulsetime,
     )
+    // This activity ended at this observation, even if the new send fails.
+    // Never re-close it at a later retry timestamp.
   }
   console.debug(`Sending heartbeat: ${formatHeartbeatLogData(data)}`)
-  await sendHeartbeat(
+  const sent = await sendHeartbeat(
     client,
     await getBucketId(),
     now,
     data,
-    config.heartbeat.intervalInSeconds + 20,
+    pulsetime,
   )
-  await setHeartbeatData(data)
+  if (sent) {
+    await setHeartbeatData(data)
+  }
 }
 
 // Chrome can report URL and title changes before a preceding asynchronous
@@ -155,38 +266,84 @@ function queueHeartbeat(task: () => Promise<void>) {
   return queuedHeartbeat
 }
 
-export const sendInitialHeartbeat = async (client: AWClient) => {
+export const sendInitialHeartbeat = async (
+  client: AWClient,
+  pulsetime?: number,
+) => {
+  const focused = isWindowFocused
   const now = new Date()
   await queueHeartbeat(async () => {
+    if (await shouldPauseForUnfocus(focused)) {
+      console.debug('Skipping initial heartbeat: browser is unfocused')
+      return
+    }
     const activeWindowTab = await getActiveWindowTab()
     const tabs = await getTabs()
     console.debug('Sending initial heartbeat', activeWindowTab?.url)
-    await heartbeat(client, activeWindowTab, tabs.length, now)
+    await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
   })
+}
+
+// Startup and alarms must publish focus and reserve the heartbeat together.
+export const refreshAndSendHeartbeat = async (client: AWClient) => {
+  // Fallback poll: focus-change events are unreliable on some Linux WMs,
+  // so re-derive focus from the windows API on every alarm tick.
+  let queued: Promise<void> | undefined
+  await refreshWindowFocus((wasFocused, focused) => {
+    const now = new Date()
+    // Capture at observation time, just like the focus-event gain path.
+    // An earlier slow send must not substitute later unfocused navigation.
+    const observedTab = getActiveWindowTab().then(
+      (tab) => tab && snapshotTab(tab),
+      (error) => {
+        console.warn('Could not capture polled tab', error)
+        return undefined
+      },
+    )
+    queued = queueHeartbeat(async () => {
+      const pauseWhenUnfocused = await getPauseWhenUnfocused()
+      if (pauseWhenUnfocused && !focused) {
+        // Missed loss: T_loss is unknown. Do not extend activity to poll
+        // time; leave it at the last known heartbeat and forget its data.
+        await clearHeartbeatData()
+        return
+      }
+      if (pauseWhenUnfocused && !wasFocused) await setHeartbeatBoundaryPending()
+      const activeWindowTab = await observedTab
+      if (!activeWindowTab) return
+      const tabs = await getTabs()
+      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+      // Missed gain must start fresh, not bridge a short pause.
+      const pulsetime = pauseWhenUnfocused && !wasFocused ? 0 : undefined
+      await heartbeat(client, activeWindowTab, tabs.length, now, pulsetime)
+    })
+  })
+  await queued
 }
 
 export const heartbeatAlarmListener =
   (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
     if (alarm.name !== config.heartbeat.alarmName) return
-
-    const now = new Date()
-    await queueHeartbeat(async () => {
-      const activeWindowTab = await getActiveWindowTab()
-      if (!activeWindowTab) return
-      const tabs = await getTabs()
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-      await heartbeat(client, activeWindowTab, tabs.length, now)
-    })
+    await refreshAndSendHeartbeat(client)
   }
 
 export const tabActivatedListener =
   (client: AWClient) =>
   async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
     const now = new Date()
+    const focused = isWindowFocused
+    const activatedTab = getTab(activeInfo.tabId).then(
+      (tab) => snapshotTab(tab),
+      (error) => {
+        console.warn('Could not capture activated tab', error)
+        return undefined
+      },
+    )
     await queueHeartbeat(async () => {
-      const tab = await getTab(activeInfo.tabId)
+      if (await shouldPauseForUnfocus(focused)) return
+      const tab = await activatedTab
       const tabs = await getTabs()
-      console.debug('Sending heartbeat for tab activation', tab.url)
+      console.debug('Sending heartbeat for tab activation', tab?.url)
       await heartbeat(client, tab, tabs.length, now)
     })
   }
@@ -205,10 +362,11 @@ export const tabUpdatedListener =
     ) {
       return
     }
-
     const now = new Date()
     const tabSnapshot = snapshotTab(tab)
+    const focused = isWindowFocused
     await queueHeartbeat(async () => {
+      if (await shouldPauseForUnfocus(focused)) return
       const activeWindowTab = await getActiveWindowTab()
       if (activeWindowTab?.id !== tabId) return
 

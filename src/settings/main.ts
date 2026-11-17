@@ -9,7 +9,10 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getServerPort,
+  setServerPort,
 } from '../storage'
+import { parseServerPort } from '../background/serverUrl'
 import { detectBrowser } from '../background/helpers'
 
 let optionsReady = false
@@ -45,6 +48,17 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
   const apiKey = apiKeyInput?.value?.trim() ?? ''
 
+  const serverPortInput =
+    document.querySelector<HTMLInputElement>('#serverPort')
+  const serverPortText = serverPortInput?.value?.trim() ?? ''
+  const serverPort = parseServerPort(serverPortText)
+  if (serverPortText && serverPort === undefined) {
+    serverPortInput?.setCustomValidity('Enter a port between 1 and 65535')
+    serverPortInput?.reportValidity()
+    return
+  }
+  serverPortInput?.setCustomValidity('')
+
   const profileNameInput =
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
@@ -63,6 +77,16 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    // The last heartbeat belongs to the old server: drop it so the next
+    // heartbeat after reload doesn't replay a stale page into the new one.
+    if (serverPort !== (await getServerPort())) {
+      await browser.storage.local.remove('heartbeatData')
+    }
+    if (serverPort !== undefined) {
+      await setServerPort(serverPort)
+    } else {
+      await browser.storage.local.remove('serverPort')
+    }
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -125,6 +149,13 @@ async function restoreOptions(): Promise<void> {
       profileNameInput.value = profileName
     }
 
+    const serverPort = await getServerPort()
+    const serverPortInput =
+      document.querySelector<HTMLInputElement>('#serverPort')
+    if (serverPortInput && serverPort !== undefined) {
+      serverPortInput.value = String(serverPort)
+    }
+
     const apiKey = await getApiKey()
     const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
     if (apiKeyInput && apiKey !== undefined) {
@@ -163,6 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
 document
   .querySelector('#browser')
   ?.addEventListener('change', toggleCustomBrowserInput)
+// A rejected port sets a custom validity error; clear it on edit, or the
+// browser keeps blocking submit before saveOptions can run again.
+document
+  .querySelector<HTMLInputElement>('#serverPort')
+  ?.addEventListener('input', (e) =>
+    (e.target as HTMLInputElement).setCustomValidity(''),
+  )
 const form = document.querySelector('form')
 if (form) {
   form.addEventListener('submit', (e: Event) => {

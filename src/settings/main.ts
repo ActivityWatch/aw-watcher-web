@@ -77,6 +77,11 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    // The last heartbeat belongs to the old server: drop it so the next
+    // heartbeat after reload doesn't replay a stale page into the new one.
+    if (serverPort !== (await getServerPort())) {
+      await browser.storage.local.remove('heartbeatData')
+    }
     if (serverPort !== undefined) {
       await setServerPort(serverPort)
     } else {
@@ -189,6 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
 document
   .querySelector('#browser')
   ?.addEventListener('change', toggleCustomBrowserInput)
+// A rejected port sets a custom validity error; clear it on edit, or the
+// browser keeps blocking submit before saveOptions can run again.
+document
+  .querySelector<HTMLInputElement>('#serverPort')
+  ?.addEventListener('input', (e) =>
+    (e.target as HTMLInputElement).setCustomValidity(''),
+  )
 const form = document.querySelector('form')
 if (form) {
   form.addEventListener('submit', (e: Event) => {

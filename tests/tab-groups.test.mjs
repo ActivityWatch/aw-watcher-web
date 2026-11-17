@@ -40,12 +40,14 @@ const STUB_STORAGE = `
 export const state = {
   enabled: true,
   profile: undefined,
+  stripUrlPath: false,
   heartbeatData: undefined,
   browserName: 'chrome',
   browserNameUserSelected: false,
 }
 export const getEnabled = async () => state.enabled
 export const getProfileName = async () => state.profile
+export const getStripUrlPath = async () => state.stripUrlPath
 export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
   state.heartbeatData = data
@@ -82,7 +84,8 @@ const MODULE_MAP = {
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
-    'punycode.js': pathToFileURL(require.resolve('punycode.js')).href,
+    'punycode.js': pathToFileURL(require.resolve('punycode.js/punycode.es6.js'))
+        .href,
 }
 
 function transpile(source, fileName) {
@@ -205,6 +208,7 @@ beforeEach(() => {
     Object.assign(storage.state, {
         enabled: true,
         profile: undefined,
+        stripUrlPath: false,
         heartbeatData: undefined,
     })
     browser.state.tabs = []
@@ -437,4 +441,60 @@ test('slow group lookups keep overlapping updates in event order', async () => {
         tab_group: 'Second',
         tab_group_color: 'red',
     })
+})
+
+test('stripUrlPath records only scheme, host and port', async () => {
+    storage.state.stripUrlPath = true
+    useTab(makeTab({ url: 'https://user:pw@example.com:8443/a?q=1#x' }))
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    assert.deepEqual(sentData(), [
+        { ...BASE, url: 'https://example.com:8443/' },
+    ])
+})
+
+test('stripUrlPath still decodes punycode hosts', async () => {
+    storage.state.stripUrlPath = true
+    useTab(makeTab({ url: 'https://xn--bcher-kva.example/books?id=1' }))
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    assert.deepEqual(sentData(), [{ ...BASE, url: 'https://bücher.example/' }])
+})
+
+test('full URL is kept when stripUrlPath is off', async () => {
+    useTab(makeTab({ url: 'https://example.com/a?q=1' }))
+    await heartbeat.sendInitialHeartbeat(CLIENT)
+    assert.deepEqual(sentData(), [
+        { ...BASE, url: 'https://example.com/a?q=1' },
+    ])
+})
+
+test('sanitizeUrl keeps scheme, host and non-default port', () => {
+    const { sanitizeUrl } = helpers
+    assert.equal(
+        sanitizeUrl('https://example.com/a/b?q=secret#frag'),
+        'https://example.com/',
+    )
+    assert.equal(
+        sanitizeUrl('http://localhost:5600/#/timeline'),
+        'http://localhost:5600/',
+    )
+    assert.equal(
+        sanitizeUrl('https://example.com:443/x'),
+        'https://example.com/',
+    )
+    assert.equal(
+        sanitizeUrl('https://user:pass@example.com:8443/x'),
+        'https://example.com:8443/',
+    )
+    assert.equal(sanitizeUrl('http://[::1]:3000/app'), 'http://[::1]:3000/')
+    assert.equal(
+        sanitizeUrl('https://xn--bcher-kva.example/path'),
+        'https://xn--bcher-kva.example/',
+    )
+})
+
+test('sanitizeUrl collapses host-less URLs to their scheme', () => {
+    const { sanitizeUrl } = helpers
+    assert.equal(sanitizeUrl('about:preferences'), 'about:')
+    assert.equal(sanitizeUrl('file:///home/me/secret.pdf'), 'file:')
+    assert.equal(sanitizeUrl('not a url'), 'not a url')
 })

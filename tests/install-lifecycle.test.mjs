@@ -99,6 +99,7 @@ async function install({ reason, enabled, consent, requireConsent, managed }) {
                 return 'synthetic-host'
             },
         },
+        './urlInTitle': { setupUrlInTitle() {} },
         './consent': loadSource('background/consent.ts', {}),
         '../storage': storage,
     })

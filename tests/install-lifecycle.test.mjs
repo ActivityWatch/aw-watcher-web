@@ -94,7 +94,7 @@ async function install({ reason, enabled, consent, requireConsent, managed }) {
         },
         './client': {
             getClient: () => ({ baseURL: 'http://synthetic.invalid' }),
-            async loadApiKey() {},
+            async loadClientSettings() {},
             async detectHostname() {
                 return 'synthetic-host'
             },

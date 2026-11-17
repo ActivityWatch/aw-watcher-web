@@ -6,7 +6,7 @@ import {
   tabActivatedListener,
   tabUpdatedListener,
 } from './heartbeat'
-import { getClient, detectHostname, loadApiKey } from './client'
+import { getClient, detectHostname, loadClientSettings } from './client'
 import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
@@ -39,7 +39,7 @@ console.info('Starting...')
 
 console.debug('Creating client')
 const client = getClient()
-const clientReady = loadApiKey(client)
+const clientReady = loadClientSettings(client)
 
 browser.runtime.onInstalled.addListener(async ({ reason }) => {
   const { consent } = await getConsentStatus()

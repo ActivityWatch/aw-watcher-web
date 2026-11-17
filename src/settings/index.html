@@ -70,6 +70,26 @@
       </div>
 
       <div>
+        <label for="serverPort">
+          <strong>Server port:</strong>
+        </label>
+
+        <input
+          type="number"
+          id="serverPort"
+          name="serverPort"
+          min="1"
+          max="65535"
+          placeholder="5600"
+        />
+        <small
+          >Port of your local ActivityWatch server (always on
+          <code>127.0.0.1</code>). Leave blank for the default 5600; set it when
+          each user on a shared machine runs their own server.</small
+        >
+      </div>
+
+      <div>
         <label for="apiKey">
           <strong>API Key:</strong>
         </label>

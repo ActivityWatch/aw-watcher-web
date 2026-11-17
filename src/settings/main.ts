@@ -9,7 +9,10 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getServerPort,
+  setServerPort,
 } from '../storage'
+import { parseServerPort } from '../background/serverUrl'
 import { detectBrowser } from '../background/helpers'
 
 let optionsReady = false
@@ -45,6 +48,17 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
   const apiKeyInput = document.querySelector<HTMLInputElement>('#apiKey')
   const apiKey = apiKeyInput?.value?.trim() ?? ''
 
+  const serverPortInput =
+    document.querySelector<HTMLInputElement>('#serverPort')
+  const serverPortText = serverPortInput?.value?.trim() ?? ''
+  const serverPort = parseServerPort(serverPortText)
+  if (serverPortText && serverPort === undefined) {
+    serverPortInput?.setCustomValidity('Enter a port between 1 and 65535')
+    serverPortInput?.reportValidity()
+    return
+  }
+  serverPortInput?.setCustomValidity('')
+
   const profileNameInput =
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
@@ -63,6 +77,11 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    if (serverPort !== undefined) {
+      await setServerPort(serverPort)
+    } else {
+      await browser.storage.local.remove('serverPort')
+    }
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -123,6 +142,13 @@ async function restoreOptions(): Promise<void> {
       document.querySelector<HTMLInputElement>('#profileName')
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
+    }
+
+    const serverPort = await getServerPort()
+    const serverPortInput =
+      document.querySelector<HTMLInputElement>('#serverPort')
+    if (serverPortInput && serverPort !== undefined) {
+      serverPortInput.value = String(serverPort)
     }
 
     const apiKey = await getApiKey()

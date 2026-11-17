@@ -3,9 +3,11 @@ import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import retry from 'p-retry'
 import { emitNotification, getBrowser, logHttpError } from './helpers'
+import { serverBaseUrl } from './serverUrl'
 import {
   getApiKey,
   getHostname,
+  getServerPort,
   getSyncStatus,
   setSyncStatus,
 } from '../storage'
@@ -15,6 +17,14 @@ export const getClient = () =>
 
 export const loadApiKey = async (client: AWClient) => {
   client.token = await getApiKey()
+}
+
+/** Apply stored settings (API key, server port) before the client is used. */
+export const loadClientSettings = async (client: AWClient) => {
+  const port = await getServerPort()
+  client.baseURL = serverBaseUrl(port, config.isDevelopment)
+  client.apiURL = client.baseURL + '/api'
+  await loadApiKey(client)
 }
 
 // TODO: We might want to get the hostname somehow, maybe like this:

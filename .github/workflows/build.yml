@@ -124,5 +124,5 @@ jobs:
       - name: Typecheck TypeScript
         run: make compile
 
-      - name: Test tab-group heartbeat capture
-        run: node --test tests/tab-groups.test.mjs
+      - name: Test consent, install lifecycle and tab-group heartbeat capture
+        run: make test-fast

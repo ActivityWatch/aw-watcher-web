@@ -41,14 +41,19 @@ console.debug('Creating client')
 const client = getClient()
 const clientReady = loadApiKey(client)
 
-browser.runtime.onInstalled.addListener(async () => {
+browser.runtime.onInstalled.addListener(async ({ reason }) => {
   const { consent } = await getConsentStatus()
   const isConsentRequired = await getConsentRequired()
   if (installAction(isConsentRequired, consent) === 'enable') {
     if (!isConsentRequired) console.info('Consent is not required')
     else if (consent) console.info('Consent required but already accepted')
-    console.debug('Enabling the extension')
-    await setEnabled(true)
+    // Updates (including browser updates) must not override an explicit pause.
+    // Read raw storage: getEnabled() also returns false for a missing value.
+    const { enabled } = await browser.storage.local.get('enabled')
+    if (reason === 'install' || enabled !== false) {
+      console.debug('Enabling the extension')
+      await setEnabled(true)
+    }
   } else {
     console.info('Consent is required...opening consent tab')
     await setConsentStatus({ consent, required: true })

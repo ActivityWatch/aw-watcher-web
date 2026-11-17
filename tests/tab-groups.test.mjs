@@ -50,6 +50,9 @@ export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
   state.heartbeatData = data
 }
+export const clearHeartbeatData = async () => {
+  state.heartbeatData = undefined
+}
 export const getBrowserName = async () => state.browserName
 export const getBrowserNameUserSelected = async () => state.browserNameUserSelected
 export const setBrowserName = async (name) => {
@@ -62,6 +65,7 @@ export const sent = []
 export const getBucketId = async () => 'bucket'
 export const sendHeartbeat = async (client, bucketId, timestamp, data, pulsetime) => {
   sent.push({ timestamp, data: structuredClone(data), pulsetime })
+  return true
 }
 `
 
@@ -73,6 +77,23 @@ const STUB_AW_CLIENT = `
 export class FetchError extends Error {}
 `
 
+// The URL-in-title capture path is covered by heartbeat.test.mjs; here it must
+// only pass the browser-reported title through unchanged.
+const STUB_URL_IN_TITLE = `
+export const originalTitle = async (_tabId, _url, title) => title
+`
+
+const STUB_HEARTBEAT_QUEUE = `
+export function createHeartbeatQueue() {
+    let chain = Promise.resolve()
+    return (task) => {
+        const next = chain.then(task)
+        chain = next.catch(() => undefined)
+        return next
+    }
+}
+`
+
 // Production import specifier -> specifier to use in the transpiled fixture.
 const MODULE_MAP = {
     'webextension-polyfill': './stub-browser.mjs',
@@ -81,6 +102,8 @@ const MODULE_MAP = {
     './client': './stub-client.mjs',
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
+    './urlInTitle': './stub-url-in-title.mjs',
+    './heartbeatQueue': './stub-heartbeat-queue.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     'punycode.js': pathToFileURL(require.resolve('punycode.js')).href,
 }
@@ -118,6 +141,8 @@ async function loadFixture() {
             'stub-client.mjs': STUB_CLIENT,
             'stub-config.mjs': STUB_CONFIG,
             'stub-aw-client.mjs': STUB_AW_CLIENT,
+            'stub-url-in-title.mjs': STUB_URL_IN_TITLE,
+            'stub-heartbeat-queue.mjs': STUB_HEARTBEAT_QUEUE,
         }
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)

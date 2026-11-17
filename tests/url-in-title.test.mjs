@@ -212,17 +212,28 @@ async function firefox({
     domainOnly = true,
     owned = {},
     windowTitle = 'Other extension - Page',
+    windows = [{ id: 1, type: 'normal' }],
 } = {}) {
     const updates = []
+    const updatesByWindow = {}
+    const titles = Object.fromEntries(windows.map((w) => [w.id, windowTitle]))
     let onSettingChanged
     let persisted = structuredClone(owned)
     const browser = {
         windows: {
-            getAll: async () => [{ id: 1 }],
-            get: async () => ({ id: 1, title: windowTitle }),
-            update: async (_id, update) => {
+            getAll: async (query = {}) =>
+                windows
+                    .filter(
+                        (w) =>
+                            !query.windowTypes ||
+                            query.windowTypes.includes(w.type),
+                    )
+                    .map((w) => ({ id: w.id, type: w.type })),
+            get: async (id) => ({ id, title: titles[id] }),
+            update: async (id, update) => {
                 updates.push(update.titlePreface)
-                windowTitle = `${update.titlePreface}Page`
+                ;(updatesByWindow[id] ??= []).push(update.titlePreface)
+                titles[id] = `${update.titlePreface}Page`
             },
             onRemoved: event(),
         },
@@ -257,10 +268,12 @@ async function firefox({
     await flush()
     return {
         updates,
+        updatesByWindow,
         browser,
         owned: () => persisted,
         changeTitle: (title) => {
             windowTitle = title
+            titles[1] = title
         },
         toggle: async (value) => {
             onSettingChanged(value)
@@ -343,6 +356,23 @@ test('switching to domain only rewrites the suffix in place', async () => {
     await page.setDomainOnly(false)
     assert.equal(page.document.title, 'Page - https://example.com/a/b')
     assert.equal(await page.original(), 'Page')
+})
+
+test('Firefox disable cleanup includes popup windows', async () => {
+    const state = await firefox({
+        owned: {
+            1: 'example.com/ - ',
+            2: 'example.com/ - ',
+        },
+        windowTitle: 'example.com/ - Page',
+        windows: [
+            { id: 1, type: 'normal' },
+            { id: 2, type: 'popup' },
+        ],
+    })
+    assert.deepEqual(state.updatesByWindow[1], [''])
+    assert.deepEqual(state.updatesByWindow[2], [''])
+    assert.deepEqual(state.owned(), {})
 })
 
 test('Firefox prepends the full URL unless domain only is set', async () => {

@@ -157,7 +157,9 @@ function updateFirefoxPreface(windowId: number) {
 
 async function syncFirefox(settings: Settings) {
   firefoxSettings = settings
-  const windows = await browser.windows.getAll({ windowTypes: ['normal'] })
+  const windows = await browser.windows.getAll({
+    windowTypes: ['normal', 'popup'],
+  })
   await Promise.all(
     windows.map((w) => w.id !== undefined && updateFirefoxPreface(w.id)),
   )

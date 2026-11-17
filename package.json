@@ -2,9 +2,6 @@
     "type": "module",
     "name": "aw-watcher-web",
     "license": "MPL-2.0",
-    "scripts": {
-        "test": "node --test tests/*.test.mjs"
-    },
     "bugs": {
         "url": "https://github.com/ActivityWatch/aw-watcher-web/issues"
     },
@@ -32,6 +29,6 @@
         "singleQuote": true
     },
     "scripts": {
-        "test": "node --test tests/*.test.ts"
+        "test": "node --test tests/*.test.ts tests/*.test.mjs"
     }
 }

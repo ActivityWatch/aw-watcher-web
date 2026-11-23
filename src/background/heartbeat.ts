@@ -1,5 +1,11 @@
 import browser from 'webextension-polyfill'
-import { getActiveWindowTab, getTab, getTabGroup, getTabs } from './helpers'
+import {
+  getActiveWindowTab,
+  getTab,
+  getTabGroup,
+  getTabReferrer,
+  getTabs,
+} from './helpers'
 import config from '../config'
 import { AWClient, IEvent } from 'aw-client'
 import { getBucketId, sendHeartbeat } from './client'
@@ -7,6 +13,7 @@ import {
   getEnabled,
   getHeartbeatData,
   getProfileName,
+  getReferrerEnabled,
   setHeartbeatData,
 } from '../storage'
 import deepEqual from 'deep-equal'
@@ -57,7 +64,7 @@ type TabWithGroup = browser.Tabs.Tab & { groupId?: number }
 // Chromium tab group id; -1 or undefined when the tab is not in a group.
 type HeartbeatTab = Pick<
   browser.Tabs.Tab,
-  'url' | 'title' | 'audible' | 'incognito'
+  'id' | 'url' | 'title' | 'audible' | 'incognito'
 > & { groupId?: number }
 
 async function heartbeat(
@@ -86,7 +93,7 @@ async function heartbeat(
   // full Tab object (which includes favIconUrl — a potentially large base64
   // data URI).  Over thousands of heartbeats the retained Tab references
   // cause unbounded memory growth (see #222).
-  const { url, title, audible, incognito, groupId } = tab
+  const { id, url, title, audible, incognito, groupId } = tab
   const data: IEvent['data'] = {
     url: decodeURL(url),
     title,
@@ -98,6 +105,12 @@ async function heartbeat(
   // nothing to event size.
   const profile = await getProfileName()
   if (profile) data.profile = profile
+  // Opt-in, and only set when the page has a referrer. document.referrer is
+  // fixed for the lifetime of a document, so it does not split events.
+  if (id !== undefined && (await getReferrerEnabled())) {
+    const referrer = await getTabReferrer(id, url)
+    if (referrer) data.referrer = decodeURL(referrer)
+  }
   // Likewise only set when the tab is in a Chromium tab group. Runs inside the
   // heartbeat queue, so the lookup cannot reorder sends.
   const group = await getTabGroup(groupId)
@@ -136,6 +149,7 @@ let heartbeatQueue: Promise<void> = Promise.resolve()
 
 function snapshotTab(tab: TabWithGroup): HeartbeatTab {
   return {
+    id: tab.id,
     url: tab.url,
     title: tab.title,
     audible: tab.audible,

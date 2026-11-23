@@ -309,17 +309,25 @@ test('malformed script results are ignored', async () => {
 
 test('a stalled page times out without blocking later heartbeats', async () => {
     mock.timers.enable({ apis: ['setTimeout'] })
-    browser.state.page = () => new Promise(() => {})
+    const stalled = () => new Promise(() => {})
+    browser.state.page = stalled
     useTab()
-    const pending = heartbeat.sendInitialHeartbeat(CLIENT)
-    // Let the queued heartbeat reach the injection before advancing time.
+    const first = heartbeat.sendInitialHeartbeat(CLIENT)
+    // Queue a second heartbeat behind the stalled read; its page responds.
+    const second = heartbeat.heartbeatAlarmListener(CLIENT)({
+        name: 'heartbeat',
+    })
+    // Let the first heartbeat reach the injection before advancing time.
     for (let i = 0; i < 20 && browser.state.injections.length === 0; i++) {
         await new Promise((resolve) => setImmediate(resolve))
     }
     assert.equal(browser.state.injections.length, 1)
+    browser.state.page = async () => ({ url: PAGE_URL, referrer: REFERRER })
     mock.timers.tick(1000)
-    await pending
-    assert.deepEqual(sentData(), [BASE])
+    await first
+    await second
+    assert.equal(browser.state.injections.length, 2)
+    assert.deepEqual(sentData(), [BASE, BASE, { ...BASE, referrer: REFERRER }])
 })
 
 test('tab updates read the referrer of the updated tab', async () => {

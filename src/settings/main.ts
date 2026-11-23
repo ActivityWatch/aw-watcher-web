@@ -9,8 +9,10 @@ import {
   setApiKey,
   getProfileName,
   setProfileName,
+  getReferrerEnabled,
+  setReferrerEnabled,
 } from '../storage'
-import { detectBrowser } from '../background/helpers'
+import { detectBrowser, getReferrerPermissions } from '../background/helpers'
 
 let optionsReady = false
 
@@ -49,6 +51,10 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     document.querySelector<HTMLInputElement>('#profileName')
   const profileName = profileNameInput?.value ?? ''
 
+  const referrerInput =
+    document.querySelector<HTMLInputElement>('#referrerEnabled')
+  const referrerEnabled = referrerInput?.checked ?? false
+
   const form = e.target as HTMLFormElement
   const button = form.querySelector<HTMLButtonElement>('button')
   if (!button) return
@@ -63,6 +69,16 @@ async function saveOptions(e: SubmitEvent): Promise<void> {
     await setBrowserNameUserSelected(true)
     await setHostname(hostname)
     await setProfileName(profileName)
+    await setReferrerEnabled(referrerEnabled)
+    if (!referrerEnabled) {
+      // Drop the optional permission again so the extension keeps only what
+      // it uses. Ignore failures: the setting alone already disables it.
+      await browser.permissions
+        .remove(getReferrerPermissions())
+        .catch((error) =>
+          console.debug('Could not remove referrer permission:', error),
+        )
+    }
     if (apiKey) {
       await setApiKey(apiKey)
     } else {
@@ -87,6 +103,22 @@ function toggleCustomBrowserInput(): void {
     customInput.style.display = isOther ? 'block' : 'none'
     customInput.required = isOther
   }
+}
+
+// permissions.request() must run inside the user gesture, so ask as soon as
+// the checkbox is ticked instead of when the form is saved.
+function onReferrerToggle(e: Event): void {
+  const input = e.target as HTMLInputElement
+  if (!input.checked) return
+  browser.permissions
+    .request(getReferrerPermissions())
+    .then((granted) => {
+      if (!granted) input.checked = false
+    })
+    .catch((error) => {
+      console.error('Failed to request referrer permission:', error)
+      input.checked = false
+    })
 }
 
 async function restoreOptions(): Promise<void> {
@@ -123,6 +155,16 @@ async function restoreOptions(): Promise<void> {
       document.querySelector<HTMLInputElement>('#profileName')
     if (profileNameInput && profileName !== undefined) {
       profileNameInput.value = profileName
+    }
+
+    const referrerInput =
+      document.querySelector<HTMLInputElement>('#referrerEnabled')
+    if (referrerInput) {
+      // Show the feature as enabled only while it can actually run; the
+      // permission may have been revoked from the browser's add-on settings.
+      referrerInput.checked =
+        (await getReferrerEnabled()) &&
+        (await browser.permissions.contains(getReferrerPermissions()))
     }
 
     const apiKey = await getApiKey()
@@ -163,6 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
 document
   .querySelector('#browser')
   ?.addEventListener('change', toggleCustomBrowserInput)
+document
+  .querySelector('#referrerEnabled')
+  ?.addEventListener('change', onReferrerToggle)
 const form = document.querySelector('form')
 if (form) {
   form.addEventListener('submit', (e: Event) => {

@@ -62,9 +62,6 @@ browser.runtime.onInstalled.addListener(async ({ reason }) => {
       url: browser.runtime.getURL('src/consent/index.html'),
     })
   }
-
-  await clientReady
-  await autodetectHostname(client)
 })
 
 console.debug('Creating alarms and tab listeners')
@@ -87,6 +84,11 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 console.debug('Setting base url')
 clientReady
   .then(() => setBaseUrl(client.baseURL))
+  // Detect on every start, not only on install/update: if aw-server was not
+  // running at install time, events would otherwise keep going to the
+  // hostname-less bucket. Before the first heartbeat, so a fresh install does
+  // not create that bucket either.
+  .then(() => autodetectHostname(client))
   .then(() =>
     console.debug('Waiting for enable before sending initial heartbeat'),
   )

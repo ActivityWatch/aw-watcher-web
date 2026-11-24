@@ -87,6 +87,7 @@ const MODULE_MAP = {
     './client': './stub-client.mjs',
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
+    './browserFork': './browserFork.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     // punycode.js is CJS with no detectable named exports, so a namespace
     // import has no toUnicode under Node; re-export it like the bundler does.
@@ -131,8 +132,16 @@ async function loadFixture() {
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)
         }
-        for (const name of ['helpers', 'heartbeat']) {
-            const source = await readFile(join(SRC_DIR, `${name}.ts`), 'utf8')
+        for (const name of ['helpers', 'heartbeat', 'browserFork']) {
+            const source = await readFile(
+                join(SRC_DIR, `${name}.ts`),
+                'utf8',
+            ).catch((error) => {
+                if (name === 'browserFork' && error.code === 'ENOENT')
+                    return undefined
+                throw error
+            })
+            if (source === undefined) continue
             const js = rewriteImports(transpile(source, `${name}.ts`))
             await writeFile(join(dir, `${name}.mjs`), js)
         }
@@ -371,4 +380,30 @@ test('hostname detection delays transmission while preserving the event tab', as
     assert.equal(client.sent.length, 1)
     assert.equal(client.sent[0].timestamp.getTime(), T0)
     assert.equal(client.sent[0].data.url, 'https://before.test/')
+})
+
+test('a background tab update stays ignored when activation changes during readiness', async () => {
+    const a = makeTab({ id: 1, url: 'https://a.test/' })
+    const b = makeTab({ id: 2, url: 'https://background.test/' })
+    browser.state.tabs = [a, b]
+    browser.state.activeTabId = a.id
+    const gate = deferred()
+    const first = heartbeat.tabActivatedListener(
+        CLIENT,
+        gate.promise,
+    )({ tabId: a.id })
+    await tick()
+    const update = heartbeat.tabUpdatedListener(CLIENT, gate.promise)(
+        b.id,
+        { title: b.title },
+        b,
+    )
+    await tick()
+    browser.state.activeTabId = b.id
+    gate.resolve()
+    await Promise.all([first, update])
+    assert.equal(
+        client.sent.some((e) => e.data.url === b.url),
+        false,
+    )
 })

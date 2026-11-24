@@ -190,7 +190,10 @@ test('control: reconnect with notifications available marks sync as success', as
     browser.notifications = { create: (opts) => created.push(opts) }
     storage.state.syncStatus = { success: false }
     await send(okClient())
-    assert.equal(created.length, 1)
+    assert.deepEqual(
+        created.map(({ title }) => title),
+        ['Now connected again'],
+    )
     assert.deepEqual(storage.state.syncWrites, [true])
 })
 
@@ -199,6 +202,10 @@ test('control: first failure with notifications available resolves', async () =>
     storage.state.syncStatus = { success: true }
     await assert.doesNotReject(send(failingClient()))
     assert.deepEqual(storage.state.syncWrites, [false])
+    assert.deepEqual(
+        created.map(({ title }) => title),
+        ['Unable to send event to server'],
+    )
 })
 
 // Defect: browser.notifications undefined.

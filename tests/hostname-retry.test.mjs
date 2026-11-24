@@ -33,9 +33,17 @@ function loadSource(path, mocks) {
     return exports
 }
 
-async function startWorker({ hostname, detected }) {
+async function startWorker({
+    hostname,
+    detected,
+    writeDelayMs = 0,
+    duringDetection,
+}) {
     const state = { enabled: true, hostname }
     const detectCalls = []
+    const activatedListeners = []
+    const activatedHostnames = []
+    let pendingActivation
     let releaseHeartbeat
     const initialHeartbeat = new Promise((resolve) => {
         releaseHeartbeat = resolve
@@ -63,6 +71,9 @@ async function startWorker({ hostname, detected }) {
                     )
                 },
                 async set(data) {
+                    if (writeDelayMs) {
+                        await new Promise((r) => setTimeout(r, writeDelayMs))
+                    }
                     Object.assign(state, data)
                 },
                 onChanged: noopEvent,
@@ -70,7 +81,9 @@ async function startWorker({ hostname, detected }) {
         },
         tabs: {
             async create() {},
-            onActivated: noopEvent,
+            onActivated: {
+                addListener: (listener) => activatedListeners.push(listener),
+            },
             onUpdated: noopEvent,
         },
         alarms: { create() {}, onAlarm: noopEvent },
@@ -91,7 +104,9 @@ async function startWorker({ hostname, detected }) {
                 hostnameAtHeartbeat = state.hostname
                 releaseHeartbeat()
             },
-            tabActivatedListener() {},
+            tabActivatedListener: () => async () => {
+                activatedHostnames.push(state.hostname)
+            },
             tabUpdatedListener() {},
         },
         './client': {
@@ -99,6 +114,18 @@ async function startWorker({ hostname, detected }) {
             async loadApiKey() {},
             async detectHostname() {
                 detectCalls.push(true)
+                if (duringDetection) {
+                    pendingActivation = duringDetection({
+                        state,
+                        fireActivated: () =>
+                            Promise.all(
+                                activatedListeners.map((listener) =>
+                                    listener({ tabId: 1, windowId: 1 }),
+                                ),
+                            ),
+                    })
+                }
+                await new Promise((r) => setTimeout(r, 10))
                 return detected
             },
         },
@@ -111,7 +138,8 @@ async function startWorker({ hostname, detected }) {
             setTimeout(() => reject(new Error('no initial heartbeat')), 1000),
         ),
     ])
-    return { state, detectCalls, hostnameAtHeartbeat }
+    await pendingActivation
+    return { state, detectCalls, hostnameAtHeartbeat, activatedHostnames }
 }
 
 test('startup detects a hostname that install-time detection missed', async () => {
@@ -139,4 +167,33 @@ test('startup still sends the initial heartbeat when the server is down', async 
     })
     assert.equal(result.state.hostname, undefined)
     assert.equal(result.detectCalls.length, 1)
+})
+
+test('tab events during detection wait for it, not the hostname-less bucket', async () => {
+    const result = await startWorker({
+        hostname: undefined,
+        detected: 'real-host',
+        duringDetection: ({ fireActivated }) => fireActivated(),
+    })
+    assert.deepEqual(result.activatedHostnames, ['real-host'])
+})
+
+test('a hostname saved while detection is in flight is not overwritten', async () => {
+    const result = await startWorker({
+        hostname: undefined,
+        detected: 'real-host',
+        duringDetection: async ({ state }) => {
+            state.hostname = 'user-set'
+        },
+    })
+    assert.equal(result.state.hostname, 'user-set')
+})
+
+test('the initial heartbeat waits for the detected hostname to be stored', async () => {
+    const result = await startWorker({
+        hostname: undefined,
+        detected: 'real-host',
+        writeDelayMs: 20,
+    })
+    assert.equal(result.hostnameAtHeartbeat, 'real-host')
 })

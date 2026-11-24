@@ -28,8 +28,9 @@ async function autodetectHostname(client: ReturnType<typeof getClient>) {
   const hostname = await getHostname()
   if (hostname === undefined) {
     const detectedHostname = await detectHostname(client)
-    if (detectedHostname !== undefined) {
-      setHostname(detectedHostname)
+    // A hostname the user saved while the request was in flight wins.
+    if (detectedHostname !== undefined && (await getHostname()) === undefined) {
+      await setHostname(detectedHostname)
     }
   }
 }
@@ -40,6 +41,15 @@ console.info('Starting...')
 console.debug('Creating client')
 const client = getClient()
 const clientReady = loadApiKey(client)
+// Detect on every start, not only on install/update: if aw-server was not
+// running at install time, events would otherwise keep going to the
+// hostname-less bucket. Every heartbeat path waits for it, so no event reaches
+// that bucket while detection is in flight. A failure must not block them.
+const hostnameReady = clientReady.then(() =>
+  autodetectHostname(client).catch((err) =>
+    console.error('Hostname detection failed:', err),
+  ),
+)
 
 browser.runtime.onInstalled.addListener(async ({ reason }) => {
   const { consent } = await getConsentStatus()
@@ -69,26 +79,22 @@ browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
 browser.alarms.onAlarm.addListener(async (alarm) => {
-  await clientReady
+  await hostnameReady
   return heartbeatAlarmListener(client)(alarm)
 })
 browser.tabs.onActivated.addListener(async (activeInfo) => {
-  await clientReady
+  await hostnameReady
   return tabActivatedListener(client)(activeInfo)
 })
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  await clientReady
+  await hostnameReady
   return tabUpdatedListener(client)(tabId, changeInfo, tab)
 })
 
 console.debug('Setting base url')
 clientReady
   .then(() => setBaseUrl(client.baseURL))
-  // Detect on every start, not only on install/update: if aw-server was not
-  // running at install time, events would otherwise keep going to the
-  // hostname-less bucket. Before the first heartbeat, so a fresh install does
-  // not create that bucket either.
-  .then(() => autodetectHostname(client))
+  .then(() => hostnameReady)
   .then(() =>
     console.debug('Waiting for enable before sending initial heartbeat'),
   )

@@ -233,14 +233,14 @@ export const tabUpdatedListener =
     }
 
     const tabSnapshot = snapshotTab(tab)
-    const lookup = Promise.all([
-      getActiveWindowTab().then((active) => active?.id),
-      getTabs().then((tabs) => tabs.length),
-    ])
+    // Only the active tab's update is recorded, so count tabs only for that one.
+    const lookup = getActiveWindowTab().then(async (active) =>
+      active?.id === tabId ? (await getTabs()).length : undefined,
+    )
     lookup.catch(() => undefined)
     await queueHeartbeat(async () => {
-      const [activeId, tabCount] = await lookup
-      if (activeId !== tabId) return
+      const tabCount = await lookup
+      if (tabCount === undefined) return
       await ready
       console.debug('Sending heartbeat for tab update', tabSnapshot.url)
       await heartbeat(client, tabSnapshot, tabCount, now)

@@ -21,7 +21,7 @@ const SRC_DIR = fileURLToPath(new URL('../src/background/', import.meta.url))
 const require = createRequire(import.meta.url)
 
 const STUB_BROWSER = `
-export const state = { tabs: [], activeTabId: undefined }
+export const state = { tabs: [], activeTabId: undefined, fullQueries: 0 }
 const browser = {
   tabs: {
     get: async (id) => {
@@ -29,10 +29,12 @@ const browser = {
       if (!tab) throw new Error('No tab with id ' + id)
       return tab
     },
-    query: async (query = {}) =>
-      query.active
+    query: async (query = {}) => {
+      if (!query.active) state.fullQueries += 1
+      return query.active
         ? state.tabs.filter((t) => t.id === state.activeTabId)
-        : [...state.tabs],
+        : [...state.tabs]
+    },
   },
   runtime: { getURL: (path) => path },
   notifications: { create: () => {} },
@@ -406,4 +408,19 @@ test('a background tab update stays ignored when activation changes during readi
         client.sent.some((e) => e.data.url === b.url),
         false,
     )
+})
+
+test('a background tab update does not scan every open tab', async () => {
+    const a = makeTab({ id: 1, url: 'https://a.test/' })
+    const b = makeTab({ id: 2, url: 'https://background.test/' })
+    browser.state.tabs = [a, b]
+    browser.state.activeTabId = a.id
+    browser.state.fullQueries = 0
+    await heartbeat.tabUpdatedListener(CLIENT)(b.id, { title: b.title }, b)
+    assert.equal(browser.state.fullQueries, 0)
+    assert.equal(client.sent.length, 0)
+
+    await heartbeat.tabUpdatedListener(CLIENT)(a.id, { title: a.title }, a)
+    assert.equal(browser.state.fullQueries, 1)
+    assert.equal(client.sent.length, 1)
 })

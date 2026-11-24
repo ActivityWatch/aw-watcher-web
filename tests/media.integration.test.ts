@@ -16,7 +16,10 @@ vi.mock('../src/background/helpers', () => ({
   getActiveWindowTab: async () => undefined,
   getBrowser: async () => 'integration',
 }))
-vi.mock('../src/storage', () => ({ getHostname: async () => 'test' }))
+vi.mock('../src/storage', () => ({
+  getHostname: async () => 'test',
+  getProfileName: async () => undefined,
+}))
 import { createMediaCapture } from '../src/background/media'
 
 // Run explicitly against a disposable server, never the user's real database:

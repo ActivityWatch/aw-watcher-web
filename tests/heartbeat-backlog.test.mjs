@@ -87,6 +87,7 @@ const MODULE_MAP = {
     './client': './stub-client.mjs',
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
+    './browserFork': './browserFork.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     // punycode.js is CJS with no detectable named exports, so a namespace
     // import has no toUnicode under Node; re-export it like the bundler does.
@@ -131,8 +132,16 @@ async function loadFixture() {
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)
         }
-        for (const name of ['helpers', 'heartbeat']) {
-            const source = await readFile(join(SRC_DIR, `${name}.ts`), 'utf8')
+        for (const name of ['helpers', 'heartbeat', 'browserFork']) {
+            const source = await readFile(
+                join(SRC_DIR, `${name}.ts`),
+                'utf8',
+            ).catch((error) => {
+                if (name === 'browserFork' && error.code === 'ENOENT')
+                    return undefined
+                throw error
+            })
+            if (source === undefined) continue
             const js = rewriteImports(transpile(source, `${name}.ts`))
             await writeFile(join(dir, `${name}.mjs`), js)
         }

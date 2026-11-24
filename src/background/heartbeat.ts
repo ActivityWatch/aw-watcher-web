@@ -244,6 +244,10 @@ export const tabUpdatedListener =
       return
     }
 
+    // A tab that was in the background when it updated is never recorded, even
+    // if the user switches to it before the consent check below finishes.
+    if (tab.active === false) return
+
     // The browser hands over this tab with the event, so copy its fields now:
     // the object can change before the consent check finishes. Nothing is
     // looked up until that check passes.

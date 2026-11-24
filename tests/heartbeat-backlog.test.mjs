@@ -50,7 +50,10 @@ export const state = {
   browserName: 'chrome',
   browserNameUserSelected: false,
 }
-export const getEnabled = async () => state.enabled
+export const getEnabled = async () => {
+  if (state.enabledGate) await state.enabledGate
+  return state.enabled
+}
 export const getProfileName = async () => state.profile
 export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
@@ -197,6 +200,7 @@ beforeEach(() => {
     client.sent.length = 0
     client.hooks.beforeSend = undefined
     Object.assign(storage.state, {
+        enabledGate: undefined,
         enabled: true,
         profile: undefined,
         heartbeatData: undefined,
@@ -439,5 +443,25 @@ test('no tab is read while tracking is not enabled', async () => {
     ])
     assert.equal(get.mock.callCount(), 0)
     assert.equal(query.mock.callCount(), 0)
+    assert.equal(client.sent.length, 0)
+})
+
+test('a background tab update stays ignored when it becomes active during the enabled read', async () => {
+    const a = makeTab({ id: 1, url: 'https://a.test/', active: true })
+    const b = makeTab({ id: 2, url: 'https://background.test/', active: false })
+    browser.state.tabs = [a, b]
+    browser.state.activeTabId = a.id
+    const gate = deferred()
+    storage.state.enabledGate = gate.promise
+    const update = heartbeat.tabUpdatedListener(CLIENT)(
+        b.id,
+        { title: b.title },
+        b,
+    )
+    await tick()
+    // The user switches to B while the consent check is still pending.
+    browser.state.activeTabId = b.id
+    gate.resolve()
+    await update
     assert.equal(client.sent.length, 0)
 })

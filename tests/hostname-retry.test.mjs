@@ -100,29 +100,48 @@ async function startWorker({
     const storage = loadSource('storage.ts', {
         'webextension-polyfill': browser,
     })
+    const ClockDate = class extends Date {
+        constructor(...args) {
+            if (args.length) super(...args)
+            else super(clock.now)
+        }
+    }
     const productionHeartbeat = realHeartbeat
-        ? loadSource('background/heartbeat.ts', {
-              'webextension-polyfill': browser,
-              './helpers': {
-                  getTab: async () => ({ ...tab }),
-                  getActiveWindowTab: async () => ({ ...tab }),
-                  getTabs: async () => [{ ...tab }],
-                  getTabGroup: async () => undefined,
-              },
-              '../config': {
-                  heartbeat: { alarmName: 'heartbeat', intervalInSeconds: 60 },
-              },
-              'aw-client': {},
-              './client': {
-                  getBucketId: async () => 'bucket',
-                  sendHeartbeat: async (_client, _bucket, timestamp, data) => {
-                      sent.push({ timestamp, data })
+        ? loadSource(
+              'background/heartbeat.ts',
+              {
+                  'webextension-polyfill': browser,
+                  './helpers': {
+                      getTab: async () => ({ ...tab }),
+                      getActiveWindowTab: async () => ({ ...tab }),
+                      getTabs: async () => [{ ...tab }],
+                      getTabGroup: async () => undefined,
                   },
+                  '../config': {
+                      heartbeat: {
+                          alarmName: 'heartbeat',
+                          intervalInSeconds: 60,
+                      },
+                  },
+                  'aw-client': {},
+                  './client': {
+                      getBucketId: async () => 'bucket',
+                      sendHeartbeat: async (
+                          _client,
+                          _bucket,
+                          timestamp,
+                          data,
+                      ) => {
+                          sent.push({ timestamp, data })
+                      },
+                  },
+                  '../storage': storage,
+                  'deep-equal': (a, b) =>
+                      JSON.stringify(a) === JSON.stringify(b),
+                  'punycode.js': {},
               },
-              '../storage': storage,
-              'deep-equal': (a, b) => JSON.stringify(a) === JSON.stringify(b),
-              'punycode.js': {},
-          })
+              { Date: ClockDate },
+          )
         : undefined
     let hostnameAtHeartbeat
     loadSource(
@@ -175,13 +194,7 @@ async function startWorker({
             './consent': loadSource('background/consent.ts', {}),
             '../storage': storage,
         },
-        {
-            Date: class extends Date {
-                constructor() {
-                    super(clock.now)
-                }
-            },
-        },
+        { Date: ClockDate },
     )
     await Promise.race([
         initialHeartbeat,
@@ -275,6 +288,7 @@ test('tab timestamps are captured before waiting for hostname detection', async 
     const result = await startWorker({
         detected: 'real-host',
         clock,
+        realHeartbeat: true,
         duringDetection: ({ fireActivated }) => {
             const first = fireActivated()
             clock.now = 2000
@@ -283,7 +297,10 @@ test('tab timestamps are captured before waiting for hostname detection', async 
             return Promise.all([first, second])
         },
     })
-    assert.deepEqual(result.activatedTimes, [1000, 2000])
+    assert.deepEqual(
+        result.sent.map((event) => event.timestamp.getTime()),
+        [1000, 2000],
+    )
 })
 
 test('tabs are not read until a delayed enabled read completes', async () => {

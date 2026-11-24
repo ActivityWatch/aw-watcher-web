@@ -83,6 +83,7 @@ const MODULE_MAP = {
     'p-retry': './stub-p-retry.mjs',
     '../config': './stub-config.mjs',
     '../storage': './stub-storage.mjs',
+    './browserFork': './browserFork.mjs',
     './helpers': './helpers.mjs',
 }
 
@@ -123,7 +124,7 @@ async function loadFixture() {
         for (const [name, source] of Object.entries(stubs)) {
             await writeFile(join(dir, name), source)
         }
-        for (const name of ['helpers', 'client']) {
+        for (const name of ['browserFork', 'helpers', 'client']) {
             const source = await readFile(join(SRC_DIR, `${name}.ts`), 'utf8')
             const js = rewriteImports(transpile(source, `${name}.ts`))
             await writeFile(join(dir, `${name}.mjs`), js)

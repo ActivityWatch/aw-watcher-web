@@ -286,7 +286,7 @@ test('tab timestamps are captured before waiting for hostname detection', async 
     assert.deepEqual(result.activatedTimes, [1000, 2000])
 })
 
-test('tab snapshots start before a delayed enabled read completes', async () => {
+test('tabs are not read until a delayed enabled read completes', async () => {
     let release
     const gate = new Promise((resolve) => {
         release = resolve
@@ -307,6 +307,8 @@ test('tab snapshots start before a delayed enabled read completes', async () => 
             await pending
         },
     })
+    // Consent comes first: the tab is read only after tracking is confirmed
+    // enabled, so it describes the tab at that moment.
     assert.equal(result.sent.length, 1)
-    assert.equal(result.sent[0].data.url, 'https://before.test/')
+    assert.equal(result.sent[0].data.url, 'https://later.test/')
 })

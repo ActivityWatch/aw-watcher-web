@@ -424,3 +424,20 @@ test('a background tab update does not scan every open tab', async () => {
     assert.equal(browser.state.fullQueries, 1)
     assert.equal(client.sent.length, 1)
 })
+
+test('no tab is read while tracking is not enabled', async () => {
+    const a = makeTab({ id: 1, url: 'https://a.test/' })
+    browser.state.tabs = [a]
+    browser.state.activeTabId = a.id
+    storage.state.enabled = false
+    const get = mock.method(browser.default.tabs, 'get')
+    const query = mock.method(browser.default.tabs, 'query')
+    await Promise.all([
+        heartbeat.heartbeatAlarmListener(CLIENT)({ name: 'heartbeat' }),
+        heartbeat.tabActivatedListener(CLIENT)({ tabId: a.id }),
+        heartbeat.tabUpdatedListener(CLIENT)(a.id, { title: a.title }, a),
+    ])
+    assert.equal(get.mock.callCount(), 0)
+    assert.equal(query.mock.callCount(), 0)
+    assert.equal(client.sent.length, 0)
+})

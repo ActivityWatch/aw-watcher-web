@@ -144,30 +144,37 @@ function snapshotTab(tab: TabWithGroup): HeartbeatTab {
   }
 }
 
-// Start the tab and tab-count lookups when the event fires, not when its queued
-// task runs. While the server is slow or down, sendHeartbeat's retries hold the
+// Start the tab and tab-count lookups when the event fires (once tracking is
+// confirmed enabled), not when its queued task runs. While the server is slow or down, sendHeartbeat's retries hold the
 // queue, so a task can run long after its event; reading the tab then would
 // attach the tab active at that later moment to the event's timestamp (#284).
 // The tab is snapshotted so a long backlog does not retain full Tab objects.
 function lookupTabAtEventTime(tab: Promise<TabWithGroup | undefined>) {
-  const lookup = Promise.all([
+  return Promise.all([
     tab.then((t) => (t ? snapshotTab(t) : undefined)),
     getTabs().then((tabs) => tabs.length),
   ])
-  // Awaited inside the queued task; avoid an unhandled rejection until then.
-  lookup.catch(() => undefined)
-  return lookup
 }
 
 // Call this before starting asynchronous work so queue order matches event
-// order.
-function queueHeartbeat(task: () => Promise<void>) {
+// order. `lookup` reads the tab state for the event; it runs as soon as the
+// consent check passes, not when the queued task runs.
+function queueHeartbeat<T>(
+  lookup: () => Promise<T>,
+  task: (value: T) => Promise<void>,
+) {
   // Preserve the consent state when this event arrives, even if the queue is
   // blocked until after tracking resumes. heartbeat() also checks before send.
-  const enabledAtEventTime = getEnabled()
-  enabledAtEventTime.catch(() => undefined)
+  // Tab URLs and titles are read only after this check passes, so nothing is
+  // read while the user has not accepted the privacy notice.
+  const lookedUp = getEnabled().then(async (enabled) =>
+    enabled ? { value: await lookup() } : undefined,
+  )
+  // Awaited inside the queued task; avoid an unhandled rejection until then.
+  lookedUp.catch(() => undefined)
   const queuedHeartbeat = heartbeatQueue.then(async () => {
-    if (await enabledAtEventTime) await task()
+    const result = await lookedUp
+    if (result) await task(result.value)
   })
 
   // Keep processing later heartbeats if one fails, while still returning the
@@ -178,12 +185,15 @@ function queueHeartbeat(task: () => Promise<void>) {
 
 export const sendInitialHeartbeat = async (client: AWClient) => {
   const now = new Date()
-  await queueHeartbeat(async () => {
-    const activeWindowTab = await getActiveWindowTab()
-    const tabs = await getTabs()
-    console.debug('Sending initial heartbeat', activeWindowTab?.url)
-    await heartbeat(client, activeWindowTab, tabs.length, now)
-  })
+  await queueHeartbeat(
+    async () => undefined,
+    async () => {
+      const activeWindowTab = await getActiveWindowTab()
+      const tabs = await getTabs()
+      console.debug('Sending initial heartbeat', activeWindowTab?.url)
+      await heartbeat(client, activeWindowTab, tabs.length, now)
+    },
+  )
 }
 
 export const heartbeatAlarmListener =
@@ -191,14 +201,15 @@ export const heartbeatAlarmListener =
   async (alarm: browser.Alarms.Alarm, now = new Date()) => {
     if (alarm.name !== config.heartbeat.alarmName) return
 
-    const lookup = lookupTabAtEventTime(getActiveWindowTab())
-    await queueHeartbeat(async () => {
-      const [activeWindowTab, tabCount] = await lookup
-      if (!activeWindowTab) return
-      await ready
-      console.debug('Sending heartbeat for alarm', activeWindowTab.url)
-      await heartbeat(client, activeWindowTab, tabCount, now)
-    })
+    await queueHeartbeat(
+      () => lookupTabAtEventTime(getActiveWindowTab()),
+      async ([activeWindowTab, tabCount]) => {
+        if (!activeWindowTab) return
+        await ready
+        console.debug('Sending heartbeat for alarm', activeWindowTab.url)
+        await heartbeat(client, activeWindowTab, tabCount, now)
+      },
+    )
   }
 
 export const tabActivatedListener =
@@ -207,13 +218,14 @@ export const tabActivatedListener =
     activeInfo: browser.Tabs.OnActivatedActiveInfoType,
     now = new Date(),
   ) => {
-    const lookup = lookupTabAtEventTime(getTab(activeInfo.tabId))
-    await queueHeartbeat(async () => {
-      const [tab, tabCount] = await lookup
-      await ready
-      console.debug('Sending heartbeat for tab activation', tab?.url)
-      await heartbeat(client, tab, tabCount, now)
-    })
+    await queueHeartbeat(
+      () => lookupTabAtEventTime(getTab(activeInfo.tabId)),
+      async ([tab, tabCount]) => {
+        await ready
+        console.debug('Sending heartbeat for tab activation', tab?.url)
+        await heartbeat(client, tab, tabCount, now)
+      },
+    )
   }
 
 export const tabUpdatedListener =
@@ -232,17 +244,24 @@ export const tabUpdatedListener =
       return
     }
 
+    // The browser hands over this tab with the event, so copy its fields now:
+    // the object can change before the consent check finishes. Nothing is
+    // looked up until that check passes.
     const tabSnapshot = snapshotTab(tab)
     // Only the active tab's update is recorded, so count tabs only for that one.
-    const lookup = getActiveWindowTab().then(async (active) =>
-      active?.id === tabId ? (await getTabs()).length : undefined,
+    await queueHeartbeat(
+      () =>
+        getActiveWindowTab().then(async (active) =>
+          active?.id === tabId
+            ? { tabSnapshot, tabCount: (await getTabs()).length }
+            : undefined,
+        ),
+      async (update) => {
+        if (update === undefined) return
+        const { tabSnapshot, tabCount } = update
+        await ready
+        console.debug('Sending heartbeat for tab update', tabSnapshot.url)
+        await heartbeat(client, tabSnapshot, tabCount, now)
+      },
     )
-    lookup.catch(() => undefined)
-    await queueHeartbeat(async () => {
-      const tabCount = await lookup
-      if (tabCount === undefined) return
-      await ready
-      console.debug('Sending heartbeat for tab update', tabSnapshot.url)
-      await heartbeat(client, tabSnapshot, tabCount, now)
-    })
   }

@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
 
-function loadSource(path, mocks) {
+function loadSource(path, mocks, globals = {}) {
     const source = readFileSync(
         new URL(`../src/${path}`, import.meta.url),
         'utf8',
@@ -23,6 +23,7 @@ function loadSource(path, mocks) {
         }).outputText,
         {
             exports,
+            ...globals,
             require(name) {
                 assert.ok(name in mocks, `Unexpected dependency: ${name}`)
                 return mocks[name]
@@ -38,11 +39,13 @@ async function startWorker({
     detected,
     writeDelayMs = 0,
     duringDetection,
+    clock = { now: 1000 },
 }) {
     const state = { enabled: true, hostname }
     const detectCalls = []
     const activatedListeners = []
     const activatedHostnames = []
+    const activatedTimes = []
     let pendingActivation
     let releaseHeartbeat
     const initialHeartbeat = new Promise((resolve) => {
@@ -92,46 +95,57 @@ async function startWorker({
         'webextension-polyfill': browser,
     })
     let hostnameAtHeartbeat
-    loadSource('background/main.ts', {
-        'webextension-polyfill': browser,
-        '../config': {
-            requireConsent: false,
-            heartbeat: { alarmName: 'heartbeat', intervalInSeconds: 60 },
-        },
-        './heartbeat': {
-            heartbeatAlarmListener() {},
-            async sendInitialHeartbeat() {
-                hostnameAtHeartbeat = state.hostname
-                releaseHeartbeat()
+    loadSource(
+        'background/main.ts',
+        {
+            'webextension-polyfill': browser,
+            '../config': {
+                requireConsent: false,
+                heartbeat: { alarmName: 'heartbeat', intervalInSeconds: 60 },
             },
-            tabActivatedListener: () => async () => {
-                activatedHostnames.push(state.hostname)
+            './heartbeat': {
+                heartbeatAlarmListener() {},
+                async sendInitialHeartbeat() {
+                    hostnameAtHeartbeat = state.hostname
+                    releaseHeartbeat()
+                },
+                tabActivatedListener: () => async (_info, now) => {
+                    activatedHostnames.push(state.hostname)
+                    activatedTimes.push((now ?? new Date(clock.now)).getTime())
+                },
+                tabUpdatedListener() {},
             },
-            tabUpdatedListener() {},
-        },
-        './client': {
-            getClient: () => ({ baseURL: 'http://synthetic.invalid' }),
-            async loadApiKey() {},
-            async detectHostname() {
-                detectCalls.push(true)
-                if (duringDetection) {
-                    pendingActivation = duringDetection({
-                        state,
-                        fireActivated: () =>
-                            Promise.all(
-                                activatedListeners.map((listener) =>
-                                    listener({ tabId: 1, windowId: 1 }),
+            './client': {
+                getClient: () => ({ baseURL: 'http://synthetic.invalid' }),
+                async loadApiKey() {},
+                async detectHostname() {
+                    detectCalls.push(true)
+                    if (duringDetection) {
+                        pendingActivation = duringDetection({
+                            state,
+                            fireActivated: () =>
+                                Promise.all(
+                                    activatedListeners.map((listener) =>
+                                        listener({ tabId: 1, windowId: 1 }),
+                                    ),
                                 ),
-                            ),
-                    })
+                        })
+                    }
+                    await new Promise((r) => setTimeout(r, 10))
+                    return detected
+                },
+            },
+            './consent': loadSource('background/consent.ts', {}),
+            '../storage': storage,
+        },
+        {
+            Date: class extends Date {
+                constructor() {
+                    super(clock.now)
                 }
-                await new Promise((r) => setTimeout(r, 10))
-                return detected
             },
         },
-        './consent': loadSource('background/consent.ts', {}),
-        '../storage': storage,
-    })
+    )
     await Promise.race([
         initialHeartbeat,
         new Promise((_, reject) =>
@@ -139,7 +153,13 @@ async function startWorker({
         ),
     ])
     await pendingActivation
-    return { state, detectCalls, hostnameAtHeartbeat, activatedHostnames }
+    return {
+        state,
+        detectCalls,
+        hostnameAtHeartbeat,
+        activatedHostnames,
+        activatedTimes,
+    }
 }
 
 test('startup detects a hostname that install-time detection missed', async () => {
@@ -196,4 +216,34 @@ test('the initial heartbeat waits for the detected hostname to be stored', async
         writeDelayMs: 20,
     })
     assert.equal(result.hostnameAtHeartbeat, 'real-host')
+})
+
+test('tab events before consent are discarded while hostname detection waits', async () => {
+    const result = await startWorker({
+        detected: 'real-host',
+        duringDetection: async ({ state, fireActivated }) => {
+            state.enabled = false
+            const pending = fireActivated()
+            await Promise.resolve()
+            state.enabled = true
+            await pending
+        },
+    })
+    assert.deepEqual(result.activatedHostnames, [])
+})
+
+test('tab timestamps are captured before waiting for hostname detection', async () => {
+    const clock = { now: 1000 }
+    const result = await startWorker({
+        detected: 'real-host',
+        clock,
+        duringDetection: ({ fireActivated }) => {
+            const first = fireActivated()
+            clock.now = 2000
+            const second = fireActivated()
+            clock.now = 9000
+            return Promise.all([first, second])
+        },
+    })
+    assert.deepEqual(result.activatedTimes, [1000, 2000])
 })

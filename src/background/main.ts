@@ -10,6 +10,7 @@ import { getClient, detectHostname, loadApiKey } from './client'
 import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
+  getEnabled,
   getHostname,
   setBaseUrl,
   setConsentStatus,
@@ -79,16 +80,22 @@ browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
 browser.alarms.onAlarm.addListener(async (alarm) => {
+  const now = new Date()
+  if (!(await getEnabled())) return
   await hostnameReady
-  return heartbeatAlarmListener(client)(alarm)
+  return heartbeatAlarmListener(client)(alarm, now)
 })
 browser.tabs.onActivated.addListener(async (activeInfo) => {
+  const now = new Date()
+  if (!(await getEnabled())) return
   await hostnameReady
-  return tabActivatedListener(client)(activeInfo)
+  return tabActivatedListener(client)(activeInfo, now)
 })
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  const now = new Date()
+  if (!(await getEnabled())) return
   await hostnameReady
-  return tabUpdatedListener(client)(tabId, changeInfo, tab)
+  return tabUpdatedListener(client)(tabId, changeInfo, tab, now)
 })
 
 console.debug('Setting base url')

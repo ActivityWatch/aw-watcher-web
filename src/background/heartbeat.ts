@@ -166,10 +166,10 @@ export const sendInitialHeartbeat = async (client: AWClient) => {
 }
 
 export const heartbeatAlarmListener =
-  (client: AWClient) => async (alarm: browser.Alarms.Alarm) => {
+  (client: AWClient) =>
+  async (alarm: browser.Alarms.Alarm, now = new Date()) => {
     if (alarm.name !== config.heartbeat.alarmName) return
 
-    const now = new Date()
     await queueHeartbeat(async () => {
       const activeWindowTab = await getActiveWindowTab()
       if (!activeWindowTab) return
@@ -181,8 +181,10 @@ export const heartbeatAlarmListener =
 
 export const tabActivatedListener =
   (client: AWClient) =>
-  async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    const now = new Date()
+  async (
+    activeInfo: browser.Tabs.OnActivatedActiveInfoType,
+    now = new Date(),
+  ) => {
     await queueHeartbeat(async () => {
       const tab = await getTab(activeInfo.tabId)
       const tabs = await getTabs()
@@ -197,6 +199,7 @@ export const tabUpdatedListener =
     tabId: number,
     changeInfo: browser.Tabs.OnUpdatedChangeInfoType & { groupId?: number },
     tab: browser.Tabs.Tab,
+    now = new Date(),
   ) => {
     if (
       changeInfo.url === undefined &&
@@ -206,7 +209,6 @@ export const tabUpdatedListener =
       return
     }
 
-    const now = new Date()
     const tabSnapshot = snapshotTab(tab)
     await queueHeartbeat(async () => {
       const activeWindowTab = await getActiveWindowTab()

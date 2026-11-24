@@ -162,7 +162,13 @@ function lookupTabAtEventTime(tab: Promise<TabWithGroup | undefined>) {
 // Call this before starting asynchronous work so queue order matches event
 // order.
 function queueHeartbeat(task: () => Promise<void>) {
-  const queuedHeartbeat = heartbeatQueue.then(task)
+  // Preserve the consent state when this event arrives, even if the queue is
+  // blocked until after tracking resumes. heartbeat() also checks before send.
+  const enabledAtEventTime = getEnabled()
+  enabledAtEventTime.catch(() => undefined)
+  const queuedHeartbeat = heartbeatQueue.then(async () => {
+    if (await enabledAtEventTime) await task()
+  })
 
   // Keep processing later heartbeats if one fails, while still returning the
   // original rejection to the caller.

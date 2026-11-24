@@ -152,7 +152,7 @@ async function loadFixture() {
 }
 
 const fixture = await loadFixture()
-const { heartbeat, helpers, browser, storage, client } = fixture
+const { heartbeat, browser, storage, client } = fixture
 after(() => fixture.cleanup())
 
 const CLIENT = {}
@@ -231,6 +231,9 @@ test('a backlogged alarm heartbeat carries the tab active at its timestamp', asy
     })
     await tick()
 
+    // A new tab opens after T2; the queued alarm must retain the old count.
+    browser.state.tabs.push(makeTab({ id: 3 }))
+
     // User switches to B afterwards, while the queue is still backed up.
     mock.timers.setTime(T0 + 130_000)
     browser.state.activeTabId = b.id
@@ -247,6 +250,7 @@ test('a backlogged alarm heartbeat carries the tab active at its timestamp', asy
         'https://a.test/',
         'heartbeat stamped T2 must describe the tab active at T2 (A)',
     )
+    assert.equal(atT2[0].data.tabCount, 2)
 })
 
 test('a backlogged tab activation carries the tab as it was when activated', async () => {
@@ -290,3 +294,58 @@ test('a backlogged tab activation carries the tab as it was when activated', asy
     assert.equal(atT1[0].data.url, 'https://b.test/')
     assert.equal(atT1[0].data.title, 'B')
 })
+
+for (const kind of ['alarm', 'activation', 'update']) {
+    test(`a ${kind} event fired while paused is dropped after tracking resumes`, async () => {
+        const T0 = Date.parse('2026-01-01T00:00:00Z')
+        mock.timers.enable({ apis: ['Date'], now: T0 })
+        const a = makeTab({ id: 1 })
+        const b = makeTab({
+            id: 2,
+            url: 'https://private.test/',
+            title: 'Paused',
+        })
+        browser.state.tabs = [a, b]
+        browser.state.activeTabId = a.id
+        await heartbeat.sendInitialHeartbeat(CLIENT)
+        const gate = deferred()
+        client.hooks.beforeSend = async () => {
+            client.hooks.beforeSend = undefined
+            await gate.promise
+        }
+        mock.timers.setTime(T0 + 60_000)
+        const blocked = heartbeat.heartbeatAlarmListener(CLIENT)({
+            name: 'heartbeat',
+        })
+        await tick()
+        storage.state.enabled = false
+        browser.state.activeTabId = b.id
+        const pausedTime = T0 + 70_000
+        mock.timers.setTime(pausedTime)
+        const paused =
+            kind === 'alarm'
+                ? heartbeat.heartbeatAlarmListener(CLIENT)({
+                      name: 'heartbeat',
+                  })
+                : kind === 'activation'
+                  ? heartbeat.tabActivatedListener(CLIENT)({ tabId: b.id })
+                  : heartbeat.tabUpdatedListener(CLIENT)(
+                        b.id,
+                        { title: b.title },
+                        b,
+                    )
+        await tick()
+        storage.state.enabled = true
+        gate.resolve()
+        await Promise.all([blocked, paused])
+        assert.equal(
+            client.sent.filter((e) => e.timestamp.getTime() === pausedTime)
+                .length,
+            0,
+        )
+        assert.equal(
+            client.sent.some((e) => e.data.url === b.url),
+            false,
+        )
+    })
+}

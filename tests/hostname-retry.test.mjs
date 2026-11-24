@@ -40,12 +40,16 @@ async function startWorker({
     writeDelayMs = 0,
     duringDetection,
     clock = { now: 1000 },
+    enabledRead,
+    realHeartbeat = false,
 }) {
     const state = { enabled: true, hostname }
     const detectCalls = []
     const activatedListeners = []
     const activatedHostnames = []
     const activatedTimes = []
+    const sent = []
+    const tab = { id: 1, url: 'https://before.test/', title: 'Before' }
     let pendingActivation
     let releaseHeartbeat
     const initialHeartbeat = new Promise((resolve) => {
@@ -67,6 +71,8 @@ async function startWorker({
             },
             local: {
                 async get(keys) {
+                    if (keys.includes('enabled') && enabledRead)
+                        await enabledRead()
                     return Object.fromEntries(
                         (Array.isArray(keys) ? keys : [keys])
                             .filter((key) => state[key] !== undefined)
@@ -94,6 +100,30 @@ async function startWorker({
     const storage = loadSource('storage.ts', {
         'webextension-polyfill': browser,
     })
+    const productionHeartbeat = realHeartbeat
+        ? loadSource('background/heartbeat.ts', {
+              'webextension-polyfill': browser,
+              './helpers': {
+                  getTab: async () => ({ ...tab }),
+                  getActiveWindowTab: async () => ({ ...tab }),
+                  getTabs: async () => [{ ...tab }],
+                  getTabGroup: async () => undefined,
+              },
+              '../config': {
+                  heartbeat: { alarmName: 'heartbeat', intervalInSeconds: 60 },
+              },
+              'aw-client': {},
+              './client': {
+                  getBucketId: async () => 'bucket',
+                  sendHeartbeat: async (_client, _bucket, timestamp, data) => {
+                      sent.push({ timestamp, data })
+                  },
+              },
+              '../storage': storage,
+              'deep-equal': (a, b) => JSON.stringify(a) === JSON.stringify(b),
+              'punycode.js': {},
+          })
+        : undefined
     let hostnameAtHeartbeat
     loadSource(
         'background/main.ts',
@@ -110,13 +140,15 @@ async function startWorker({
                     releaseHeartbeat()
                 },
                 tabActivatedListener:
-                    (_client, ready) => async (_info, now) => {
-                        await ready
-                        activatedHostnames.push(state.hostname)
-                        activatedTimes.push(
-                            (now ?? new Date(clock.now)).getTime(),
-                        )
-                    },
+                    productionHeartbeat?.tabActivatedListener ??
+                    ((_client, ready) =>
+                        async (_info, now = new Date(clock.now)) => {
+                            const enabled = await storage.getEnabled()
+                            if (!enabled) return
+                            await ready
+                            activatedHostnames.push(state.hostname)
+                            activatedTimes.push(now.getTime())
+                        }),
                 tabUpdatedListener() {},
             },
             './client': {
@@ -127,6 +159,7 @@ async function startWorker({
                     if (duringDetection) {
                         pendingActivation = duringDetection({
                             state,
+                            tab,
                             fireActivated: () =>
                                 Promise.all(
                                     activatedListeners.map((listener) =>
@@ -163,6 +196,7 @@ async function startWorker({
         hostnameAtHeartbeat,
         activatedHostnames,
         activatedTimes,
+        sent,
     }
 }
 
@@ -250,4 +284,29 @@ test('tab timestamps are captured before waiting for hostname detection', async 
         },
     })
     assert.deepEqual(result.activatedTimes, [1000, 2000])
+})
+
+test('tab snapshots start before a delayed enabled read completes', async () => {
+    let release
+    const gate = new Promise((resolve) => {
+        release = resolve
+    })
+    let reads = 0
+    const result = await startWorker({
+        detected: 'real-host',
+        realHeartbeat: true,
+        enabledRead: async () => {
+            if (++reads === 1) await gate
+        },
+        duringDetection: async ({ fireActivated, tab }) => {
+            const pending = fireActivated()
+            await new Promise((resolve) => setImmediate(resolve))
+            tab.url = 'https://later.test/'
+            tab.title = 'Later'
+            release()
+            await pending
+        },
+    })
+    assert.equal(result.sent.length, 1)
+    assert.equal(result.sent[0].data.url, 'https://before.test/')
 })

@@ -10,7 +10,6 @@ import { getClient, detectHostname, loadApiKey } from './client'
 import { getIsConsentRequired, installAction } from './consent'
 import {
   getConsentStatus,
-  getEnabled,
   getHostname,
   setBaseUrl,
   setConsentStatus,
@@ -79,21 +78,16 @@ console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
-browser.alarms.onAlarm.addListener(async (alarm) => {
-  const now = new Date()
-  if (!(await getEnabled())) return
-  return heartbeatAlarmListener(client, hostnameReady)(alarm, now)
-})
-browser.tabs.onActivated.addListener(async (activeInfo) => {
-  const now = new Date()
-  if (!(await getEnabled())) return
-  return tabActivatedListener(client, hostnameReady)(activeInfo, now)
-})
-browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  const now = new Date()
-  if (!(await getEnabled())) return
-  return tabUpdatedListener(client, hostnameReady)(tabId, changeInfo, tab, now)
-})
+// Register directly: each listener snapshots tab state and reserves queue order
+// before awaiting storage. The queue checks event-time consent and heartbeat()
+// checks again before sending.
+browser.alarms.onAlarm.addListener(
+  heartbeatAlarmListener(client, hostnameReady),
+)
+browser.tabs.onActivated.addListener(
+  tabActivatedListener(client, hostnameReady),
+)
+browser.tabs.onUpdated.addListener(tabUpdatedListener(client, hostnameReady))
 
 console.debug('Setting base url')
 clientReady

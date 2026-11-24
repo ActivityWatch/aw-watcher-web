@@ -55,6 +55,7 @@ export const getBrowserNameUserSelected = async () => state.browserNameUserSelec
 export const setBrowserName = async (name) => {
   state.browserName = name
 }
+export const getCaptureExclusions = async () => ({ hostnames: [], urlPrefixes: [] })
 `
 
 const STUB_CLIENT = `
@@ -80,6 +81,7 @@ const MODULE_MAP = {
     '../config': './stub-config.mjs',
     './client': './stub-client.mjs',
     '../storage': './stub-storage.mjs',
+    '../capture-exclusions': './capture-exclusions.mjs',
     './helpers': './helpers.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,
     'punycode.js': pathToFileURL(require.resolve('punycode.js')).href,
@@ -127,6 +129,16 @@ async function loadFixture() {
             const js = rewriteImports(transpile(source, `${name}.ts`))
             await writeFile(join(dir, `${name}.mjs`), js)
         }
+        const exclusionsSource = await readFile(
+            join(SRC_DIR, '../capture-exclusions.ts'),
+            'utf8',
+        )
+        await writeFile(
+            join(dir, 'capture-exclusions.mjs'),
+            rewriteImports(
+                transpile(exclusionsSource, 'capture-exclusions.ts'),
+            ),
+        )
         const load = (name) => import(pathToFileURL(join(dir, name)).href)
         return {
             cleanup,

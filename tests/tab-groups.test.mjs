@@ -103,8 +103,6 @@ const MODULE_MAP = {
     '../storage': './stub-storage.mjs',
     './helpers': './helpers.mjs',
     './browserFork': './browserFork.mjs',
-
-
     './urlInTitle': './stub-url-in-title.mjs',
     './heartbeatQueue': './stub-heartbeat-queue.mjs',
     'deep-equal': pathToFileURL(require.resolve('deep-equal')).href,

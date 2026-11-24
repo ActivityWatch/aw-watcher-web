@@ -44,9 +44,9 @@ const client = getClient()
 const clientReady = loadApiKey(client)
 
 browser.runtime.onInstalled.addListener(async ({ reason }) => {
-  // Record install date once; legacy installs that never had this key get it set now.
-  const existing = await getInstallDate()
-  if (!existing) {
+  // Record the install date only for genuine installs. Updating users without
+  // the key stay undated, so they are never classified as first-week users.
+  if (reason === 'install' && !(await getInstallDate())) {
     await setInstallDate(new Date())
   }
 

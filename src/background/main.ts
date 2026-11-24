@@ -82,20 +82,17 @@ browser.alarms.create(config.heartbeat.alarmName, {
 browser.alarms.onAlarm.addListener(async (alarm) => {
   const now = new Date()
   if (!(await getEnabled())) return
-  await hostnameReady
-  return heartbeatAlarmListener(client)(alarm, now)
+  return heartbeatAlarmListener(client, hostnameReady)(alarm, now)
 })
 browser.tabs.onActivated.addListener(async (activeInfo) => {
   const now = new Date()
   if (!(await getEnabled())) return
-  await hostnameReady
-  return tabActivatedListener(client)(activeInfo, now)
+  return tabActivatedListener(client, hostnameReady)(activeInfo, now)
 })
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   const now = new Date()
   if (!(await getEnabled())) return
-  await hostnameReady
-  return tabUpdatedListener(client)(tabId, changeInfo, tab, now)
+  return tabUpdatedListener(client, hostnameReady)(tabId, changeInfo, tab, now)
 })
 
 console.debug('Setting base url')

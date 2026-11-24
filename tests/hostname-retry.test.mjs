@@ -109,10 +109,14 @@ async function startWorker({
                     hostnameAtHeartbeat = state.hostname
                     releaseHeartbeat()
                 },
-                tabActivatedListener: () => async (_info, now) => {
-                    activatedHostnames.push(state.hostname)
-                    activatedTimes.push((now ?? new Date(clock.now)).getTime())
-                },
+                tabActivatedListener:
+                    (_client, ready) => async (_info, now) => {
+                        await ready
+                        activatedHostnames.push(state.hostname)
+                        activatedTimes.push(
+                            (now ?? new Date(clock.now)).getTime(),
+                        )
+                    },
                 tabUpdatedListener() {},
             },
             './client': {

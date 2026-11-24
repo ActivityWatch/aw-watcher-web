@@ -41,13 +41,10 @@ async function startWorker({
     duringDetection,
     clock = { now: 1000 },
     enabledRead,
-    realHeartbeat = false,
 }) {
     const state = { enabled: true, hostname }
     const detectCalls = []
     const activatedListeners = []
-    const activatedHostnames = []
-    const activatedTimes = []
     const sent = []
     const tab = { id: 1, url: 'https://before.test/', title: 'Before' }
     let pendingActivation
@@ -106,43 +103,37 @@ async function startWorker({
             else super(clock.now)
         }
     }
-    const productionHeartbeat = realHeartbeat
-        ? loadSource(
-              'background/heartbeat.ts',
-              {
-                  'webextension-polyfill': browser,
-                  './helpers': {
-                      getTab: async () => ({ ...tab }),
-                      getActiveWindowTab: async () => ({ ...tab }),
-                      getTabs: async () => [{ ...tab }],
-                      getTabGroup: async () => undefined,
-                  },
-                  '../config': {
-                      heartbeat: {
-                          alarmName: 'heartbeat',
-                          intervalInSeconds: 60,
-                      },
-                  },
-                  'aw-client': {},
-                  './client': {
-                      getBucketId: async () => 'bucket',
-                      sendHeartbeat: async (
-                          _client,
-                          _bucket,
-                          timestamp,
-                          data,
-                      ) => {
-                          sent.push({ timestamp, data })
-                      },
-                  },
-                  '../storage': storage,
-                  'deep-equal': (a, b) =>
-                      JSON.stringify(a) === JSON.stringify(b),
-                  'punycode.js': {},
-              },
-              { Date: ClockDate },
-          )
-        : undefined
+    // The production listeners run unmodified, so these tests cover the real
+    // consent check, readiness wait and timestamp capture.
+    const productionHeartbeat = loadSource(
+        'background/heartbeat.ts',
+        {
+            'webextension-polyfill': browser,
+            './helpers': {
+                getTab: async () => ({ ...tab }),
+                getActiveWindowTab: async () => ({ ...tab }),
+                getTabs: async () => [{ ...tab }],
+                getTabGroup: async () => undefined,
+            },
+            '../config': {
+                heartbeat: {
+                    alarmName: 'heartbeat',
+                    intervalInSeconds: 60,
+                },
+            },
+            'aw-client': {},
+            './client': {
+                getBucketId: async () => 'bucket',
+                sendHeartbeat: async (_client, _bucket, timestamp, data) => {
+                    sent.push({ timestamp, data, hostname: state.hostname })
+                },
+            },
+            '../storage': storage,
+            'deep-equal': (a, b) => JSON.stringify(a) === JSON.stringify(b),
+            'punycode.js': {},
+        },
+        { Date: ClockDate },
+    )
     let hostnameAtHeartbeat
     loadSource(
         'background/main.ts',
@@ -158,16 +149,7 @@ async function startWorker({
                     hostnameAtHeartbeat = state.hostname
                     releaseHeartbeat()
                 },
-                tabActivatedListener:
-                    productionHeartbeat?.tabActivatedListener ??
-                    ((_client, ready) =>
-                        async (_info, now = new Date(clock.now)) => {
-                            const enabled = await storage.getEnabled()
-                            if (!enabled) return
-                            await ready
-                            activatedHostnames.push(state.hostname)
-                            activatedTimes.push(now.getTime())
-                        }),
+                tabActivatedListener: productionHeartbeat.tabActivatedListener,
                 tabUpdatedListener() {},
             },
             './client': {
@@ -207,8 +189,6 @@ async function startWorker({
         state,
         detectCalls,
         hostnameAtHeartbeat,
-        activatedHostnames,
-        activatedTimes,
         sent,
     }
 }
@@ -246,7 +226,10 @@ test('tab events during detection wait for it, not the hostname-less bucket', as
         detected: 'real-host',
         duringDetection: ({ fireActivated }) => fireActivated(),
     })
-    assert.deepEqual(result.activatedHostnames, ['real-host'])
+    assert.deepEqual(
+        result.sent.map((event) => event.hostname),
+        ['real-host'],
+    )
 })
 
 test('a hostname saved while detection is in flight is not overwritten', async () => {
@@ -280,7 +263,7 @@ test('tab events before consent are discarded while hostname detection waits', a
             await pending
         },
     })
-    assert.deepEqual(result.activatedHostnames, [])
+    assert.deepEqual(result.sent, [])
 })
 
 test('tab timestamps are captured before waiting for hostname detection', async () => {
@@ -288,7 +271,6 @@ test('tab timestamps are captured before waiting for hostname detection', async 
     const result = await startWorker({
         detected: 'real-host',
         clock,
-        realHeartbeat: true,
         duringDetection: ({ fireActivated }) => {
             const first = fireActivated()
             clock.now = 2000
@@ -311,7 +293,6 @@ test('tabs are not read until a delayed enabled read completes', async () => {
     let reads = 0
     const result = await startWorker({
         detected: 'real-host',
-        realHeartbeat: true,
         enabledRead: async () => {
             if (++reads === 1) await gate
         },

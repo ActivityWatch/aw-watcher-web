@@ -10,12 +10,26 @@ export function parseExclusionLines(text: string): string[] {
     .filter(Boolean)
 }
 
+// Browsers report tab URLs with ASCII (punycode) hosts and percent-encoded
+// paths. A prefix typed with a Unicode host must match that form too.
+function canonicalPrefix(prefix: string): string {
+  try {
+    return new URL(prefix).href
+  } catch {
+    return prefix
+  }
+}
+
 export function isCaptureExcluded(
   url: string,
   rules: CaptureExclusions,
 ): boolean {
   if (
-    rules.urlPrefixes.some((prefix) => prefix !== '' && url.startsWith(prefix))
+    rules.urlPrefixes.some(
+      (prefix) =>
+        prefix !== '' &&
+        (url.startsWith(prefix) || url.startsWith(canonicalPrefix(prefix))),
+    )
   ) {
     return true
   }

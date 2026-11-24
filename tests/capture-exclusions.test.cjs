@@ -34,6 +34,7 @@ function harness(rules = { hostnames: [], urlPrefixes: [] }) {
             getActiveWindowTab: async () => tab,
             getTab: async () => tab,
             getTabs: async () => [tab],
+            getTabGroup: async () => undefined,
         },
         '../config': {
             heartbeat: { intervalInSeconds: 60, alarmName: 'heartbeat' },
@@ -179,6 +180,16 @@ test('queued exclusion transition retains ordering', async () => {
 test('Unicode hostname rules match browser punycode hosts', async () => {
     const h = harness({ hostnames: ['bücher.example'], urlPrefixes: [] })
     h.setTab('https://xn--bcher-kva.example/secret')
+    await h.tick()
+    assert.equal(h.sent.length, 0)
+})
+
+test('Unicode URL prefix rules match browser punycode tab URLs', async () => {
+    const h = harness({
+        hostnames: [],
+        urlPrefixes: ['https://bücher.example/secret'],
+    })
+    h.setTab('https://xn--bcher-kva.example/secret/page')
     await h.tick()
     assert.equal(h.sent.length, 0)
 })

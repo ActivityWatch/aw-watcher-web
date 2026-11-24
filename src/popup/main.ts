@@ -189,10 +189,16 @@ async function initSupportNudge() {
       ? 'supportNudgeDismissed'
       : `nudgeDismissed_${trigger}`
 
+  // A dismissal of any support nudge also suppresses the other trigger, so a
+  // user who closed one message is not shown a different one later.
+  const legacyDismissKey = 'supportNudgeDismissed'
   let dismissed = false
   try {
-    const result = await browser.storage.local.get(dismissKey)
-    dismissed = Boolean(result[dismissKey])
+    const result = await browser.storage.local.get([
+      dismissKey,
+      legacyDismissKey,
+    ])
+    dismissed = Boolean(result[dismissKey] || result[legacyDismissKey])
   } catch (error) {
     console.error('Failed to read support nudge state:', error)
   }
@@ -224,7 +230,10 @@ async function initSupportNudge() {
     // Hide first so a failed persist still honors the click this session.
     nudge.style.setProperty('display', 'none')
     try {
-      await browser.storage.local.set({ [dismissKey]: true })
+      await browser.storage.local.set({
+        [dismissKey]: true,
+        [legacyDismissKey]: true,
+      })
     } catch (error) {
       console.error('Failed to persist support nudge dismissal:', error)
     }

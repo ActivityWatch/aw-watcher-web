@@ -11,10 +11,17 @@ function fixture({
     fetch,
     stall = false,
     unconfigured = false,
+    local = {},
 } = {}) {
     const elements = new Map()
     class Element {
-        style = { setProperty() {}, removeProperty() {} }
+        shown = false
+        style = {
+            setProperty: () => {},
+            removeProperty: (name) => {
+                if (name === 'display') this.shown = true
+            },
+        }
         addEventListener() {}
         removeAttribute() {}
         setAttribute() {}
@@ -106,7 +113,19 @@ function fixture({
     })
     const popup = load('../src/popup/main.ts', {
         'webextension-polyfill': {
-            default: { storage: { local: { get: async () => ({}) } } },
+            default: {
+                storage: {
+                    local: {
+                        get: async (keys) =>
+                            Object.fromEntries(
+                                [keys]
+                                    .flat()
+                                    .filter((key) => key in local)
+                                    .map((key) => [key, local[key]]),
+                            ),
+                    },
+                },
+            },
         },
         '../config': { default: {} },
         '../storage': storage,
@@ -124,6 +143,7 @@ function fixture({
             timer()
         },
         isCleared: () => cleared,
+        nudgeShown: () => document.getElementById('support-nudge').shown,
     }
 }
 
@@ -183,4 +203,18 @@ test('falls back to tenure on HTTP and JSON failures', async () => {
         assert.equal(await f.popup.resolveNudgeTrigger(), 'inapp-tenure')
         assert.equal(f.isCleared(), true)
     }
+})
+
+test('an earlier support-nudge dismissal also hides the first-week nudge', async () => {
+    const shown = fixture()
+    await shown.ready()
+    assert.equal(shown.nudgeShown(), true)
+
+    const dismissed = fixture({ local: { supportNudgeDismissed: true } })
+    await dismissed.ready()
+    assert.equal(
+        await dismissed.popup.resolveNudgeTrigger(),
+        'inapp-first-week',
+    )
+    assert.equal(dismissed.nudgeShown(), false)
 })

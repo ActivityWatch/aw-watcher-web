@@ -155,6 +155,7 @@ test('reads the writer bucket and authenticates using the configured key', async
         f.requests.at(-1).url.pathname,
         '/api/0/buckets/aw-watcher-web-chrome_laptop/events',
     )
+    assert.equal(f.requests.at(-1).url.searchParams.has('limit'), false)
     assert.equal(
         f.requests.at(-1).options.headers.Authorization,
         'Bearer test-key',

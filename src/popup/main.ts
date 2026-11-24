@@ -158,7 +158,9 @@ async function getTrackedHoursFromAW(baseUrl: string): Promise<number> {
     const bucketId = await getBucketId()
     const apiKey = await getApiKey()
     const start = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-    const url = `${baseUrl}/api/0/buckets/${encodeURIComponent(bucketId)}/events?limit=-1&start=${encodeURIComponent(start)}`
+    // No limit parameter: both servers return all events by default, while
+    // aw-server-rust types `limit` as u64, so -1 is not a valid value there.
+    const url = `${baseUrl}/api/0/buckets/${encodeURIComponent(bucketId)}/events?start=${encodeURIComponent(start)}`
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 3000)
     try {

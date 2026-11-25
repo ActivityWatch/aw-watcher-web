@@ -124,5 +124,5 @@ jobs:
       - name: Typecheck TypeScript
         run: make compile
 
-      - name: Test consent, install lifecycle and tab-group heartbeat capture
+      - name: Unit tests
         run: make test-fast

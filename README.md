@@ -43,6 +43,10 @@ Download the latest development build from our [GitHub Actions][gh-actions]:
 > - GitHub login is required to download artifacts
 > - These builds are unsigned and require developer mode/settings
 
+### Settings
+
+Open the extension settings with the gear icon (⚙) in the popup. In browsers that do not support the standard options page API (for example Arc and Dia), the settings page opens in a new tab instead.
+
 ### Firefox Enterprise Policy
 
 > [!NOTE]

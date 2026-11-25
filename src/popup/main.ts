@@ -12,6 +12,7 @@ import {
   getHostname,
   getProfileName,
 } from '../storage'
+import { openSettingsPage } from './settings'
 
 function setConnected(connected: boolean | undefined) {
   const connectedColor = connected ? '#00AA00' : '#FF0000'
@@ -118,8 +119,13 @@ function domListeners() {
   const settingsButton = document.getElementById('settings-btn')
   if (!(settingsButton instanceof HTMLAnchorElement))
     throw Error('Settings button is not a link')
-  settingsButton.addEventListener('click', () => {
-    browser.runtime.openOptionsPage()
+  settingsButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    openSettingsPage({
+      openOptionsPage: browser.runtime.openOptionsPage,
+      getURL: (path) => browser.runtime.getURL(path),
+      createTab: (properties) => browser.tabs.create(properties),
+    }).catch((error) => console.error('Failed to open settings page:', error))
   })
 }
 

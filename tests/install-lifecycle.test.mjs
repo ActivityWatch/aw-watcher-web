@@ -76,6 +76,7 @@ async function install({ reason, enabled, consent, requireConsent, managed }) {
             onUpdated: noopEvent,
         },
         alarms: { create() {}, onAlarm: noopEvent },
+        windows: { onFocusChanged: noopEvent },
     }
     const storage = loadSource('storage.ts', {
         'webextension-polyfill': browser,
@@ -91,6 +92,9 @@ async function install({ reason, enabled, consent, requireConsent, managed }) {
             sendInitialHeartbeat() {},
             tabActivatedListener() {},
             tabUpdatedListener() {},
+            windowFocusChangedListener() {},
+            async refreshWindowFocus() {},
+            async refreshAndSendHeartbeat() {},
         },
         './client': {
             getClient: () => ({ baseURL: 'http://synthetic.invalid' }),

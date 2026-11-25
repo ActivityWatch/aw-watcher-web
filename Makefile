@@ -16,7 +16,7 @@ test: test-fast
 	npx vitest run
 
 test-fast:
-	node --test tests/consent.test.ts tests/*.test.mjs
+	node --test tests/consent.test.ts tests/browser-fork.test.ts tests/*.test.mjs
 
 typecheck: compile
 

@@ -18,6 +18,17 @@ triggers an update. As with tab titles and URLs, group names may contain sensiti
 information and are recorded in your local ActivityWatch data. These fields capture
 context only: they do not automatically create categories or task reports.
 
+An optional `referrer` field records the page's `document.referrer`, i.e. the
+page you came from. It is off by default; enable **Referrer** in the
+extension settings. Enabling it asks for an optional permission to read the
+referrer from pages: `scripting` on Chrome and Safari (which already have host
+access) and access to all websites on Firefox. Unticking the setting and saving
+removes the permission again. The field is omitted when a page has no referrer
+or cannot be scripted (browser-internal pages, extension stores, some PDF
+viewers). Browsers usually shorten cross-site referrers to the origin, but
+same-site referrers can include full paths and query strings, so treat this
+field like the URL itself: it may contain sensitive information.
+
 **Learn more:** [Watchers][docs-watchers] • [Architecture][docs-architecture] •
 [Buckets and events][docs-buckets-and-events]
 

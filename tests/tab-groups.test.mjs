@@ -46,6 +46,7 @@ export const state = {
 }
 export const getEnabled = async () => state.enabled
 export const getProfileName = async () => state.profile
+export const getReferrerEnabled = async () => false
 export const getHeartbeatData = async () => state.heartbeatData
 export const setHeartbeatData = async (data) => {
   state.heartbeatData = data

@@ -132,3 +132,14 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+// Opt-in: the referrer is only read and sent after the user enables it in the
+// settings page and grants the optional permission it needs.
+export const getReferrerEnabled = (): Promise<boolean> =>
+  browser.storage.local
+    .get('referrerEnabled')
+    .then((data: StorageData) => Boolean(data.referrerEnabled))
+export const setReferrerEnabled = (referrerEnabled: boolean) =>
+  referrerEnabled
+    ? browser.storage.local.set({ referrerEnabled: true })
+    : browser.storage.local.remove('referrerEnabled')

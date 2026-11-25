@@ -91,6 +91,78 @@ export const getTabGroup = async (
   }
 }
 
+// Referrer support (#216). The tabs API does not expose a referrer, so read
+// document.referrer from the page itself. This needs an optional permission
+// that the settings page requests when the user enables the feature: the
+// "scripting" API on Manifest V3 (host access is already granted there) and
+// host access to all pages on Firefox's Manifest V2.
+export const getReferrerPermissions = (): browser.Permissions.Permissions =>
+  browser.runtime.getManifest().manifest_version >= 3
+    ? { permissions: ['scripting'] }
+    : { origins: ['<all_urls>'] }
+
+// Keep a stalled page from holding up the serialized heartbeat queue.
+const REFERRER_TIMEOUT_MS = 1000
+
+interface PageReferrer {
+  url: string
+  referrer: string
+}
+
+const isPageReferrer = (value: unknown): value is PageReferrer =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as PageReferrer).url === 'string' &&
+  typeof (value as PageReferrer).referrer === 'string'
+
+async function readPageReferrer(tabId: number): Promise<unknown> {
+  // Inject as early as possible: document.referrer is set when the document
+  // is created, so there is no reason to wait for the page to finish loading.
+  if (browser.scripting?.executeScript) {
+    const [injection] = await browser.scripting.executeScript({
+      target: { tabId },
+      injectImmediately: true,
+      func: () => ({ url: location.href, referrer: document.referrer }),
+    })
+    return injection?.result
+  }
+  const [result] = await browser.tabs.executeScript(tabId, {
+    code: '({ url: location.href, referrer: document.referrer })',
+    runAt: 'document_start',
+  })
+  return result
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Timed out')), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
+// Returns the referrer of the page currently shown in the tab, or undefined
+// when there is none, the permission is missing, or the page cannot be
+// scripted (browser-internal pages, extension stores, PDF viewers, ...).
+export const getTabReferrer = async (
+  tabId: number,
+  url: string,
+): Promise<string | undefined> => {
+  try {
+    if (!(await browser.permissions.contains(getReferrerPermissions()))) {
+      return undefined
+    }
+    const page = await withTimeout(readPageReferrer(tabId), REFERRER_TIMEOUT_MS)
+    // The script may have run in the previous document during a navigation;
+    // only trust the result when it belongs to the URL being reported.
+    if (!isPageReferrer(page) || page.url !== url) return undefined
+    return page.referrer || undefined
+  } catch (e) {
+    console.debug('Could not read referrer for tab', tabId, e)
+    return undefined
+  }
+}
+
 export function emitNotification(title: string, message: string) {
   // Safari web extensions do not implement the notifications API. Throwing
   // here would abort the heartbeat being sent and leave the sync status stuck.

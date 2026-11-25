@@ -59,6 +59,9 @@
         "activeTab",
         "storage"
     ],
+    "{{firefox}}.optional_permissions": ["<all_urls>"],
+    "{{chrome}}.optional_permissions": ["scripting"],
+    "{{safari}}.optional_permissions": ["scripting"],
     "{{chrome}}.host_permissions": ["<all_urls>"],
     "{{safari}}.host_permissions": ["<all_urls>"],
 

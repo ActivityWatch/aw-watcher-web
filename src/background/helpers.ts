@@ -92,6 +92,9 @@ export const getTabGroup = async (
 }
 
 export function emitNotification(title: string, message: string) {
+  // Safari web extensions do not implement the notifications API. Throwing
+  // here would abort the heartbeat being sent and leave the sync status stuck.
+  if (!browser.notifications?.create) return
   browser.notifications.create({
     type: 'basic',
     iconUrl: browser.runtime.getURL('logo-128.png'),

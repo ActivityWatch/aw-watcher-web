@@ -132,3 +132,14 @@ export const setProfileName = (profileName: ProfileName) => {
   if (trimmed === '') return browser.storage.local.remove('profileName')
   return browser.storage.local.set({ profileName: trimmed })
 }
+
+export const getInstallDate = (): Promise<Date | undefined> =>
+  browser.storage.local
+    .get('installDate')
+    .then((data: StorageData) =>
+      data.installDate ? new Date(data.installDate as string) : undefined,
+    )
+export const setInstallDate = (date: Date): Promise<void> =>
+  browser.storage.local
+    .set({ installDate: date.toISOString() })
+    .then(() => undefined)

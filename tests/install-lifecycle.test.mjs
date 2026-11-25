@@ -32,8 +32,15 @@ function loadSource(path, mocks) {
     return exports
 }
 
-async function install({ reason, enabled, consent, requireConsent, managed }) {
-    const state = { enabled, consent, hostname: 'synthetic-host' }
+async function install({
+    reason,
+    enabled,
+    consent,
+    requireConsent,
+    managed,
+    installDate,
+}) {
+    const state = { enabled, consent, hostname: 'synthetic-host', installDate }
     const listeners = []
     const enabledWrites = []
     const consentPages = []
@@ -146,3 +153,25 @@ for (const reason of ['install', 'update']) {
         })
     }
 }
+
+for (const reason of ['update', 'chrome_update']) {
+    test(`${reason} does not stamp an install date on existing users`, async () => {
+        const result = await install({ reason, requireConsent: false })
+        assert.equal(result.state.installDate, undefined)
+    })
+}
+
+test('install stamps the install date', async () => {
+    const result = await install({ reason: 'install', requireConsent: false })
+    assert.ok(!Number.isNaN(Date.parse(result.state.installDate)))
+})
+
+test('install keeps an existing install date', async () => {
+    const installDate = '2026-01-01T00:00:00.000Z'
+    const result = await install({
+        reason: 'install',
+        requireConsent: false,
+        installDate,
+    })
+    assert.equal(result.state.installDate, installDate)
+})

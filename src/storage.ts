@@ -113,6 +113,14 @@ export const getHostname = (): Promise<Hostname | undefined> =>
 export const setHostname = (hostname: Hostname) =>
   browser.storage.local.set({ hostname })
 
+type ServerPort = number
+export const getServerPort = (): Promise<ServerPort | undefined> =>
+  browser.storage.local
+    .get('serverPort')
+    .then((data: StorageData) => data.serverPort as number | undefined)
+export const setServerPort = (serverPort: ServerPort) =>
+  browser.storage.local.set({ serverPort })
+
 type ApiKey = string
 export const getApiKey = (): Promise<ApiKey | undefined> =>
   browser.storage.local

@@ -22,13 +22,14 @@
         "prettier": "^3.4.2",
         "typescript": "^5.7.3",
         "vite": "^8.0.16",
-        "vite-plugin-web-extension": "^4.5.1"
+        "vite-plugin-web-extension": "^4.5.1",
+        "vitest": "^5.0.3"
     },
     "prettier": {
         "semi": false,
         "singleQuote": true
     },
     "scripts": {
-        "test": "node --test tests/*.test.ts"
+        "test": "make test"
     }
 }

@@ -28,8 +28,9 @@ async function autodetectHostname(client: ReturnType<typeof getClient>) {
   const hostname = await getHostname()
   if (hostname === undefined) {
     const detectedHostname = await detectHostname(client)
-    if (detectedHostname !== undefined) {
-      setHostname(detectedHostname)
+    // A hostname the user saved while the request was in flight wins.
+    if (detectedHostname !== undefined && (await getHostname()) === undefined) {
+      await setHostname(detectedHostname)
     }
   }
 }
@@ -40,6 +41,15 @@ console.info('Starting...')
 console.debug('Creating client')
 const client = getClient()
 const clientReady = loadApiKey(client)
+// Detect on every start, not only on install/update: if aw-server was not
+// running at install time, events would otherwise keep going to the
+// hostname-less bucket. Every heartbeat path waits for it, so no event reaches
+// that bucket while detection is in flight. A failure must not block them.
+const hostnameReady = clientReady.then(() =>
+  autodetectHostname(client).catch((err) =>
+    console.error('Hostname detection failed:', err),
+  ),
+)
 
 browser.runtime.onInstalled.addListener(async ({ reason }) => {
   const { consent } = await getConsentStatus()
@@ -62,31 +72,27 @@ browser.runtime.onInstalled.addListener(async ({ reason }) => {
       url: browser.runtime.getURL('src/consent/index.html'),
     })
   }
-
-  await clientReady
-  await autodetectHostname(client)
 })
 
 console.debug('Creating alarms and tab listeners')
 browser.alarms.create(config.heartbeat.alarmName, {
   periodInMinutes: Math.floor(config.heartbeat.intervalInSeconds / 60),
 })
-browser.alarms.onAlarm.addListener(async (alarm) => {
-  await clientReady
-  return heartbeatAlarmListener(client)(alarm)
-})
-browser.tabs.onActivated.addListener(async (activeInfo) => {
-  await clientReady
-  return tabActivatedListener(client)(activeInfo)
-})
-browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  await clientReady
-  return tabUpdatedListener(client)(tabId, changeInfo, tab)
-})
+// Register directly: each listener snapshots tab state and reserves queue order
+// before awaiting storage. The queue checks event-time consent and heartbeat()
+// checks again before sending.
+browser.alarms.onAlarm.addListener(
+  heartbeatAlarmListener(client, hostnameReady),
+)
+browser.tabs.onActivated.addListener(
+  tabActivatedListener(client, hostnameReady),
+)
+browser.tabs.onUpdated.addListener(tabUpdatedListener(client, hostnameReady))
 
 console.debug('Setting base url')
 clientReady
   .then(() => setBaseUrl(client.baseURL))
+  .then(() => hostnameReady)
   .then(() =>
     console.debug('Waiting for enable before sending initial heartbeat'),
   )
